@@ -30,13 +30,22 @@ export class GeminiProvider implements ReplyProvider {
         }
       })
     });
-    const raw = await response.json() as GeminiResponse;
-    if (!response.ok) throw Object.assign(new Error(mapProviderMessage(response.status)), { status: response.status });
-    const text = raw.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!text) throw new Error("The model returned no draft.");
-    const parsed = JSON.parse(text) as { draft?: unknown };
-    if (typeof parsed.draft !== "string" || !parsed.draft.trim()) throw new Error("The model returned an invalid draft.");
-    return { draft: parsed.draft.trim(), inputTokens: raw.usageMetadata?.promptTokenCount, outputTokens: raw.usageMetadata?.candidatesTokenCount };
+    const raw = await response.json().catch(() => null) as GeminiResponse | null;
+    if (!response.ok) {
+      // Surface the upstream reason (region blocks, model errors, quota…)
+      // verbatim so operators and users see what actually happened.
+      const upstream = (raw as { error?: { message?: string } } | null)?.error?.message;
+      throw Object.assign(new Error(mapProviderMessage(response.status)), {
+        status: response.status,
+        detail: upstream ? `${response.status} ${upstream}` : `Upstream HTTP ${response.status}`
+      });
+    }
+    const text = raw?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!text) throw Object.assign(new Error("The model returned no draft."), { detail: "Model returned no candidates or empty content." });
+    let parsed: { draft?: unknown };
+    try { parsed = JSON.parse(text) as { draft?: unknown }; } catch { throw Object.assign(new Error("The model returned an invalid draft."), { detail: "Model output was not valid JSON." }); }
+    if (typeof parsed.draft !== "string" || !parsed.draft.trim()) throw Object.assign(new Error("The model returned an invalid draft."), { detail: "Response did not match the requested { draft } shape." });
+    return { draft: parsed.draft.trim(), inputTokens: raw?.usageMetadata?.promptTokenCount, outputTokens: raw?.usageMetadata?.candidatesTokenCount };
   }
 }
 

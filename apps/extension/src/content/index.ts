@@ -30,7 +30,7 @@ if (!window.__verbiaLoaded) {
       // Explicit re-invocation (shortcut/action) unfolds a folded panel in
       // place so typed content survives. Passive focus-in does not, so the
       // panel stays folded when the user simply clicks back into the editor.
-      if (focusIntent) panel?.unfoldIfCollapsed();
+      if (focusIntent) void panel?.unfoldIfCollapsed();
       return;
     }
     const context = await adapter.extractContext(target);
@@ -55,7 +55,7 @@ if (!window.__verbiaLoaded) {
   async function showFocusToast() {
     const { settings } = await chrome.storage.local.get("settings");
     const stored = (settings ?? DEFAULT_SETTINGS) as typeof DEFAULT_SETTINGS;
-    const lang = resolveUiLang(stored.uiLanguage, navigator.language);
+    const lang = resolveUiLang(stored.uiLanguage, chrome.i18n.getUILanguage());
     showToast(UI_STRINGS[lang]["content.toastFocusEditor"] ?? UI_STRINGS.en["content.toastFocusEditor"] ?? "Focus a text editor, then use the Verbia shortcut again.");
   }
 

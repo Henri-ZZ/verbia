@@ -20,7 +20,7 @@
   ],
   "commands": {
     "open-verbia": {
-      "suggested_key": { "default": "Alt+Shift+I", "mac": "MacCtrl+Shift+I" },
+      "suggested_key": { "default": "Ctrl+Shift+Y", "mac": "Command+Shift+Y" },
       "description": "__MSG_openVerbiaDesc__"
     }
   }

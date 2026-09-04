@@ -10,7 +10,7 @@ export type ExtensionRequest =
 
 export type ExtensionResponse =
   | { ok: true; data?: GenerateReplyResponse | UserSettings | { reset: true } }
-  | { ok: false; error: { code: string; userMessage: string; retryable: boolean } };
+  | { ok: false; error: { code: string; userMessage: string; retryable: boolean; detail?: string } };
 
 export type EditableKind = "textarea" | "input" | "contenteditable";
 export type EditableTarget = { ref: string; element: HTMLElement; kind: EditableKind };

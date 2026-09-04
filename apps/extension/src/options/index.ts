@@ -59,6 +59,7 @@ async function load() {
   set("backend", value.backendBaseUrl); set("voice-language", value.voiceLanguage); set("ui-language", value.uiLanguage); set("output-language", value.outputLanguage); set("tone", value.defaultTone); set("length", value.defaultLength);
   check("contextPreviewExpanded", value.contextPreviewExpanded); check("telemetryEnabled", value.telemetryEnabled);
   check("showLanguageInPanel", value.showLanguageInPanel); check("showToneInPanel", value.showToneInPanel); check("showLengthInPanel", value.showLengthInPanel);
+  await applyShortcuts();
 }
 
 function isValidBackendUrl(raw: string): boolean {
@@ -141,5 +142,34 @@ function show(message: string, isError = false) {
   statusTimer = window.setTimeout(() => { status.textContent = ""; }, 2_500);
 }
 
+// Keyboard shortcut card: show the shortcut actually bound via Chrome's
+// commands API. macOS reports "Alt" for the Option key, so spell that out the
+// way Mac users know it when a custom binding uses Alt.
+const isMac = /Mac|iP(hone|ad|od)/.test(navigator.platform ?? "");
+function displayShortcut(raw: string): string {
+  if (!isMac) return raw;
+  return raw.replace(/\bAlt\+/g, "Option+");
+}
+
+async function applyShortcuts() {
+  let commands: Array<{ name?: string; shortcut?: string }> = [];
+  try {
+    commands = await chrome.commands.getAll();
+  } catch { return; } // commands API unavailable — keep the HTML defaults
+  const byName = new Map(commands.map(c => [c.name, c.shortcut ?? ""]));
+  const el = document.getElementById("kbd-open-verbia");
+  if (!el) return;
+  const value = byName.get("open-verbia") ?? "";
+  el.textContent = value ? displayShortcut(value) : t("settings.shortcutUnset");
+}
+
+document.querySelector<HTMLAnchorElement>("#open-shortcuts-link")?.addEventListener("click", event => {
+  event.preventDefault();
+  void chrome.tabs.create({ url: "chrome://extensions/shortcuts" });
+});
+
 applyLanguage();
 void load();
+// Re-fetch the bound shortcut when the user returns from the browser's
+// shortcut-settings page (it opens in a new tab; coming back refocuses here).
+window.addEventListener("focus", () => { void applyShortcuts(); });

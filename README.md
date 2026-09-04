@@ -77,7 +77,7 @@ pnpm api:mock
 
 1. 在 Reddit 中打开一个回复框，Verbia 会自动出现在原输入框下方。
 2. 点击 Chrome 工具栏中的 Verbia 图标，可以打开设置侧边栏。
-3. 在其他网站先聚焦可编辑区域，再使用快捷键：Windows/Linux 为 `Alt+Shift+I`，macOS 为 `Control+Shift+I`。
+3. 在其他网站先点击输入框，再使用快捷键：Windows/Linux 为 `Ctrl+Shift+Y`，macOS 为 `Command+Shift+Y`。
 4. 检查内嵌 Verbia 面板显示的上下文。
 5. 用中文或其他熟悉的语言写下想表达的意思。
 6. 选择输出语言、语气和长度，然后点击 Generate。

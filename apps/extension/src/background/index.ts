@@ -1,9 +1,15 @@
-import { DEFAULT_SETTINGS, generateReplyRequestSchema, generateReplyResponseSchema, type ExtensionRequest, type ExtensionResponse, type UserSettings } from "@verbia/shared";
+import { DEFAULT_SETTINGS, generateReplyRequestSchema, generateReplyResponseSchema, resolveUiLang, type ExtensionRequest, type ExtensionResponse, type UserSettings } from "@verbia/shared";
 
 chrome.runtime.onInstalled.addListener(async details => {
   if (details.reason !== "install") return;
   const { settings } = await chrome.storage.local.get("settings");
-  if (!settings) await chrome.storage.local.set({ settings: DEFAULT_SETTINGS });
+  if (settings) return;
+  // Fresh install: snapshot the browser UI language into a concrete value
+  // (en/zh-CN) instead of storing "auto". "auto" would otherwise be re-resolved
+  // per surface with potentially different results. The user can change it on
+  // the Settings page afterwards.
+  const initial: UserSettings = { ...DEFAULT_SETTINGS, uiLanguage: resolveUiLang("auto", chrome.i18n.getUILanguage()) };
+  await chrome.storage.local.set({ settings: initial });
 });
 
 chrome.commands.onCommand.addListener(async command => {
@@ -83,8 +89,8 @@ async function generate(payload: unknown) {
     });
     const body: unknown = await response.json().catch(() => null);
     if (!response.ok) {
-      const serverError = body as { userMessage?: string; code?: string; retryable?: boolean } | null;
-      throw Object.assign(new Error(serverError?.userMessage ?? `Generation service returned ${response.status}.`), { code: serverError?.code, retryable: serverError?.retryable });
+      const serverError = body as { userMessage?: string; code?: string; retryable?: boolean; detail?: string } | null;
+      throw Object.assign(new Error(serverError?.userMessage ?? `Generation service returned ${response.status}.`), { code: serverError?.code, retryable: serverError?.retryable, detail: serverError?.detail });
     }
     const result = generateReplyResponseSchema.parse(body);
     const session = await chrome.storage.session.get("cancelledRequestId");
@@ -95,6 +101,6 @@ async function generate(payload: unknown) {
 }
 
 function failure(error: unknown): ExtensionResponse {
-  const value = error as { message?: string; code?: string; retryable?: boolean; name?: string };
-  return { ok: false, error: { code: value.code ?? (value.name === "AbortError" ? "TIMEOUT" : "PROVIDER_ERROR"), userMessage: value.name === "AbortError" ? "Generation timed out. Try again." : value.message ?? "Something went wrong.", retryable: value.retryable ?? true } };
+  const value = error as { message?: string; code?: string; retryable?: boolean; detail?: string; name?: string };
+  return { ok: false, error: { code: value.code ?? (value.name === "AbortError" ? "TIMEOUT" : "PROVIDER_ERROR"), userMessage: value.name === "AbortError" ? "Generation timed out. Try again." : value.message ?? "Something went wrong.", retryable: value.retryable ?? true, detail: value.detail } };
 }

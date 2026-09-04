@@ -29,12 +29,15 @@ export const server = createServer(async (request, response) => {
       return json(response, 200, value);
     } finally { clearTimeout(timer); }
   } catch (error) {
-    if ((error as { code?: string }).code === "TOO_LARGE") return apiError(response, 413, requestId, "TOO_LARGE", false, "The context or intent is too large.");
-    if ((error as { name?: string }).name === "AbortError") return apiError(response, 504, requestId, "TIMEOUT", true, "Generation timed out. Try again.");
-    const status = (error as { status?: number }).status;
-    if (status === 429) return apiError(response, 429, requestId, "RATE_LIMITED", true, (error as Error).message);
-    const notConfigured = (error as Error).message?.startsWith("NOT_CONFIGURED");
-    return apiError(response, notConfigured ? 503 : 502, requestId, notConfigured ? "NOT_CONFIGURED" : "PROVIDER_ERROR", !notConfigured, notConfigured ? "Generation service is not configured. Open Verbia settings." : "The model service returned an invalid response. Try again.");
+    const err = error as { code?: string; status?: number; detail?: string; name?: string; message?: string };
+    // Always log the real failure server-side; the client only ever sees the
+    // sanitised userMessage below.
+    console.error(`[verbia-api] request ${requestId} failed:`, err);
+    if (err.code === "TOO_LARGE") return apiError(response, 413, requestId, "TOO_LARGE", false, "The context or intent is too large.");
+    if (err.name === "AbortError") return apiError(response, 504, requestId, "TIMEOUT", true, "Generation timed out. Try again.");
+    if (err.status === 429) return apiError(response, 429, requestId, "RATE_LIMITED", true, "The model is busy or quota-limited. Try again shortly.", err.detail);
+    const notConfigured = err.message?.startsWith("NOT_CONFIGURED");
+    return apiError(response, notConfigured ? 503 : 502, requestId, notConfigured ? "NOT_CONFIGURED" : "PROVIDER_ERROR", !notConfigured, notConfigured ? "Generation service is not configured. Open Verbia settings." : "The model service returned an invalid response. Try again.", notConfigured ? undefined : (err.detail ?? err.message));
   }
 });
 
@@ -56,7 +59,7 @@ function cleanDraft(value: string) { return value.replace(/[\u0000-\u0008\u000B\
 function cors(response: ServerResponse) { response.setHeader("access-control-allow-origin", "*"); response.setHeader("access-control-allow-headers", "content-type"); response.setHeader("access-control-allow-methods", "POST,GET,OPTIONS"); response.setHeader("cache-control", "no-store"); response.setHeader("x-content-type-options", "nosniff"); }
 function json(response: ServerResponse, status: number, body: unknown) { response.writeHead(status, { "content-type": "application/json; charset=utf-8" }); response.end(JSON.stringify(body)); }
 function end(response: ServerResponse, status: number) { response.writeHead(status); response.end(); }
-function apiError(response: ServerResponse, status: number, requestId: string, code: ApiError["code"], retryable: boolean, userMessage: string) { return json(response, status, { requestId, code, retryable, userMessage } satisfies ApiError); }
+function apiError(response: ServerResponse, status: number, requestId: string, code: ApiError["code"], retryable: boolean, userMessage: string, detail?: string) { return json(response, status, { requestId, code, retryable, userMessage, detail } satisfies ApiError); }
 function numberEnv(name: string, fallback: number) { const value = Number(process.env[name]); return Number.isFinite(value) ? value : fallback; }
 
 if (process.env.NODE_ENV !== "test") server.listen(port, "127.0.0.1", () => console.log(`Verbia API listening on http://127.0.0.1:${port}`));

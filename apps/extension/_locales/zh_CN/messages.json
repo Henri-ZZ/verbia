@@ -6,6 +6,6 @@
     "message": "打开 Verbia"
   },
   "openVerbiaDesc": {
-    "message": "为当前聚焦的编辑器打开 Verbia"
+    "message": "点击输入框，然后按快捷键打开 Verbia"
   }
 }

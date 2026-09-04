@@ -38,6 +38,15 @@ const EN: Strings = {
   "settings.expandContext": "Expand context preview by default",
   "settings.telemetry": "Allow metadata-only diagnostics (no message text)",
   "settings.reset": "Reset settings",
+  "settings.resetDone": "Settings reset to defaults",
+  "settings.saved": "Settings saved",
+  "settings.saveError": "Couldn't save settings",
+  "settings.urlInvalid": "Enter a valid http(s) backend URL",
+  "settings.shortcutTitle": "Keyboard shortcut",
+  "settings.shortcutDesc": "Click a text field, then press the shortcut to open Verbia",
+  "settings.shortcutHelp": "Shortcuts can be customized in your browser’s extension settings:",
+  "settings.openShortcutsPage": "Open shortcut settings",
+  "settings.shortcutUnset": "Not set",
   "settings.howTitle": "How it works",
   "settings.howBody": "Open a Reddit reply box and Verbia appears directly below it. The toolbar icon opens the Verbia menu — open Settings from there. On other sites, use the keyboard shortcut for Universal Mode.",
   "settings.privacyTitle": "Privacy by design",
@@ -45,8 +54,8 @@ const EN: Strings = {
 
   // popup
   "popup.lead": "Reply in any language, right where you type.",
-  "popup.keys": "Focus a reply box and start typing — or press Alt+Shift+I to open Verbia.",
-  "popup.os": "Ctrl+Shift+I on Mac.",
+  "popup.keys": "Focus a text field, then press Ctrl+Shift+Y to open Verbia.",
+  "popup.os": "Command+Shift+Y on Mac.",
   "popup.settings": "Settings",
 
   // reply panel
@@ -150,6 +159,15 @@ const ZH_CN: Strings = {
   "settings.expandContext": "默认展开上下文预览",
   "settings.telemetry": "允许仅元数据诊断（不含消息文本）",
   "settings.reset": "重置设置",
+  "settings.resetDone": "设置已重置为默认值",
+  "settings.saved": "设置已保存",
+  "settings.saveError": "设置保存失败",
+  "settings.urlInvalid": "请输入有效的 http(s) 后端 URL",
+  "settings.shortcutTitle": "键盘快捷键",
+  "settings.shortcutDesc": "点击输入框，然后按快捷键打开 Verbia",
+  "settings.shortcutHelp": "可在浏览器的扩展程序设置中自定义快捷键：",
+  "settings.openShortcutsPage": "打开快捷键设置",
+  "settings.shortcutUnset": "未设置",
   "settings.howTitle": "工作原理",
   "settings.howBody": "打开 Reddit 回复框，Verbia 会直接出现在下方。点击工具栏图标打开 Verbia 菜单——在那里打开 Settings。其他网页可用快捷键进入通用模式。",
   "settings.privacyTitle": "隐私设计",
@@ -157,8 +175,8 @@ const ZH_CN: Strings = {
 
   // popup
   "popup.lead": "在你打字的地方，用任何语言回复。",
-  "popup.keys": "聚焦回复框开始打字——或按 Alt+Shift+I 打开 Verbia。",
-  "popup.os": "Mac 上为 Ctrl+Shift+I。",
+  "popup.keys": "点击输入框，然后按 Ctrl+Shift+Y 打开 Verbia。",
+  "popup.os": "Mac 上为 Command+Shift+Y。",
   "popup.settings": "设置",
 
   // reply panel

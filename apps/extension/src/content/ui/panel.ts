@@ -99,7 +99,10 @@ export class VerbiaPanel {
     this.previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const response = await chrome.runtime.sendMessage({ type: "GET_SETTINGS" });
     if (response?.ok && response.data) this.settings = response.data as UserSettings;
-    this.lang = resolveUiLang(this.settings.uiLanguage, navigator.language);
+    // Resolve "auto" from the browser UI language (chrome.i18n), the same
+    // source the Settings page and popup use. navigator.language reflects the
+    // page content-language preference and can disagree with it.
+    this.lang = resolveUiLang(this.settings.uiLanguage, chrome.i18n.getUILanguage());
     this.phase = "context_ready";
     this.renderPanel();
     if (focusIntent) queueMicrotask(() => this.el<HTMLTextAreaElement>("intent")?.focus());
@@ -202,7 +205,11 @@ export class VerbiaPanel {
     };
     try {
       const response = await chrome.runtime.sendMessage({ type: "GENERATE_REPLY", payload: request });
-      if (!response?.ok) throw new Error(response?.error?.userMessage || "Generation failed.");
+      if (!response?.ok) {
+        const message = response?.error?.userMessage || "Generation failed.";
+        const detail = response?.error?.detail;
+        throw Object.assign(new Error(message), { detail });
+      }
       const result = response.data as GenerateReplyResponse;
       if (result.requestId !== this.requestId) return;
       this.draft = result.draft;
@@ -211,7 +218,12 @@ export class VerbiaPanel {
       this.el("draft-area")?.classList.remove("hidden");
       this.phase = "draft_ready";
       this.status(result.warnings.length ? this.t("panel.status.draftReadyWarning") : this.t("panel.status.draftReady"));
-    } catch (error) { this.phase = "error"; this.status(error instanceof Error ? error.message : this.t("panel.status.generationFailed"), "error"); }
+    } catch (error) {
+      this.phase = "error";
+      const err = error as { message?: string; detail?: string };
+      const message = err.message ?? this.t("panel.status.generationFailed");
+      this.status(err.detail ? `${message} (${err.detail})` : message, "error");
+    }
     finally { this.setBusy(false); }
   }
 
@@ -328,14 +340,39 @@ export class VerbiaPanel {
   private removeContext() { this.context = { relation: "none", truncated: false, extractorVersion: this.context.extractorVersion, confidence: "high" }; this.root.querySelector(".context-body")!.textContent = this.contextText(); this.root.querySelector(".chip")!.textContent = this.contextLabel(); this.status(this.t("panel.status.contextRemoved")); }
   private setBusy(busy: boolean) { this.action("generate")?.toggleAttribute("disabled", busy); this.action("cancel")?.classList.toggle("hidden", !busy); }
   private status(message: string, kind?: string) { const el = this.el("status"); if (el) { el.textContent = message; el.className = `status ${kind ?? ""}`; } }
-  // Called by the content script when the user re-invokes Verbia while the
-  // panel is folded. Returns true when it unfolded in place (typed content is
-  // preserved), false when there was nothing folded.
-  unfoldIfCollapsed(): boolean {
+  // Called by the content script when the user explicitly re-invokes Verbia
+  // (shortcut/action). Re-pulls settings: if the Settings page changed the
+  // interface language while the panel was mounted, rebuild into the new
+  // language, carrying typed intent and draft text across the rebuild. When
+  // the panel was folded it is also unfolded in place. Returns true when the
+  // panel was folded (and got unfolded), false when it was already open.
+  async unfoldIfCollapsed(): Promise<boolean> {
     const panel = this.root.querySelector(".panel");
-    if (!panel?.classList.contains("collapsed")) return false;
-    this.setCollapsed(false);
-    return true;
+    const wasCollapsed = !!panel?.classList.contains("collapsed");
+    await this.refreshLanguageFromSettings();
+    if (wasCollapsed) this.setCollapsed(false);
+    return wasCollapsed;
+  }
+
+  private async refreshLanguageFromSettings() {
+    const response = await chrome.runtime.sendMessage({ type: "GET_SETTINGS" });
+    if (!response?.ok || !response.data) return;
+    const next = response.data as UserSettings;
+    const nextLang = resolveUiLang(next.uiLanguage, chrome.i18n.getUILanguage());
+    if (nextLang === this.lang) { this.settings = next; return; }
+    // A rebuild would disturb an in-flight generation/recording; adopt the new
+    // snapshot only and let the next explicit unfold pick the language up.
+    if (this.phase === "recording" || this.phase === "generating" || this.phase === "inserting") { this.settings = next; return; }
+    // Interface language changed while folded: rebuild into the new language
+    // without losing what the user already typed or generated.
+    const intent = this.el<HTMLTextAreaElement>("intent")?.value ?? "";
+    const draftText = this.el<HTMLTextAreaElement>("draft")?.value ?? "";
+    const draftVisible = !this.el("draft-area")?.classList.contains("hidden");
+    this.settings = next;
+    this.lang = nextLang;
+    this.renderPanel(intent);
+    if (draftText) { const draft = this.el<HTMLTextAreaElement>("draft"); if (draft) draft.value = draftText; }
+    if (draftVisible) this.el("draft-area")?.classList.remove("hidden");
   }
 
   private toggleCollapsed() {

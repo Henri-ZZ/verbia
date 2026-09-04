@@ -137,7 +137,8 @@ export const apiErrorSchema = z.object({
   requestId: z.string(),
   code: z.enum(["INVALID_REQUEST", "TOO_LARGE", "RATE_LIMITED", "PROVIDER_ERROR", "TIMEOUT", "UNSAFE_CONTENT", "NOT_CONFIGURED"]),
   retryable: z.boolean(),
-  userMessage: z.string()
+  userMessage: z.string(),
+  detail: z.string().optional()
 });
 
 export type ContextEnvelope = z.infer<typeof contextEnvelopeSchema>;
