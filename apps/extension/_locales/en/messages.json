@@ -1,0 +1,11 @@
+{
+  "description": {
+    "message": "Your intent. The right words. Verbia turns what you mean into a natural reply draft—review, edit, and send it yourself."
+  },
+  "actionTitle": {
+    "message": "Open Verbia"
+  },
+  "openVerbiaDesc": {
+    "message": "Open Verbia for the focused editor"
+  }
+}

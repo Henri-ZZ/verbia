@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 680">
+  <!-- background -->
+  <rect width="680" height="680" rx="0" fill="#F2EDE2"/>
+
+  <!-- layered V: lightest (back) -> sage (middle) -> dark teal (front) -->
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="74">
+    <!-- back layer: light gray-green -->
+    <polyline points="136,164 326,486 516,164" stroke="#C7D5C4"/>
+    <!-- middle layer: sage -->
+    <polyline points="152,182 342,504 532,182" stroke="#7FA28D"/>
+    <!-- front layer: dark teal green -->
+    <polyline points="168,200 358,522 548,200" stroke="#33604E"/>
+  </g>
+</svg>

@@ -1,0 +1,17 @@
+:root{font-family:Inter,ui-sans-serif,system-ui,sans-serif;color:#172019;color-scheme:light}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{width:344px;min-height:284px;display:flex;flex-direction:column;gap:18px;padding:20px;background:#F2EDE2}
+.brand{display:flex;align-items:center;gap:9px}
+.brand img{display:block}
+h1{margin:0;font:800 22px/1 Georgia,serif}
+.slogan{margin:8px 0 0;font-size:13px;font-weight:750;color:#33604E;letter-spacing:.01em}
+main{flex:1;display:flex;flex-direction:column;gap:6px;background:#fffdf8;border:1px solid #e4dccb;border-radius:14px;padding:16px;box-shadow:0 6px 18px #2145310d}
+.lead{margin:0;font-size:13px;font-weight:700}
+.keys{margin:0;font-size:12px;line-height:1.55;color:#66736a}
+.os{margin:0;font-size:12px;color:#8a958c}
+kbd{font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:#3c4a40;background:#f2ede2;border:1px solid #ddd2bd;border-bottom-width:2px;border-radius:5px;padding:1px 4px}
+footer{border-top:1px solid #e0d5c0;padding-top:14px}
+#open-settings{display:block;width:100%;padding:9px 0;border:1px solid #9fb8a6;border-radius:10px;background:transparent;color:#2e5a43;font:600 13px/1 inherit;cursor:pointer;transition:background .15s ease,color .15s ease,border-color .15s ease}
+#open-settings:hover{background:#33604E;border-color:#33604E;color:#fff}
+#open-settings:focus-visible{outline:none;box-shadow:0 0 0 3px #33604E33}
