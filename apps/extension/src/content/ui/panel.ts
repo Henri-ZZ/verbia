@@ -1,6 +1,7 @@
 import type { ContextEnvelope, EditableTarget, GenerateReplyRequest, GenerateReplyResponse, SiteAdapter, UiLang, UserSettings } from "@verbia/shared";
 import { DEFAULT_SETTINGS, LENGTH_VALUES, REPLY_LANGUAGE_OPTIONS, TONE_VALUES, UI_STRINGS, resolveUiLang } from "@verbia/shared";
 import { readEditable } from "../editor/editable";
+import { msgColor, msgIcon, type MsgKind } from "../../ui/message";
 
 const styles = `
 :host{all:initial;display:block;inline-size:100%;color-scheme:light;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#172019}
@@ -9,7 +10,7 @@ const styles = `
 label{display:block;font-size:.75rem;font-weight:750;color:#39483e;margin:10px 0 5px}.intent,.draft{inline-size:100%;resize:vertical;min-block-size:84px;border:1px solid #cad6cc;background:white;border-radius:10px;padding:9px 10px;line-height:1.45}.draft{min-block-size:100px}select{inline-size:100%;min-block-size:32px;appearance:none;-webkit-appearance:none;border:1px solid #cad6cc;border-radius:9px;background-color:#fff;padding:6px 27px 6px 9px;font-size:.78rem;font-weight:600;color:#1b2a20;cursor:pointer;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23526d5c' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M4 6.5L8 10.5L12 6.5'/></svg>");background-repeat:no-repeat;background-position:right 8px center;background-size:14px 14px;transition:border-color .15s ease,box-shadow .15s ease}
 select:hover{border-color:#8fae9b}
 select:focus-visible{border-color:#0F6E56;box-shadow:0 0 0 2px #0F6E5626}
-.row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-block-start:10px}.primary,.secondary,.danger{min-block-size:32px;border:0;border-radius:9px;padding:8px 12px;font-weight:750}.primary{background:#0F6E56;color:white}.secondary{background:#e7eee8;color:#214531}.danger{background:#fae3df;color:#87362f}.primary:disabled,.secondary:disabled{opacity:.45;cursor:not-allowed}.status{min-block-size:18px;margin:8px 0 0;color:#526057;font-size:.75rem}.recording{color:#a72c25;font-weight:800}.foot{font-size:.7rem;color:#718078;margin:10px 0 0}.insert-choice{border:1px solid #efcf8b;background:#fff9e8;padding:10px;border-radius:10px;margin-block-start:10px}.hidden{display:none!important}@container (max-width:380px){.row{grid-template-columns:1fr}}
+.row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-block-start:10px}.primary,.secondary,.danger{min-block-size:32px;border:0;border-radius:9px;padding:8px 12px;font-weight:750}.primary{background:#0F6E56;color:white}.secondary{background:#e7eee8;color:#214531}.danger{background:#fae3df;color:#87362f}.primary:disabled,.secondary:disabled{opacity:.45;cursor:not-allowed}.status{min-block-size:18px;margin:8px 0 0;color:#526057;font-size:.75rem;display:flex;align-items:center;gap:6px}.status img{inline-size:14px;block-size:14px;flex:none}.status.recording{display:block;color:#a72c25;font-weight:800}.foot{font-size:.7rem;color:#718078;margin:10px 0 0}.insert-choice{border:1px solid #efcf8b;background:#fff9e8;padding:10px;border-radius:10px;margin-block-start:10px}.hidden{display:none!important}@container (max-width:380px){.row{grid-template-columns:1fr}}
 `;
 
 type Phase = "idle" | "context_ready" | "recording" | "generating" | "draft_ready" | "inserting" | "inserted" | "error";
@@ -217,7 +218,7 @@ export class VerbiaPanel {
       if (draftEl) draftEl.value = result.draft;
       this.el("draft-area")?.classList.remove("hidden");
       this.phase = "draft_ready";
-      this.status(result.warnings.length ? this.t("panel.status.draftReadyWarning") : this.t("panel.status.draftReady"));
+      this.status(result.warnings.length ? this.t("panel.status.draftReadyWarning") : this.t("panel.status.draftReady"), result.warnings.length ? "warning" : "success");
     } catch (error) {
       this.phase = "error";
       const err = error as { message?: string; detail?: string };
@@ -247,7 +248,7 @@ export class VerbiaPanel {
     this.phase = "inserting"; this.status(this.t("panel.status.inserting"));
     const result = await this.adapter.insertDraft(this.target, draft, mode);
     if (result.ok) {
-      this.phase = "inserted"; this.status(this.t("panel.status.inserted"));
+      this.phase = "inserted"; this.status(this.t("panel.status.inserted"), "success");
       this.el("insert-choice")?.classList.add("hidden");
       const insert = this.action("insert");
       if (insert) { insert.disabled = true; insert.textContent = this.t("panel.inserted"); }
@@ -257,7 +258,7 @@ export class VerbiaPanel {
 
   private async copy() {
     const draft = this.el<HTMLTextAreaElement>("draft")?.value ?? "";
-    try { await navigator.clipboard.writeText(draft); this.status(this.t("panel.status.copied")); }
+    try { await navigator.clipboard.writeText(draft); this.status(this.t("panel.status.copied"), "success"); }
     catch { this.el<HTMLTextAreaElement>("draft")?.select(); this.status(this.t("panel.status.copyManual"), "error"); }
   }
 
@@ -317,14 +318,14 @@ export class VerbiaPanel {
       const stoppedByUser = this.stopRequested;
       if (stoppedByUser || !this.host.isConnected || this.phase !== "recording") {
         this.phase = "context_ready";
-        this.status(this.t("panel.status.transcriptReady"));
+        this.status(this.t("panel.status.transcriptReady"), "success");
         return;
       }
       // The browser ended the session on its own (long silence, network
       // drop). Resume a few times while the user is still in the recording
       // flow, but never restart after a session that produced no speech.
       if (!this.hadSpeech) { this.phase = "context_ready"; this.status(this.t("panel.status.noSpeech")); return; }
-      if (this.restartCount >= 4) { this.phase = "context_ready"; this.status(this.t("panel.status.listeningPaused")); return; }
+      if (this.restartCount >= 4) { this.phase = "context_ready"; this.status(this.t("panel.status.listeningPaused"), "warning"); return; }
       this.restartCount += 1;
       this.restartTimer = window.setTimeout(() => {
         this.restartTimer = undefined;
@@ -339,7 +340,23 @@ export class VerbiaPanel {
 
   private removeContext() { this.context = { relation: "none", truncated: false, extractorVersion: this.context.extractorVersion, confidence: "high" }; this.root.querySelector(".context-body")!.textContent = this.contextText(); this.root.querySelector(".chip")!.textContent = this.contextLabel(); this.status(this.t("panel.status.contextRemoved")); }
   private setBusy(busy: boolean) { this.action("generate")?.toggleAttribute("disabled", busy); this.action("cancel")?.classList.toggle("hidden", !busy); }
-  private status(message: string, kind?: string) { const el = this.el("status"); if (el) { el.textContent = message; el.className = `status ${kind ?? ""}`; } }
+  private status(message: string, kind: MsgKind | "recording" = "info") {
+    const el = this.el("status");
+    if (!el) return;
+    el.className = "status";
+    el.replaceChildren();
+    el.style.color = "";
+    if (!message) return;
+    // "recording" is a live state, not a feedback message: keep its bold red
+    // text with no icon so the pulsing field never looks like an error.
+    if (kind === "recording") {
+      el.classList.add("recording");
+      el.textContent = message;
+      return;
+    }
+    el.append(msgIcon(kind, 14), document.createTextNode(message));
+    el.style.color = msgColor(kind);
+  }
   // The right-click menu ("Add to Verbia context") fired while this panel is
   // mounted on the page. Adopt the selection as the context's selectedText —
   // the newest selection replaces any earlier one. Typed intent, draft text
@@ -366,7 +383,7 @@ export class VerbiaPanel {
     this.renderPanel(intent);
     if (draftText) { const draft = this.el<HTMLTextAreaElement>("draft"); if (draft) draft.value = draftText; }
     if (draftVisible) this.el("draft-area")?.classList.remove("hidden");
-    this.status(this.t("panel.status.contextAdded"));
+    this.status(this.t("panel.status.contextAdded"), "success");
     return true;
   }
 

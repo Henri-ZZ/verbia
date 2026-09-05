@@ -14,7 +14,7 @@
   "options_page": "options.html",
   "web_accessible_resources": [
     {
-      "resources": ["icons/verbia-logo.svg"],
+      "resources": ["icons/verbia-logo.svg", "assets/*"],
       "matches": ["<all_urls>"]
     }
   ],

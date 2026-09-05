@@ -2,6 +2,7 @@ import { RedditAdapter } from "./adapters/reddit";
 import { UniversalAdapter } from "./adapters/universal";
 import { isSafeEditable, toTarget } from "./editor/editable";
 import { VerbiaPanel } from "./ui/panel";
+import { msgIcon, type MsgKind } from "../ui/message";
 import { DEFAULT_SETTINGS, UI_STRINGS, resolveUiLang, type ContextEnvelope, type StagedSelection } from "@verbia/shared";
 
 declare global { interface Window { __verbiaLoaded?: boolean; } }
@@ -59,7 +60,7 @@ if (!window.__verbiaLoaded) {
     const fallback = adapter.findComposers().at(-1)?.element ?? null;
     const chosen = element && isSafeEditable(element) ? element : fallback;
     if (!chosen) {
-      await showToastFor("content.toastFocusEditor", "Focus a text editor, then use the Verbia shortcut again.");
+      await showToastFor("content.toastFocusEditor", "Focus a text editor, then use the Verbia shortcut again.", "info");
       return false;
     }
     await showFor(chosen, adapter, true, stagedSelection);
@@ -71,15 +72,15 @@ if (!window.__verbiaLoaded) {
   // the selection per tab for the next time Verbia opens on this page.
   async function addContextFromMenu(selection: StagedSelection): Promise<boolean> {
     if (panel?.mergeContextSelection(selection.text, selection.truncated)) return true;
-    await showToastFor("content.contextStaged", "Added to Verbia context.");
+    await showToastFor("content.contextStaged", "Added to Verbia context.", "success");
     return false;
   }
 
-  async function showToastFor(key: string, fallback: string) {
+  async function showToastFor(key: string, fallback: string, kind: MsgKind = "info") {
     const { settings } = await chrome.storage.local.get("settings");
     const stored = (settings ?? DEFAULT_SETTINGS) as typeof DEFAULT_SETTINGS;
     const lang = resolveUiLang(stored.uiLanguage, chrome.i18n.getUILanguage());
-    showToast(UI_STRINGS[lang][key] ?? UI_STRINGS.en[key] ?? fallback);
+    showToast(UI_STRINGS[lang][key] ?? UI_STRINGS.en[key] ?? fallback, kind);
   }
 
   function scanReddit() {
@@ -134,11 +135,18 @@ function findReplyAnchor(element: HTMLElement): Element {
     ?? element;
 }
 
-function showToast(message: string) {
+function showToast(message: string, kind: MsgKind = "info") {
   const toast = document.createElement("div");
-  toast.textContent = message;
+  // The page-level toast sits on a dark surface (the page can be light or
+  // dark), so its text stays white; the kind icon carries the meaning and
+  // colour, mirroring the typed rows used inside Verbia's own surfaces.
+  Object.assign(toast.style, { position: "fixed", right: "20px", bottom: "20px", zIndex: "2147483647", display: "flex", alignItems: "center", gap: "10px", background: "#172019", color: "white", padding: "12px 16px", borderRadius: "10px", font: "14px system-ui", boxShadow: "0 8px 24px rgba(23,32,25,.25)" });
+  const icon = msgIcon(kind, 16);
+  // The toast lives in the host page's DOM, where site CSS can target bare
+  // img elements; pin its box so it renders as the icon author drew it.
+  Object.assign(icon.style, { flex: "none", display: "block", border: "0", borderRadius: "0", margin: "0", maxWidth: "none" });
+  toast.append(icon, document.createTextNode(message));
   toast.setAttribute("role", "status");
-  Object.assign(toast.style, { position: "fixed", right: "20px", bottom: "20px", zIndex: "2147483647", background: "#172019", color: "white", padding: "12px 16px", borderRadius: "10px", font: "14px system-ui" });
   document.documentElement.append(toast);
   window.setTimeout(() => toast.remove(), 4_000);
 }

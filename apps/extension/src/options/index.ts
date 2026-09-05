@@ -1,5 +1,6 @@
 import { DEFAULT_SETTINGS, LENGTH_VALUES, REPLY_LANGUAGE_OPTIONS, TONE_VALUES, UI_LANGUAGE_OPTIONS, UI_STRINGS, VOICE_LANGUAGE_OPTIONS, resolveUiLang, type AuthState, type UiLang, type UserSettings } from "@verbia/shared";
 import { AUTH_STORAGE_KEY, SUPABASE_SIGNIN_REDIRECT, authEnabled, getSupabase, signInWithGoogle } from "../auth/supabase";
+import { setStatusMessage, type MsgKind } from "../ui/message";
 
 const form = document.querySelector<HTMLFormElement>("#settings")!;
 const status = document.querySelector<HTMLElement>("#status")!;
@@ -112,7 +113,7 @@ async function save(): Promise<boolean> {
   const data = new FormData(form);
   const backendBaseUrl = String(data.get("backend") ?? "").trim();
   if (!isValidBackendUrl(backendBaseUrl)) {
-    show(t("settings.urlInvalid"), true);
+    show(t("settings.urlInvalid"), "error");
     return false;
   }
   const settings: UserSettings = {
@@ -131,17 +132,16 @@ async function save(): Promise<boolean> {
   };
   const response = await chrome.runtime.sendMessage({ type: "SAVE_SETTINGS", settings });
   const ok = Boolean(response?.ok);
-  show(ok ? t("settings.saved") : t("settings.saveError"), !ok);
+  show(ok ? t("settings.saved") : t("settings.saveError"), ok ? "success" : "error");
   return ok;
 }
 
 function set(id: string, value: string) { const element = document.querySelector<HTMLInputElement | HTMLSelectElement>(`#${id}`); if (element) element.value = value; }
 function check(name: string, value: boolean) { const element = document.querySelector<HTMLInputElement>(`[name='${name}']`); if (element) element.checked = value; }
-function show(message: string, isError = false) {
-  status.textContent = message;
-  status.style.color = isError ? "#9C3C34" : "#1d6b45";
+function show(message: string, kind: MsgKind = "success") {
+  setStatusMessage(status, message, kind);
   window.clearTimeout(statusTimer);
-  statusTimer = window.setTimeout(() => { status.textContent = ""; }, 2_500);
+  statusTimer = window.setTimeout(() => { setStatusMessage(status, ""); }, 2_500);
 }
 
 // Keyboard shortcut card: show the shortcut actually bound via Chrome's
@@ -320,7 +320,7 @@ function renderSignedOut(body: HTMLElement) {
     event.preventDefault();
     const address = emailInput.value.trim();
     if (!address) {
-      setAccountMessage(msg, t("account.fillForm"), true);
+      setAccountMessage(msg, t("account.fillForm"), "error");
       return;
     }
     void sendMagicLink(msg, address);
@@ -336,11 +336,11 @@ async function startGoogleSignIn(button: HTMLButtonElement, msg: HTMLElement) {
       // Failures here are usually the sign-in tab being closed mid-flow or a
       // network/Google-side issue; the generic message keeps it approachable.
       console.error("Verbia Google sign-in failed", result.error);
-      setAccountMessage(msg, t("account.errorAuth"), true);
+      setAccountMessage(msg, t("account.errorAuth"), "error");
     }
   } catch (error) {
     console.error("Verbia Google sign-in failed", error);
-    setAccountMessage(msg, t("account.errorAuth"), true);
+    setAccountMessage(msg, t("account.errorAuth"), "error");
   } finally {
     // Success re-renders into the signed-in card via storage.onChanged; on
     // failure the button must become clickable again.
@@ -358,13 +358,12 @@ async function sendMagicLink(msg: HTMLElement, email: string) {
     setAccountMessage(msg, t("account.sentEmail"));
   } catch (error) {
     console.error("Verbia magic link failed", error);
-    setAccountMessage(msg, t("account.errorAuth"), true);
+    setAccountMessage(msg, t("account.errorAuth"), "error");
   }
 }
 
-function setAccountMessage(msg: HTMLElement, text: string, isError = false) {
-  msg.textContent = text;
-  msg.classList.toggle("error", isError);
+function setAccountMessage(msg: HTMLElement, text: string, kind: MsgKind = "success") {
+  setStatusMessage(msg, text, kind);
 }
 
 // Re-render when a session appears or disappears (auth.html callback page,
