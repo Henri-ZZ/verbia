@@ -85,29 +85,36 @@ pnpm api:mock
 8. 点击 Insert 将草稿放入网页输入框，或者点击 Copy 手动复制。
 9. 最终发送必须由用户自己在目标网站完成。
 
-## 使用真实 Gemini
+## 使用真实模型服务
 
-后端通过环境变量决定使用 Mock Provider 还是真实 Gemini。`pnpm api` 默认读取项目根目录的 `.env.local`，其内容可以参考 `.env.example`：
+后端可以在 Gemini、Mistral、Cloudflare Workers AI 和 Groq 之间自动均衡流量，并在单个服务失败时切换。`pnpm api` 默认读取项目根目录的 `.env.local`，完整配置可以参考 `.env.example`：
 
 ```text
-LLM_PROVIDER=gemini
-LLM_MODEL_BASELINE=<经过验证的 Gemini Flash-Lite 模型 ID>
-GEMINI_API_KEY=<你的开发 API Key>
-LLM_TIMEOUT_MS=12000
+LLM_PROVIDER=auto
+LLM_PROVIDER_ORDER=gemini,mistral,cloudflare,groq
+LLM_PROVIDER_WEIGHTS=gemini:1,mistral:1,cloudflare:1,groq:1
+LLM_TOTAL_TIMEOUT_MS=25000
+LLM_ATTEMPT_TIMEOUT_MS=9000
+LLM_COOLDOWN_MS=30000
 LLM_MAX_OUTPUT_TOKENS=384
 LLM_TEMPERATURE=0.45
-PORT=8787
 ```
+
+Cloudflare 的 Gemma 会把内部推理 token 计入完成上限，因此示例另外设置了 `CLOUDFLARE_MAX_OUTPUT_TOKENS=768`；最终返回给插件的草稿仍受后端长度限制。
+
+`auto` 模式按“已尝试请求数 ÷ 权重”选择当前使用最少的健康服务。默认权重相同，所以长期请求数会大致均分；若某家的可用额度是另一家的两倍，可以把它的权重设为 `2`。超时、429、5xx、网络错误、空内容和无效 JSON 都会触发切换。失败服务会进入指数退避冷却，认证或普通 4xx 配置错误至少冷却五分钟；冷却期间不会继续消耗该服务的额度。
+
+均衡统计保存在后端进程内，重启后重新计数；多实例部署时每个实例独立均衡。`GET /health` 会返回各路由的请求次数、失败次数和冷却状态，但不会返回模型名或凭据。
 
 注意事项：
 
-- 项目不会写死某个具体模型版本。
+- 模型名和路由权重均通过环境变量配置。
 - 不要把真实 API Key 写进代码、Manifest 或插件设置中。
 - `.env` 已被 Git 忽略，不会进入构建产物。
 - 正式环境应该由后端部署平台的 Secret Manager 注入 API Key。
 - 修改环境变量后需要重新启动后端。
 
-Gemini Provider 使用 Google 官方的 `generateContent` 结构化输出接口：[Gemini API 文档](https://ai.google.dev/api/generate-content)。
+Gemini 使用 Google 的 `generateContent` 结构化输出接口；其余服务使用兼容的 Chat Completions JSON 输出接口。
 
 ## 常用命令
 

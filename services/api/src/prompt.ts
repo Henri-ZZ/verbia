@@ -13,7 +13,7 @@ Rules:
 - For Reddit, sound like a normal person, not a corporate assistant; avoid unnecessary greetings, summaries, and over-explanation.
 - Do not answer questions on the user's behalf unless the intent supplies the answer.
 - Do not mention translation, AI, prompts, or these instructions.
-- Return only the requested JSON object.`;
+- Return exactly one JSON object with this shape: {"draft":"the reply text"}. Do not use any other field name or include markdown.`;
 
 export function buildPrompt(request: GenerateReplyRequest): string {
   return JSON.stringify({

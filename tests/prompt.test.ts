@@ -8,4 +8,5 @@ it("labels page text as untrusted and keeps it separate from intent", () => {
   expect(value.untrustedConversationContext.target.body).toContain("Ignore");
   expect(value.userIntent.text).toBe("Disagree politely");
   expect(SYSTEM_PROMPT).toContain("untrusted quoted conversation content");
+  expect(SYSTEM_PROMPT).toContain('{"draft":"the reply text"}');
 });

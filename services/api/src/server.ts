@@ -1,6 +1,6 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { generateReplyRequestSchema, generateReplyResponseSchema, type ApiError } from "@verbia/shared";
-import { GeminiProvider, MockProvider, type ReplyProvider } from "./provider";
+import { BalancedProvider, GeminiProvider, MockProvider, OpenAiCompatibleProvider, type ReplyProvider } from "./provider";
 
 const port = Number(process.env.PORT ?? 8787);
 const maxBodyBytes = 48_000;
@@ -8,7 +8,14 @@ const maxBodyBytes = 48_000;
 export const server = createServer(async (request, response) => {
   cors(response);
   if (request.method === "OPTIONS") return end(response, 204);
-  if (request.method === "GET" && request.url === "/health") return json(response, 200, { ok: true, provider: process.env.LLM_PROVIDER ?? "mock" });
+  if (request.method === "GET" && request.url === "/health") {
+    const provider = getProvider();
+    return json(response, 200, {
+      ok: true,
+      provider: provider.id,
+      routes: provider instanceof BalancedProvider ? provider.snapshot() : [{ provider: provider.id }]
+    });
+  }
   if (request.method !== "POST" || request.url !== "/v1/replies:generate") return json(response, 404, { error: "Not found" });
 
   let requestId = "unknown";
@@ -18,14 +25,14 @@ export const server = createServer(async (request, response) => {
     if (!parsed.success) return apiError(response, 400, requestId, "INVALID_REQUEST", false, "Check the intent and generation settings.");
     requestId = parsed.data.requestId;
     const started = performance.now();
-    const provider = createProvider();
+    const provider = getProvider();
     const controller = new AbortController();
-    const timeoutMs = numberEnv("LLM_TIMEOUT_MS", 12_000);
+    const timeoutMs = numberEnv("LLM_TOTAL_TIMEOUT_MS", numberEnv("LLM_TIMEOUT_MS", 25_000));
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const result = await provider.generate(parsed.data, controller.signal);
       const warnings = [parsed.data.context.confidence === "low" && "low_context_confidence", parsed.data.context.truncated && "context_truncated"].filter(Boolean) as Array<"low_context_confidence" | "context_truncated">;
-      const value = generateReplyResponseSchema.parse({ requestId, draft: cleanDraft(result.draft), warnings, modelRoute: "baseline", usage: result.inputTokens || result.outputTokens ? { inputTokens: result.inputTokens, outputTokens: result.outputTokens } : undefined, latencyMs: Math.round(performance.now() - started) });
+      const value = generateReplyResponseSchema.parse({ requestId, draft: cleanDraft(result.draft), warnings, modelRoute: result.modelRoute ?? "baseline", usage: result.inputTokens || result.outputTokens ? { inputTokens: result.inputTokens, outputTokens: result.outputTokens } : undefined, latencyMs: Math.round(performance.now() - started) });
       return json(response, 200, value);
     } finally { clearTimeout(timer); }
   } catch (error) {
@@ -41,13 +48,66 @@ export const server = createServer(async (request, response) => {
   }
 });
 
-function createProvider(): ReplyProvider {
+let providerInstance: ReplyProvider | undefined;
+function getProvider(): ReplyProvider { return providerInstance ??= createProvider(); }
+
+export function createProvider(): ReplyProvider {
   const name = process.env.LLM_PROVIDER ?? "mock";
   if (name === "mock") return new MockProvider();
-  if (name !== "gemini") throw new Error("NOT_CONFIGURED: unsupported provider");
-  const key = process.env.GEMINI_API_KEY; const model = process.env.LLM_MODEL_BASELINE;
-  if (!key || !model) throw new Error("NOT_CONFIGURED: missing Gemini configuration");
-  return new GeminiProvider(key, model, numberEnv("LLM_MAX_OUTPUT_TOKENS", 384), numberEnv("LLM_TEMPERATURE", 0.45));
+  const providers = configuredProviders();
+  if (name === "auto") {
+    return new BalancedProvider(
+      orderedProviders(providers).map(provider => ({ provider, weight: providerWeight(provider.id) })),
+      numberEnv("LLM_ATTEMPT_TIMEOUT_MS", 9_000),
+      numberEnv("LLM_COOLDOWN_MS", 30_000)
+    );
+  }
+  const provider = providers.get(name);
+  if (!provider) throw new Error(`NOT_CONFIGURED: missing or unsupported provider ${name}`);
+  return provider;
+}
+
+function configuredProviders(): Map<string, ReplyProvider> {
+  const providers = new Map<string, ReplyProvider>();
+  const maxOutputTokens = numberEnv("LLM_MAX_OUTPUT_TOKENS", 384);
+  const temperature = numberEnv("LLM_TEMPERATURE", 0.45);
+  const geminiModel = process.env.GEMINI_MODEL ?? process.env.LLM_MODEL_BASELINE;
+  if (process.env.GEMINI_API_KEY && geminiModel) {
+    providers.set("gemini", new GeminiProvider(process.env.GEMINI_API_KEY, geminiModel, maxOutputTokens, temperature));
+  }
+  if (process.env.MISTRAL_API_KEY && process.env.MISTRAL_MODEL) {
+    providers.set("mistral", new OpenAiCompatibleProvider({
+      id: "mistral", apiKey: process.env.MISTRAL_API_KEY, model: process.env.MISTRAL_MODEL,
+      endpoint: "https://api.mistral.ai/v1/chat/completions", maxOutputTokens, temperature
+    }));
+  }
+  if (process.env.CLOUDFLARE_ACCOUNT_ID && process.env.CLOUDFLARE_API_TOKEN && process.env.CLOUDFLARE_MODEL) {
+    providers.set("cloudflare", new OpenAiCompatibleProvider({
+      id: "cloudflare", apiKey: process.env.CLOUDFLARE_API_TOKEN, model: process.env.CLOUDFLARE_MODEL,
+      endpoint: `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(process.env.CLOUDFLARE_ACCOUNT_ID)}/ai/v1/chat/completions`,
+      maxOutputTokens: numberEnv("CLOUDFLARE_MAX_OUTPUT_TOKENS", Math.max(maxOutputTokens, 768)), temperature
+    }));
+  }
+  if (process.env.GROQ_API_KEY && process.env.GROQ_MODEL) {
+    providers.set("groq", new OpenAiCompatibleProvider({
+      id: "groq", apiKey: process.env.GROQ_API_KEY, model: process.env.GROQ_MODEL,
+      endpoint: "https://api.groq.com/openai/v1/chat/completions", maxOutputTokens, temperature,
+      reasoningEffort: process.env.GROQ_REASONING_EFFORT ?? "none"
+    }));
+  }
+  return providers;
+}
+
+function orderedProviders(providers: Map<string, ReplyProvider>): ReplyProvider[] {
+  const requested = (process.env.LLM_PROVIDER_ORDER ?? "gemini,mistral,cloudflare,groq").split(",").map(value => value.trim()).filter(Boolean);
+  const unique = [...new Set(requested)];
+  return unique.map(id => providers.get(id)).filter((provider): provider is ReplyProvider => Boolean(provider));
+}
+
+function providerWeight(id: string): number {
+  const values = Object.fromEntries((process.env.LLM_PROVIDER_WEIGHTS ?? "").split(",").map(item => item.split(":", 2).map(value => value.trim())).filter(parts => parts.length === 2));
+  const weight = Number(values[id]);
+  return Number.isFinite(weight) && weight > 0 ? weight : 1;
 }
 
 async function readJson(request: IncomingMessage, limit: number) {

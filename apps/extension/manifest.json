@@ -11,6 +11,12 @@
   "background": { "service_worker": "background.js", "type": "module" },
   "action": { "default_title": "__MSG_actionTitle__", "default_popup": "popup.html", "default_icon": { "16": "icons/icon16.png", "32": "icons/icon32.png", "48": "icons/icon48.png" } },
   "options_page": "options.html",
+  "web_accessible_resources": [
+    {
+      "resources": ["icons/verbia-logo.svg"],
+      "matches": ["<all_urls>"]
+    }
+  ],
   "content_scripts": [
     {
       "matches": ["https://www.reddit.com/*", "https://old.reddit.com/*"],

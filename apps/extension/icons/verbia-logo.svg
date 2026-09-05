@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 320" role="img" aria-labelledby="title desc">
+  <title id="title">Verbia</title>
+  <desc id="desc">Verbia wordmark with its layered V symbol.</desc>
+  <g transform="translate(24 24) scale(.53125)">
+    <rect width="512" height="512" rx="112" fill="#F2EDE2"/>
+    <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M112 142 256 382 400 142" stroke="#C7D5C4" stroke-width="84"/>
+      <path d="M128 142 256 356 384 142" stroke="#7FA28D" stroke-width="68"/>
+      <path d="M146 142 256 326 366 142" stroke="#0F6E56" stroke-width="52"/>
+    </g>
+  </g>
+  <text x="344" y="214" fill="#172019" font-family="Georgia, 'Times New Roman', serif" font-size="174" font-weight="700" letter-spacing="-6">Verbia</text>
+</svg>

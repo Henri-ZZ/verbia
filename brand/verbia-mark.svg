@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Verbia mark</title>
+  <desc id="desc">Three overlapping rounded V shapes representing one intent carried across languages.</desc>
+  <rect width="512" height="512" rx="112" fill="#F2EDE2"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M112 142 256 382 400 142" stroke="#C7D5C4" stroke-width="84"/>
+    <path d="M128 142 256 356 384 142" stroke="#7FA28D" stroke-width="68"/>
+    <path d="M146 142 256 326 366 142" stroke="#0F6E56" stroke-width="52"/>
+  </g>
+</svg>
