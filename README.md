@@ -28,7 +28,8 @@ verbia/
 
 - Chrome Manifest V3 插件工程。
 - Reddit 帖子、目标评论和最多三层祖先评论的上下文提取。
-- Universal Mode：在其他网页使用用户选中的文本，或者不带上下文生成。
+- Universal Mode：在其他网页使用选中的文本；可以选中文字后右键“加入 Verbia 上下文”，也可以不带上下文生成。
+- 可选账号登录（Supabase）：Google / 邮箱 Magic Link，设置页 Account 卡片操作；不登录完全不影响使用。
 - 文字和浏览器语音 Intent 输入。
 - 输出语言、语气和长度控制。
 - 生成前查看和移除上下文。
@@ -57,6 +58,8 @@ pnpm api
 
 默认后端地址是 `http://localhost:8787`。`pnpm api` 会读取项目根目录的 `.env.local`；如果其中配置了 `LLM_PROVIDER=gemini`、有效模型 ID 和 API Key，就会调用真实 Gemini。
 
+账号登录（可选）依赖 `.env.local` 里的 `SUPABASE_URL` / `SUPABASE_ANON_KEY`（构建时注入扩展），并需先在 Supabase Dashboard 执行一次建表 SQL——完整步骤见 [docs/auth-setup.md](docs/auth-setup.md)。
+
 如果只想测试插件流程而不调用 Gemini，可以执行：
 
 ```bash
@@ -77,7 +80,7 @@ pnpm api:mock
 
 1. 在 Reddit 中打开一个回复框，Verbia 会自动出现在原输入框下方。
 2. 点击 Chrome 工具栏中的 Verbia 图标，可以打开设置侧边栏。
-3. 在其他网站先点击输入框，再使用快捷键：Windows/Linux 为 `Ctrl+Shift+Y`，macOS 为 `Command+Shift+Y`。
+3. 在其他网站可先选中文字，右键选择“加入 Verbia 上下文”；然后点击输入框，按快捷键打开面板：Windows/Linux 为 `Ctrl+Shift+Y`，macOS 为 `Command+Shift+Y`。
 4. 检查内嵌 Verbia 面板显示的上下文。
 5. 用中文或其他熟悉的语言写下想表达的意思。
 6. 选择输出语言、语气和长度，然后点击 Generate。

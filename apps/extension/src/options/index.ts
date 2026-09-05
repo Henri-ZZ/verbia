@@ -1,4 +1,5 @@
-import { DEFAULT_SETTINGS, LENGTH_VALUES, REPLY_LANGUAGE_OPTIONS, TONE_VALUES, UI_LANGUAGE_OPTIONS, UI_STRINGS, VOICE_LANGUAGE_OPTIONS, resolveUiLang, type UiLang, type UserSettings } from "@verbia/shared";
+import { DEFAULT_SETTINGS, LENGTH_VALUES, REPLY_LANGUAGE_OPTIONS, TONE_VALUES, UI_LANGUAGE_OPTIONS, UI_STRINGS, VOICE_LANGUAGE_OPTIONS, resolveUiLang, type AuthState, type UiLang, type UserSettings } from "@verbia/shared";
+import { AUTH_STORAGE_KEY, SUPABASE_SIGNIN_REDIRECT, authEnabled, getSupabase, signInWithGoogle } from "../auth/supabase";
 
 const form = document.querySelector<HTMLFormElement>("#settings")!;
 const status = document.querySelector<HTMLElement>("#status")!;
@@ -60,6 +61,7 @@ async function load() {
   check("contextPreviewExpanded", value.contextPreviewExpanded); check("telemetryEnabled", value.telemetryEnabled);
   check("showLanguageInPanel", value.showLanguageInPanel); check("showToneInPanel", value.showToneInPanel); check("showLengthInPanel", value.showLengthInPanel);
   await applyShortcuts();
+  await renderAccount();
 }
 
 function isValidBackendUrl(raw: string): boolean {
@@ -173,3 +175,164 @@ void load();
 // Re-fetch the bound shortcut when the user returns from the browser's
 // shortcut-settings page (it opens in a new tab; coming back refocuses here).
 window.addEventListener("focus", () => { void applyShortcuts(); });
+
+// ---- Account (Supabase sign-in) -------------------------------------------
+// Renders into #account-body. Google OAuth and Magic Link both redirect back
+// to the Supabase project root, where the background capture listener
+// exchanges the code (see signInWithGoogle / background/index.ts). Both
+// persist the session through the shared chrome.storage adapter, so this page
+// only needs to watch that key (storage.onChanged below) to re-render.
+
+async function renderAccount() {
+  const body = document.querySelector<HTMLElement>("#account-body");
+  if (!body) return;
+  const response = await chrome.runtime.sendMessage({ type: "GET_AUTH_STATE" });
+  const state = (response?.ok ? response.data : { signedIn: false }) as AuthState;
+  body.textContent = "";
+  if (state.signedIn) {
+    renderSignedIn(body, state);
+  } else {
+    renderSignedOut(body);
+  }
+}
+
+function renderSignedIn(body: HTMLElement, state: AuthState) {
+  const email = document.createElement("p");
+  email.className = "account-email";
+  email.textContent = state.email ?? "";
+  body.append(email);
+
+  // The plan row is created immediately (Free) and only upgraded in place
+  // once the profiles table answers, so it always sits under the email and
+  // above the sign-out button regardless of query latency.
+  const meta = document.createElement("p");
+  meta.className = "account-meta";
+  const planText = () => `${t("account.plan")}: ${t("account.planFree")}`;
+  meta.textContent = planText();
+  body.append(meta);
+
+  const signOutButton = document.createElement("button");
+  signOutButton.type = "button";
+  signOutButton.className = "secondary";
+  signOutButton.textContent = t("account.signOut");
+  signOutButton.addEventListener("click", async () => {
+    await chrome.runtime.sendMessage({ type: "SIGN_OUT" });
+    await renderAccount();
+  });
+  body.append(signOutButton);
+
+  // The plan column lives in Supabase (profiles), reserved for paid tiers.
+  // Until the table exists (or a query fails) the Free label stays.
+  if (authEnabled) {
+    void (async () => {
+      try {
+        const supabase = getSupabase();
+        const { data: current } = await supabase.auth.getUser();
+        const user = current.user;
+        if (!user) return;
+        const { data: profile } = await supabase.from("profiles").select("plan").eq("id", user.id).maybeSingle();
+        if (profile?.plan) meta.textContent = `${t("account.plan")}: ${profile.plan === "premium" ? "Premium" : t("account.planFree")}`;
+      } catch {
+        // profiles may not be created yet — keep the Free label.
+      }
+    })();
+  }
+}
+
+function renderSignedOut(body: HTMLElement) {
+  const desc = document.createElement("p");
+  desc.className = "account-desc";
+  desc.textContent = t("account.desc");
+  body.append(desc);
+
+  const googleButton = document.createElement("button");
+  googleButton.type = "button";
+  googleButton.textContent = t("account.signInGoogle");
+  googleButton.addEventListener("click", () => {
+    googleButton.disabled = true;
+    void startGoogleSignIn(googleButton, msg);
+  });
+  body.append(googleButton);
+
+  const form = document.createElement("form");
+  form.className = "account-form";
+
+  const emailLabel = document.createElement("label");
+  emailLabel.textContent = t("account.emailLabel");
+  const emailInput = document.createElement("input");
+  emailInput.type = "email";
+  emailInput.autocomplete = "email";
+  emailInput.required = true;
+  emailLabel.append(emailInput);
+
+  // Accounts are Google or email-magic-link only — password sign-in was cut
+  // by product decision, so this form has no password field.
+  const actions = document.createElement("div");
+  actions.className = "account-actions";
+  const magic = document.createElement("button");
+  magic.type = "submit";
+  magic.className = "secondary";
+  magic.textContent = t("account.sendMagicLink");
+  actions.append(magic);
+
+  const msg = document.createElement("p");
+  msg.className = "account-msg";
+  form.append(emailLabel, actions, msg);
+  body.append(form);
+
+  form.addEventListener("submit", event => {
+    event.preventDefault();
+    const address = emailInput.value.trim();
+    if (!address) {
+      setAccountMessage(msg, t("account.fillForm"), true);
+      return;
+    }
+    void sendMagicLink(msg, address);
+  });
+}
+
+async function startGoogleSignIn(button: HTMLButtonElement, msg: HTMLElement) {
+  if (!authEnabled) return;
+  setAccountMessage(msg, "");
+  try {
+    const result = await signInWithGoogle();
+    if (!result.ok) {
+      // Failures here are usually the sign-in tab being closed mid-flow or a
+      // network/Google-side issue; the generic message keeps it approachable.
+      console.error("Verbia Google sign-in failed", result.error);
+      setAccountMessage(msg, t("account.errorAuth"), true);
+    }
+  } catch (error) {
+    console.error("Verbia Google sign-in failed", error);
+    setAccountMessage(msg, t("account.errorAuth"), true);
+  } finally {
+    // Success re-renders into the signed-in card via storage.onChanged; on
+    // failure the button must become clickable again.
+    button.disabled = false;
+  }
+}
+
+async function sendMagicLink(msg: HTMLElement, email: string) {
+  try {
+    const { error } = await getSupabase().auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: SUPABASE_SIGNIN_REDIRECT }
+    });
+    if (error) throw error;
+    setAccountMessage(msg, t("account.sentEmail"));
+  } catch (error) {
+    console.error("Verbia magic link failed", error);
+    setAccountMessage(msg, t("account.errorAuth"), true);
+  }
+}
+
+function setAccountMessage(msg: HTMLElement, text: string, isError = false) {
+  msg.textContent = text;
+  msg.classList.toggle("error", isError);
+}
+
+// Re-render when a session appears or disappears (auth.html callback page,
+// popup sign-out, silent refresh clearing an expired token, …).
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === "local" && changes[AUTH_STORAGE_KEY]) void renderAccount();
+});

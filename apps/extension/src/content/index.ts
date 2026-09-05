@@ -2,7 +2,7 @@ import { RedditAdapter } from "./adapters/reddit";
 import { UniversalAdapter } from "./adapters/universal";
 import { isSafeEditable, toTarget } from "./editor/editable";
 import { VerbiaPanel } from "./ui/panel";
-import { DEFAULT_SETTINGS, UI_STRINGS, resolveUiLang } from "@verbia/shared";
+import { DEFAULT_SETTINGS, UI_STRINGS, resolveUiLang, type ContextEnvelope, type StagedSelection } from "@verbia/shared";
 
 declare global { interface Window { __verbiaLoaded?: boolean; } }
 
@@ -24,39 +24,62 @@ if (!window.__verbiaLoaded) {
     }
   }, true);
 
-  async function showFor(element: HTMLElement, adapter: RedditAdapter | UniversalAdapter, focusIntent: boolean) {
+  async function showFor(element: HTMLElement, adapter: RedditAdapter | UniversalAdapter, focusIntent: boolean, stagedSelection?: StagedSelection) {
     const target = toTarget(element);
     if (target.ref === currentRef && document.querySelector("[data-verbia-root='true']")) {
       // Explicit re-invocation (shortcut/action) unfolds a folded panel in
       // place so typed content survives. Passive focus-in does not, so the
       // panel stays folded when the user simply clicks back into the editor.
+      // A staged right-click selection merges into the open panel either way.
+      if (stagedSelection) panel?.mergeContextSelection(stagedSelection.text, stagedSelection.truncated);
       if (focusIntent) void panel?.unfoldIfCollapsed();
       return;
     }
-    const context = await adapter.extractContext(target);
+    const base = await adapter.extractContext(target);
+    const context = applyStagedSelection(base, stagedSelection);
     if (panel) panel.update(target, context); else panel = new VerbiaPanel(adapter, target, context);
     currentRef = target.ref;
     panel.mountAfter(findReplyAnchor(element));
     await panel.open(focusIntent);
   }
 
-  async function activate() {
+  // A selection staged from the right-click menu wins over whatever the page
+  // currently has selected: by the time Verbia opens the user has usually
+  // clicked into an editor, which clears window.getSelection().
+  function applyStagedSelection(base: ContextEnvelope, staged?: StagedSelection): ContextEnvelope {
+    if (!staged) return base;
+    return { ...base, relation: "selected_text", selectedText: staged.text, truncated: base.truncated || staged.truncated, confidence: "high" };
+  }
+
+  // Returns true when a panel was open/opened for this invocation. The
+  // background clears its per-tab staged selection only when this is true.
+  async function activate(stagedSelection?: StagedSelection): Promise<boolean> {
     const element = isSafeEditable(document.activeElement) ? document.activeElement : lastEditable;
     const adapter = isReddit ? reddit : universal;
     const fallback = adapter.findComposers().at(-1)?.element ?? null;
     const chosen = element && isSafeEditable(element) ? element : fallback;
     if (!chosen) {
-      await showFocusToast();
-      return;
+      await showToastFor("content.toastFocusEditor", "Focus a text editor, then use the Verbia shortcut again.");
+      return false;
     }
-    await showFor(chosen, adapter, true);
+    await showFor(chosen, adapter, true, stagedSelection);
+    return true;
   }
 
-  async function showFocusToast() {
+  // Right-click → "Add to Verbia context". Merges into an already-open panel;
+  // otherwise confirm with a toast and report back so the background stages
+  // the selection per tab for the next time Verbia opens on this page.
+  async function addContextFromMenu(selection: StagedSelection): Promise<boolean> {
+    if (panel?.mergeContextSelection(selection.text, selection.truncated)) return true;
+    await showToastFor("content.contextStaged", "Added to Verbia context.");
+    return false;
+  }
+
+  async function showToastFor(key: string, fallback: string) {
     const { settings } = await chrome.storage.local.get("settings");
     const stored = (settings ?? DEFAULT_SETTINGS) as typeof DEFAULT_SETTINGS;
     const lang = resolveUiLang(stored.uiLanguage, chrome.i18n.getUILanguage());
-    showToast(UI_STRINGS[lang]["content.toastFocusEditor"] ?? UI_STRINGS.en["content.toastFocusEditor"] ?? "Focus a text editor, then use the Verbia shortcut again.");
+    showToast(UI_STRINGS[lang][key] ?? UI_STRINGS.en[key] ?? fallback);
   }
 
   function scanReddit() {
@@ -79,12 +102,25 @@ if (!window.__verbiaLoaded) {
   }
 
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-    if (message.type !== "OPEN_VERBIA") return;
-    (async () => {
-      try { await activate(); sendResponse({ ok: true }); }
-      catch (error) { sendResponse({ ok: false, error: String(error) }); }
-    })();
-    return true;
+    if (message.type === "OPEN_VERBIA") {
+      (async () => {
+        try {
+          const opened = await activate(message.stagedSelection as StagedSelection | undefined);
+          sendResponse({ ok: true, opened });
+        } catch (error) { sendResponse({ ok: false, error: String(error) }); }
+      })();
+      return true;
+    }
+    if (message.type === "ADD_VERBIA_CONTEXT") {
+      (async () => {
+        try {
+          const merged = await addContextFromMenu(message.payload as StagedSelection);
+          sendResponse({ ok: true, merged });
+        } catch (error) { sendResponse({ ok: false, error: String(error) }); }
+      })();
+      return true;
+    }
+    return false;
   });
 }
 

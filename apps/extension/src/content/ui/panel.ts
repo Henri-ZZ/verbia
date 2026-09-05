@@ -340,6 +340,36 @@ export class VerbiaPanel {
   private removeContext() { this.context = { relation: "none", truncated: false, extractorVersion: this.context.extractorVersion, confidence: "high" }; this.root.querySelector(".context-body")!.textContent = this.contextText(); this.root.querySelector(".chip")!.textContent = this.contextLabel(); this.status(this.t("panel.status.contextRemoved")); }
   private setBusy(busy: boolean) { this.action("generate")?.toggleAttribute("disabled", busy); this.action("cancel")?.classList.toggle("hidden", !busy); }
   private status(message: string, kind?: string) { const el = this.el("status"); if (el) { el.textContent = message; el.className = `status ${kind ?? ""}`; } }
+  // The right-click menu ("Add to Verbia context") fired while this panel is
+  // mounted on the page. Adopt the selection as the context's selectedText —
+  // the newest selection replaces any earlier one. Typed intent, draft text
+  // and the folded/unfolded state survive. Returns false when this panel is
+  // no longer attached to the DOM; the caller then stages the selection for
+  // the next OPEN_VERBIA instead.
+  mergeContextSelection(text: string, truncated: boolean): boolean {
+    if (!this.host.isConnected) return false;
+    this.context = {
+      ...this.context,
+      relation: "selected_text",
+      selectedText: text,
+      truncated: this.context.truncated || truncated,
+      confidence: "high"
+    };
+    // Recording / generating / inserting rebuild the DOM asynchronously, and a
+    // folded panel has no visible body to update: keep the merged data and let
+    // the next render pick it up.
+    const busy = this.phase === "recording" || this.phase === "generating" || this.phase === "inserting";
+    if (busy || this.root.querySelector(".panel")?.classList.contains("collapsed")) return true;
+    const intent = this.el<HTMLTextAreaElement>("intent")?.value ?? "";
+    const draftText = this.el<HTMLTextAreaElement>("draft")?.value ?? "";
+    const draftVisible = !this.el("draft-area")?.classList.contains("hidden");
+    this.renderPanel(intent);
+    if (draftText) { const draft = this.el<HTMLTextAreaElement>("draft"); if (draft) draft.value = draftText; }
+    if (draftVisible) this.el("draft-area")?.classList.remove("hidden");
+    this.status(this.t("panel.status.contextAdded"));
+    return true;
+  }
+
   // Called by the content script when the user explicitly re-invokes Verbia
   // (shortcut/action). Re-pulls settings: if the Settings page changed the
   // interface language while the panel was mounted, rebuild into the new

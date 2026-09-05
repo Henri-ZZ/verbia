@@ -31,6 +31,17 @@ export const generateReplyRequestSchema = z.object({
   client: z.object({ extensionVersion: z.string().max(30), adapterVersion: z.string().max(30) })
 });
 
+// A text selection the user added via the right-click menu ("Add to Verbia
+// context") while the reply panel was closed. Staged per tab in
+// chrome.storage.session; merged into the context envelope the next time
+// Verbia opens on that tab. Each new selection replaces the previous one.
+export const stagedContextSchema = z.object({
+  text: z.string().trim().min(1).max(8_000),
+  truncated: z.boolean(),
+  pageUrl: z.string().max(2_000),
+  updatedAt: z.number().int().nonnegative()
+});
+
 export const generateReplyResponseSchema = z.object({
   requestId: z.string().uuid(),
   draft: z.string().trim().min(1).max(8_000),
@@ -135,7 +146,7 @@ export const REPLY_LANGUAGE_OPTIONS = [
 
 export const apiErrorSchema = z.object({
   requestId: z.string(),
-  code: z.enum(["INVALID_REQUEST", "TOO_LARGE", "RATE_LIMITED", "PROVIDER_ERROR", "TIMEOUT", "UNSAFE_CONTENT", "NOT_CONFIGURED"]),
+  code: z.enum(["INVALID_REQUEST", "TOO_LARGE", "RATE_LIMITED", "PROVIDER_ERROR", "TIMEOUT", "UNSAFE_CONTENT", "NOT_CONFIGURED", "UNAUTHENTICATED", "QUOTA_EXCEEDED"]),
   retryable: z.boolean(),
   userMessage: z.string(),
   detail: z.string().optional()
@@ -145,6 +156,7 @@ export type ContextEnvelope = z.infer<typeof contextEnvelopeSchema>;
 export type GenerateReplyRequest = z.infer<typeof generateReplyRequestSchema>;
 export type GenerateReplyResponse = z.infer<typeof generateReplyResponseSchema>;
 export type ApiError = z.infer<typeof apiErrorSchema>;
+export type StagedContext = z.infer<typeof stagedContextSchema>;
 export type Tone = z.infer<typeof toneSchema>;
 export type ReplyLength = z.infer<typeof lengthSchema>;
 

@@ -1,15 +1,30 @@
 import type { ContextEnvelope, GenerateReplyRequest, GenerateReplyResponse, UserSettings } from "./schema";
 
+// The part of a staged right-click selection that travels to the content
+// script. The full record (with pageUrl/updatedAt) stays in session storage.
+export type StagedSelection = { text: string; truncated: boolean };
+
+// Sign-in state reported by the background, which owns the session lifecycle.
+export type AuthState = { signedIn: boolean; email?: string };
+
 export type ExtensionRequest =
   | { type: "GENERATE_REPLY"; payload: GenerateReplyRequest }
   | { type: "CANCEL_GENERATION"; requestId: string }
   | { type: "GET_SETTINGS" }
   | { type: "SAVE_SETTINGS"; settings: UserSettings }
   | { type: "RESET_SETTINGS" }
-  | { type: "OPEN_VERBIA"; source: "action" | "shortcut" };
+  | { type: "OPEN_VERBIA"; source: "action" | "shortcut"; stagedSelection?: StagedSelection }
+  // Sent from the background to the page that owns a right-click selection.
+  // The content script merges it into an open panel, or replies merged:false
+  // (the background then stages it per tab for the next OPEN_VERBIA).
+  | { type: "ADD_VERBIA_CONTEXT"; payload: StagedSelection }
+  // Auth queries handled by the background (popup/options ask, background owns
+  // the persisted Supabase session and silent refresh).
+  | { type: "GET_AUTH_STATE" }
+  | { type: "SIGN_OUT" };
 
 export type ExtensionResponse =
-  | { ok: true; data?: GenerateReplyResponse | UserSettings | { reset: true } }
+  | { ok: true; data?: GenerateReplyResponse | UserSettings | { reset: true } | AuthState }
   | { ok: false; error: { code: string; userMessage: string; retryable: boolean; detail?: string } };
 
 export type EditableKind = "textarea" | "input" | "contenteditable";

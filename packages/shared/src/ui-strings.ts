@@ -48,7 +48,7 @@ const EN: Strings = {
   "settings.openShortcutsPage": "Open shortcut settings",
   "settings.shortcutUnset": "Not set",
   "settings.howTitle": "How it works",
-  "settings.howBody": "Open a Reddit reply box and Verbia appears directly below it. The toolbar icon opens the Verbia menu — open Settings from there. On other sites, use the keyboard shortcut for Universal Mode.",
+  "settings.howBody": "Open a Reddit reply box and Verbia appears directly below it. On other sites, select text and choose Add to Verbia context, then press the shortcut. The toolbar icon opens the Verbia menu — open Settings from there.",
   "settings.privacyTitle": "Privacy by design",
   "settings.privacyBody": "Verbia sends data only when you click Generate and never clicks a website’s send or submit controls.",
 
@@ -105,6 +105,7 @@ const EN: Strings = {
   "panel.status.copied": "Copied to clipboard",
   "panel.status.copyManual": "Auto-copy failed — please select the text and copy manually",
   "panel.status.contextRemoved": "Context removed",
+  "panel.status.contextAdded": "Added to context",
 
   // context preview
   "context.universal": "Universal",
@@ -132,7 +133,32 @@ const EN: Strings = {
   "opt.detailed": "Detailed",
 
   // content toast
-  "content.toastFocusEditor": "Focus a text editor, then use the Verbia shortcut again."
+  "content.toastFocusEditor": "Focus a text editor, then use the Verbia shortcut again.",
+  "content.contextStaged": "Added to Verbia context.",
+
+  // right-click menu
+  "menu.addToContext": "Add to Verbia context",
+
+  // account (settings card + popup)
+  "account.title": "Account",
+  "account.desc": "Sign in to keep your usage across devices. Drafting keeps working without an account.",
+  "account.signedOut": "Not signed in",
+  "account.signIn": "Sign in",
+  "account.signInGoogle": "Continue with Google",
+  "account.emailLabel": "Email",
+  "account.sendMagicLink": "Email me a sign-in link",
+  "account.signOut": "Sign out",
+  "account.plan": "Plan",
+  "account.planFree": "Free",
+  "account.sentEmail": "Check your inbox — the sign-in link expires soon.",
+  "account.fillForm": "Enter your email.",
+  "account.errorAuth": "Sign-in failed. Please try again.",
+
+  // auth callback page
+  "auth.success": "Signed in — you can close this tab.",
+  "auth.error": "Sign-in failed. Close this tab and try again.",
+  "auth.linkExpired": "This link is invalid or has expired. Request a new one from Settings.",
+  "auth.close": "Close tab"
 };
 
 const ZH_CN: Strings = {
@@ -169,9 +195,9 @@ const ZH_CN: Strings = {
   "settings.openShortcutsPage": "打开快捷键设置",
   "settings.shortcutUnset": "未设置",
   "settings.howTitle": "工作原理",
-  "settings.howBody": "打开 Reddit 回复框，Verbia 会直接出现在下方。点击工具栏图标打开 Verbia 菜单——在那里打开 Settings。其他网页可用快捷键进入通用模式。",
+  "settings.howBody": "打开 Reddit 回复框，Verbia 会直接出现在下方。其他网页可选中文字，右键选择“加入 Verbia 上下文”，再按快捷键打开。点击工具栏图标打开 Verbia 菜单——在那里打开 Settings。",
   "settings.privacyTitle": "隐私设计",
-  "settings.privacyBody": "Verbia 仅在你点击 Generate 时发送数据，从不点击网站的发送或提交控件。",
+  "settings.privacyBody": "Verbia 仅在你点击「生成」时发送数据，从不点击网站的发送或提交控件。",
 
   // popup
   "popup.lead": "在你打字的地方，用任何语言回复。",
@@ -226,6 +252,7 @@ const ZH_CN: Strings = {
   "panel.status.copied": "已复制到剪贴板",
   "panel.status.copyManual": "自动复制失败，请手动选择文本复制",
   "panel.status.contextRemoved": "上下文已移除",
+  "panel.status.contextAdded": "已加入所选文本",
 
   // context preview
   "context.universal": "通用",
@@ -253,7 +280,32 @@ const ZH_CN: Strings = {
   "opt.detailed": "详细",
 
   // content toast
-  "content.toastFocusEditor": "请先聚焦一个文本编辑器，再按一次 Verbia 快捷键。"
+  "content.toastFocusEditor": "请先聚焦一个文本编辑器，再按一次 Verbia 快捷键。",
+  "content.contextStaged": "已加入 Verbia 上下文。",
+
+  // right-click menu
+  "menu.addToContext": "加入 Verbia 上下文",
+
+  // account (settings card + popup)
+  "account.title": "账号",
+  "account.desc": "登录后在多设备间保留用量；不登录也能照常起草。",
+  "account.signedOut": "未登录",
+  "account.signIn": "登录",
+  "account.signInGoogle": "使用 Google 登录",
+  "account.emailLabel": "邮箱",
+  "account.sendMagicLink": "发送登录链接到邮箱",
+  "account.signOut": "退出登录",
+  "account.plan": "方案",
+  "account.planFree": "免费",
+  "account.sentEmail": "已发送，登录链接请在邮件中查收，限时有效。",
+  "account.fillForm": "请输入邮箱。",
+  "account.errorAuth": "登录失败，请重试。",
+
+  // auth callback page
+  "auth.success": "登录成功，可以关闭此页。",
+  "auth.error": "登录失败，请关闭此页后重试。",
+  "auth.linkExpired": "此链接已失效或过期，请在设置页重新发送一封。",
+  "auth.close": "关闭此页"
 };
 
 export const UI_STRINGS: Record<UiLang, Strings> = {

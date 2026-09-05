@@ -15,3 +15,7 @@ footer{border-top:1px solid #e0d5c0;padding-top:14px}
 #open-settings{display:block;width:100%;padding:9px 0;border:1px solid #9fb8a6;border-radius:10px;background:transparent;color:#2e5a43;font:600 13px/1 inherit;cursor:pointer;transition:background .15s ease,color .15s ease,border-color .15s ease}
 #open-settings:hover{background:#33604E;border-color:#33604E;color:#fff}
 #open-settings:focus-visible{outline:none;box-shadow:0 0 0 3px #33604E33}
+.auth-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:4px;padding-top:10px;border-top:1px dashed #e0d5c0}
+.auth-status{font-size:12px;color:#8a958c;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.auth-link{background:none;border:0;padding:2px 0;color:#2e5a43;font:700 12px/1 inherit;cursor:pointer;white-space:nowrap}
+.auth-link:hover{color:#33604E;text-decoration:underline}

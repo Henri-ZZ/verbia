@@ -5,6 +5,13 @@ import { BalancedProvider, GeminiProvider, MockProvider, OpenAiCompatibleProvide
 const port = Number(process.env.PORT ?? 8787);
 const maxBodyBytes = 48_000;
 
+// Supabase Auth (optional). When configured, a signed-in Bearer token is
+// verified against /auth/v1/user and — if ENFORCE_QUOTA=1 with a positive
+// FREE_DAILY_QUOTA — consumes one daily reply via the consume_quota RPC.
+// Requests without a token keep working anonymously.
+const SUPABASE_URL = (process.env.SUPABASE_URL ?? "").replace(/\/+$/, "");
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY ?? "";
+
 export const server = createServer(async (request, response) => {
   cors(response);
   if (request.method === "OPTIONS") return end(response, 204);
@@ -24,6 +31,15 @@ export const server = createServer(async (request, response) => {
     const parsed = generateReplyRequestSchema.safeParse(body);
     if (!parsed.success) return apiError(response, 400, requestId, "INVALID_REQUEST", false, "Check the intent and generation settings.");
     requestId = parsed.data.requestId;
+
+    const auth = await verifyBearer(request.headers.authorization);
+    if (auth.status === "invalid") return apiError(response, 401, requestId, "UNAUTHENTICATED", false, "Sign-in expired. Sign in again from Verbia settings.");
+    if (auth.status === "ok") {
+      const quota = await consumeQuota(auth.token);
+      if (quota === "exceeded") return apiError(response, 429, requestId, "QUOTA_EXCEEDED", false, "You have used your free daily replies. Try again tomorrow.");
+      console.log(`[verbia-api] request ${requestId} user ${auth.userId}${auth.email ? ` (${auth.email})` : ""}`);
+    }
+
     const started = performance.now();
     const provider = getProvider();
     const controller = new AbortController();
@@ -116,10 +132,68 @@ async function readJson(request: IncomingMessage, limit: number) {
   return JSON.parse(Buffer.concat(chunks).toString("utf8"));
 }
 function cleanDraft(value: string) { return value.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "").trim().slice(0, 8_000); }
-function cors(response: ServerResponse) { response.setHeader("access-control-allow-origin", "*"); response.setHeader("access-control-allow-headers", "content-type"); response.setHeader("access-control-allow-methods", "POST,GET,OPTIONS"); response.setHeader("cache-control", "no-store"); response.setHeader("x-content-type-options", "nosniff"); }
+function cors(response: ServerResponse) { response.setHeader("access-control-allow-origin", "*"); response.setHeader("access-control-allow-headers", "content-type, authorization"); response.setHeader("access-control-allow-methods", "POST,GET,OPTIONS"); response.setHeader("cache-control", "no-store"); response.setHeader("x-content-type-options", "nosniff"); }
 function json(response: ServerResponse, status: number, body: unknown) { response.writeHead(status, { "content-type": "application/json; charset=utf-8" }); response.end(JSON.stringify(body)); }
 function end(response: ServerResponse, status: number) { response.writeHead(status); response.end(); }
 function apiError(response: ServerResponse, status: number, requestId: string, code: ApiError["code"], retryable: boolean, userMessage: string, detail?: string) { return json(response, status, { requestId, code, retryable, userMessage, detail } satisfies ApiError); }
 function numberEnv(name: string, fallback: number) { const value = Number(process.env[name]); return Number.isFinite(value) ? value : fallback; }
+
+type BearerResult = { status: "none" | "invalid" } | { status: "ok"; userId: string; email?: string; token: string };
+
+// Verifies a signed-in token against Supabase. "none" means the request is
+// anonymous (or auth is unconfigured) and continues without attribution;
+// "invalid" means the token was rejected by Supabase and the client should
+// sign in again (the extension clears the session before this normally happens).
+async function verifyBearer(header: string | string[] | undefined): Promise<BearerResult> {
+  const value = Array.isArray(header) ? header[0] : header;
+  if (!value?.startsWith("Bearer ")) return { status: "none" };
+  const token = value.slice("Bearer ".length).trim();
+  if (!token) return { status: "none" };
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    console.warn("[verbia-api] Authorization header sent but SUPABASE_URL/SUPABASE_ANON_KEY are not set — ignoring");
+    return { status: "none" };
+  }
+  try {
+    const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      headers: { apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${token}` }
+    });
+    if (response.status === 200) {
+      const user = (await response.json()) as { id?: string; email?: string };
+      if (!user.id) return { status: "invalid" };
+      return { status: "ok", userId: user.id, email: user.email, token };
+    }
+    if (response.status === 401 || response.status === 403) return { status: "invalid" };
+    console.warn(`[verbia-api] token verification returned ${response.status}`);
+    return { status: "none" };
+  } catch (error) {
+    console.warn("[verbia-api] token verification failed (network?)", error);
+    return { status: "none" };
+  }
+}
+
+// Optionally consumes one daily reply for the signed-in user. Enabled only by
+// ENFORCE_QUOTA=1 with a positive FREE_DAILY_QUOTA; quota overflows surface
+// as QUOTA_EXCEEDED from the security-definer consume_quota RPC.
+async function consumeQuota(token: string): Promise<"ok" | "skipped" | "exceeded"> {
+  const enforce = process.env.ENFORCE_QUOTA === "1";
+  const limit = numberEnv("FREE_DAILY_QUOTA", 0);
+  if (!enforce || limit <= 0 || !SUPABASE_URL || !SUPABASE_ANON_KEY) return "skipped";
+  try {
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/consume_quota`, {
+      method: "POST",
+      headers: { apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${token}`, "content-type": "application/json" },
+      body: JSON.stringify({ p_limit: limit })
+    });
+    if (response.ok) return "ok";
+    const body = (await response.json().catch(() => null)) as { message?: string } | null;
+    if (body?.message?.includes("QUOTA_EXCEEDED")) return "exceeded";
+    // Any other RPC failure must not block drafting — log and carry on.
+    console.warn(`[verbia-api] consume_quota failed (${response.status})`, body?.message ?? "");
+    return "ok";
+  } catch (error) {
+    console.warn("[verbia-api] consume_quota request failed (network?)", error);
+    return "ok";
+  }
+}
 
 if (process.env.NODE_ENV !== "test") server.listen(port, "127.0.0.1", () => console.log(`Verbia API listening on http://127.0.0.1:${port}`));

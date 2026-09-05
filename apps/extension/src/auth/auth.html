@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Verbia — Sign in</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; font-family: Inter, ui-sans-serif, system-ui, sans-serif; background: #F2EDE2; color: #172019; }
+  .auth-card { width: 320px; padding: 28px 24px; background: #fffdf8; border: 1px solid #e4dccb; border-radius: 16px; text-align: center; box-shadow: 0 6px 18px #2145310d; }
+  .auth-card img { display: block; margin: 0 auto; }
+  .auth-card h1 { margin: 10px 0 0; font: 800 22px/1 Georgia, serif; color: #172019; }
+  .auth-card .tagline { margin: 6px 0 0; font-size: 12px; font-weight: 750; color: #33604E; }
+  .auth-status { margin: 18px 0 0; font-size: 13px; line-height: 1.6; color: #3c4a40; }
+  .auth-close { display: inline-block; margin-top: 16px; padding: 8px 18px; border: 1px solid #9fb8a6; border-radius: 10px; background: transparent; color: #2e5a43; font: 600 13px/1 inherit; text-decoration: none; cursor: pointer; }
+  .auth-close:hover { background: #33604E; border-color: #33604E; color: #fff; }
+</style>
+</head>
+<body>
+<main class="auth-card" role="status" aria-live="polite">
+  <img src="icons/icon32.png" alt="" width="32" height="32">
+  <h1>Verbia</h1>
+  <p class="tagline">You mean it. Verbia says it.</p>
+  <p id="auth-status" class="auth-status"></p>
+  <a id="auth-close" class="auth-close" href="#" hidden></a>
+</main>
+<script src="auth.js"></script>
+</body>
+</html>
