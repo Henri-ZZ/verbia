@@ -1,4 +1,4 @@
-import { generateReplyRequestSchema, generateReplyResponseSchema, type ApiError } from "@verbia/shared";
+import { generateReplyRequestSchema, generateReplyResponseSchema, type AccountUsage, type ApiError } from "@verbia/shared";
 import { BalancedProvider, GeminiProvider, MockProvider, OpenAiCompatibleProvider, type ReplyProvider } from "./provider";
 
 export type ApiEnv = Record<string, string | undefined>;
@@ -20,6 +20,16 @@ export function createApiHandler(env: ApiEnv) {
         return json(503, { ok: false, error: "Generation service is not configured" });
       }
     }
+    if (request.method === "GET" && path === "/v1/account/usage") {
+      const auth = await verifyBearer(request.headers.get("authorization"), env);
+      if (auth.status !== "ok") return apiError(401, "account-usage", "UNAUTHENTICATED", false, "Sign in from Verbia settings to view usage.");
+      try {
+        return json(200, await readAccountUsage(auth, env));
+      } catch (error) {
+        console.error("[verbia-api] account usage failed:", error);
+        return apiError(502, "account-usage", "PROVIDER_ERROR", true, "Account usage is temporarily unavailable.");
+      }
+    }
     if (request.method !== "POST" || path !== "/v1/replies:generate") return json(404, { error: "Not found" });
     let requestId = "unknown";
     try {
@@ -31,8 +41,9 @@ export function createApiHandler(env: ApiEnv) {
       if (auth.status === "invalid") return apiError(401, requestId, "UNAUTHENTICATED", false, "Sign-in expired. Sign in again from Verbia settings.");
       if (auth.status === "none" && env.AUTH_REQUIRED === "1") return apiError(401, requestId, "UNAUTHENTICATED", false, "Sign in from Verbia settings to generate a reply.");
       if (auth.status === "ok") {
-        const quota = await consumeQuota(auth.token, env);
-        if (quota === "exceeded") return apiError(429, requestId, "QUOTA_EXCEEDED", false, "You have used your free daily replies. Try again tomorrow.");
+        const plan = await readAccountPlan(auth, env);
+        const quota = await consumeQuota(auth.token, plan, env);
+        if (quota === "exceeded") return apiError(429, requestId, "QUOTA_EXCEEDED", false, "You have used your daily replies. Try again tomorrow.");
         console.log(`[verbia-api] request ${requestId} user ${auth.userId}${auth.email ? ` (${auth.email})` : ""}`);
       }
       const started = performance.now();
@@ -101,6 +112,8 @@ function apiError(status: number, requestId: string, code: ApiError["code"], ret
 function numberEnv(env: ApiEnv, name: string, fallback: number) { const value = Number(env[name]); return Number.isFinite(value) ? value : fallback; }
 
 type BearerResult = { status: "none" | "invalid" } | { status: "ok"; userId: string; email?: string; token: string };
+type AuthenticatedBearer = Extract<BearerResult, { status: "ok" }>;
+type AccountPlan = AccountUsage["plan"];
 async function verifyBearer(header: string | null, env: ApiEnv): Promise<BearerResult> {
   if (!header?.startsWith("Bearer ")) return { status: "none" };
   const token = header.slice("Bearer ".length).trim();
@@ -115,11 +128,55 @@ async function verifyBearer(header: string | null, env: ApiEnv): Promise<BearerR
     console.warn(`[verbia-api] token verification returned ${response.status}`); return { status: "none" };
   } catch (error) { console.warn("[verbia-api] token verification failed", error); return { status: "none" }; }
 }
-async function consumeQuota(token: string, env: ApiEnv): Promise<"ok" | "skipped" | "exceeded"> {
+function quotaLimitForPlan(plan: AccountPlan, env: ApiEnv): number | null {
+  const configured = plan === "premium" ? numberEnv(env, "PREMIUM_DAILY_QUOTA", 0) : numberEnv(env, "FREE_DAILY_QUOTA", 10);
+  return configured > 0 ? configured : null;
+}
+
+async function readAccountPlan(auth: AuthenticatedBearer, env: ApiEnv): Promise<AccountPlan> {
+  try {
+    const rows = await supabaseRows<{ plan?: string }>("profiles", { select: "plan", id: `eq.${auth.userId}`, limit: "1" }, auth.token, env);
+    return rows[0]?.plan === "premium" ? "premium" : "free";
+  } catch (error) {
+    console.warn("[verbia-api] profile lookup failed; applying free plan", error);
+    return "free";
+  }
+}
+
+async function readAccountUsage(auth: AuthenticatedBearer, env: ApiEnv): Promise<AccountUsage> {
+  const period = new Date().toISOString().slice(0, 10);
+  const [plan, quotaRows] = await Promise.all([
+    readAccountPlan(auth, env),
+    supabaseRows<{ count?: number }>("quota_usage", { select: "count", user_id: `eq.${auth.userId}`, period: `eq.${period}`, limit: "1" }, auth.token, env)
+  ]);
+  const nextReset = new Date(`${period}T00:00:00.000Z`);
+  nextReset.setUTCDate(nextReset.getUTCDate() + 1);
+  return {
+    plan,
+    used: Math.max(0, Number(quotaRows[0]?.count) || 0),
+    limit: quotaLimitForPlan(plan, env),
+    resetsAt: nextReset.toISOString()
+  };
+}
+
+async function supabaseRows<T>(table: string, query: Record<string, string>, token: string, env: ApiEnv): Promise<T[]> {
   const supabaseUrl = (env.SUPABASE_URL ?? "").replace(/\/+$/, "");
   const publishableKey = env.SUPABASE_PUBLISHABLE_KEY ?? env.SUPABASE_ANON_KEY ?? "";
-  const limit = numberEnv(env, "FREE_DAILY_QUOTA", 0);
-  if (env.ENFORCE_QUOTA !== "1" || limit <= 0 || !supabaseUrl || !publishableKey) return "skipped";
+  if (!supabaseUrl || !publishableKey) throw new Error("Supabase is not configured");
+  const url = new URL(`${supabaseUrl}/rest/v1/${table}`);
+  for (const [key, value] of Object.entries(query)) url.searchParams.set(key, value);
+  const response = await fetch(url, { headers: { apikey: publishableKey, authorization: `Bearer ${token}` } });
+  if (!response.ok) throw new Error(`Supabase ${table} lookup returned ${response.status}`);
+  const body = await response.json();
+  if (!Array.isArray(body)) throw new Error(`Supabase ${table} returned an invalid payload`);
+  return body as T[];
+}
+
+async function consumeQuota(token: string, plan: AccountPlan, env: ApiEnv): Promise<"ok" | "skipped" | "exceeded"> {
+  const supabaseUrl = (env.SUPABASE_URL ?? "").replace(/\/+$/, "");
+  const publishableKey = env.SUPABASE_PUBLISHABLE_KEY ?? env.SUPABASE_ANON_KEY ?? "";
+  const limit = quotaLimitForPlan(plan, env);
+  if (env.ENFORCE_QUOTA !== "1" || limit === null || !supabaseUrl || !publishableKey) return "skipped";
   try {
     const response = await fetch(`${supabaseUrl}/rest/v1/rpc/consume_quota`, { method: "POST", headers: { apikey: publishableKey, authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify({ p_limit: limit }) });
     if (response.ok) return "ok";

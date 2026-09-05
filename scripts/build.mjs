@@ -51,6 +51,7 @@ await Promise.all([
   cp("apps/extension/src/options/options.css", path.join(out, "options.css")),
   cp("apps/extension/src/popup/index.html", path.join(out, "popup.html")),
   cp("apps/extension/src/popup/popup.css", path.join(out, "popup.css")),
+  cp("apps/extension/src/account.css", path.join(out, "account.css")),
   // apps/extension/assets holds third-party brand icons used in UI (google.svg
   // today; github/twitter etc. later). Each new icon is just a file drop — no
   // build script change needed.

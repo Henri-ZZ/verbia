@@ -10,6 +10,7 @@ const styles = `
 label{display:block;font-size:.75rem;font-weight:750;color:#39483e;margin:10px 0 5px}.intent,.draft{inline-size:100%;resize:vertical;min-block-size:84px;border:1px solid #cad6cc;background:white;border-radius:10px;padding:9px 10px;line-height:1.45}.draft{min-block-size:100px}select{inline-size:100%;min-block-size:32px;appearance:none;-webkit-appearance:none;border:1px solid #cad6cc;border-radius:9px;background-color:#fff;padding:6px 27px 6px 9px;font-size:.78rem;font-weight:600;color:#1b2a20;cursor:pointer;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23526d5c' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M4 6.5L8 10.5L12 6.5'/></svg>");background-repeat:no-repeat;background-position:right 8px center;background-size:14px 14px;transition:border-color .15s ease,box-shadow .15s ease}
 select:hover{border-color:#8fae9b}
 select:focus-visible{border-color:#0F6E56;box-shadow:0 0 0 1px #0F6E5626}
+.head-actions{display:flex;align-items:center;gap:2px}.remove-panel{display:none;color:#87362f}.remove-panel:hover{background:#fae3df}.panel.collapsed .remove-panel{display:grid}.panel.collapsed .head-actions .icon svg{transform:none}.panel.collapsed .head-actions [data-action="collapse"] svg{transform:rotate(180deg)}
 .row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-block-start:10px}.primary,.secondary,.danger{min-block-size:32px;border:0;border-radius:9px;padding:8px 12px;font-weight:750}.primary{background:#0F6E56;color:white}.secondary{background:#e7eee8;color:#214531}.danger{background:#fae3df;color:#87362f}.primary:disabled,.secondary:disabled{opacity:.45;cursor:not-allowed}.status{min-block-size:18px;margin:8px 0 0;color:#526057;font-size:.75rem;display:flex;align-items:center;gap:6px}.status img{inline-size:14px;block-size:14px;flex:none}.status.recording{display:block;color:#a72c25;font-weight:800}.foot{font-size:.7rem;color:#718078;margin:10px 0 0}.insert-choice{border:1px solid #efcf8b;background:#fff9e8;padding:10px;border-radius:10px;margin-block-start:10px}.hidden{display:none!important}@container (max-width:380px){.row{grid-template-columns:1fr}}
 `;
 
@@ -36,7 +37,7 @@ export class VerbiaPanel {
   private recordingBase = "";
   private previousFocus: HTMLElement | null = null;
 
-  constructor(private adapter: SiteAdapter, target: EditableTarget, context: ContextEnvelope) {
+  constructor(private adapter: SiteAdapter, target: EditableTarget, context: ContextEnvelope, private onRemove: () => void) {
     this.target = target;
     this.context = context;
     this.host.dataset.verbiaRoot = "true";
@@ -170,6 +171,7 @@ export class VerbiaPanel {
   private renderPanel(intent = "") {
     const low = this.context.confidence === "low";
     this.root.innerHTML = `<style>${styles}</style><div class="inline-shell"><section class="panel" role="region" aria-labelledby="verbia-title"><header class="head"><div><h2 class="brand" id="verbia-title"><img src="${chrome.runtime.getURL("icons/verbia-logo.svg")}" alt="Verbia" class="wordmark"></h2><p class="slogan">${this.t("brand.slogan")}</p></div><button class="icon" data-action="collapse" type="button" aria-expanded="true" aria-label="${this.t("panel.collapseAria")}"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 10l4-4 4 4"/></svg></button></header><div class="panel-body"><div class="chip">${escapeHtml(this.contextLabel())}</div>${low ? '<p class="warning">${this.t("panel.warningLow")}</p>' : ""}${this.context.truncated ? '<p class="warning">${this.t("panel.warningTruncated")}</p>' : ""}<details class="context" ${this.settings.contextPreviewExpanded ? "open" : ""}><summary>${this.t("panel.summaryContext")}</summary><div class="context-body">${escapeHtml(this.contextText())}</div><button class="remove-context" data-action="remove-context" type="button">${this.t("panel.removeContext")}</button></details><label for="intent">${this.t("brand.uxLine")}</label><textarea class="intent" id="intent" maxlength="2000" placeholder="${this.t("panel.intentPlaceholder")}">${escapeHtml(intent)}</textarea><div class="actions"><button class="secondary" data-action="record" type="button">${this.t("panel.speak")}</button><button class="secondary" data-action="clear" type="button">${this.t("panel.clear")}</button></div><div class="row">${this.rowCells(this.settings)}</div><div class="actions"><button class="primary" data-action="generate" type="button">${this.t("panel.generate")}</button><button class="danger hidden" data-action="cancel" type="button">${this.t("panel.cancel")}</button></div><p class="status" role="status" aria-live="polite"></p><section class="draft-area hidden"><label for="draft">${this.t("panel.draftLabel")}</label><textarea class="draft" id="draft"></textarea><div class="actions"><button class="primary" data-action="insert" type="button">${this.t("panel.insert")}</button><button class="secondary" data-action="regenerate" type="button">${this.t("panel.regenerate")}</button><button class="secondary" data-action="copy" type="button">${this.t("panel.copy")}</button></div><div class="insert-choice hidden"><strong>${this.t("panel.editorHasText")}</strong><div class="actions"><button class="secondary" data-action="append" type="button">${this.t("panel.append")}</button><button class="danger" data-action="replace" type="button">${this.t("panel.replace")}</button><button class="secondary" data-action="choice-cancel" type="button">${this.t("panel.cancel")}</button></div></div></section><p class="foot">${this.t("panel.foot")}</p></div></section></div>`;
+    this.renderHeadActions();
     this.setSelect("language", this.settings.outputLanguage);
     this.setSelect("tone", this.settings.defaultTone);
     this.setSelect("length", this.settings.defaultLength);
@@ -179,6 +181,7 @@ export class VerbiaPanel {
     const action = (event.target as HTMLElement).closest<HTMLElement>("[data-action]")?.dataset.action;
     if (!action) return;
     if (action === "collapse") this.toggleCollapsed();
+    if (action === "remove-panel") { void this.destroy(); return; }
     if (action === "clear") { const input = this.el<HTMLTextAreaElement>("intent"); if (input) input.value = ""; }
     if (action === "remove-context") this.removeContext();
     if (action === "generate" || action === "regenerate") void this.generate();
@@ -426,6 +429,40 @@ export class VerbiaPanel {
     const panel = this.root.querySelector(".panel");
     if (!panel) return;
     this.setCollapsed(!panel.classList.contains("collapsed"));
+  }
+
+  private renderHeadActions() {
+    const collapse = this.action("collapse");
+    if (!collapse) return;
+    const controls = document.createElement("div");
+    controls.className = "head-actions";
+    const remove = document.createElement("button");
+    remove.className = "icon remove-panel";
+    remove.type = "button";
+    remove.dataset.action = "remove-panel";
+    remove.setAttribute("aria-label", this.t("panel.removeAria"));
+    remove.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg>';
+    collapse.replaceWith(controls);
+    controls.append(remove, collapse);
+  }
+
+  private async destroy() {
+    this.stopRequested = true;
+    if (this.restartTimer !== undefined) window.clearTimeout(this.restartTimer);
+    this.restartTimer = undefined;
+    this.recognition?.stop();
+    this.recognition = undefined;
+    if (this.requestId) await chrome.runtime.sendMessage({ type: "CANCEL_GENERATION", requestId: this.requestId }).catch(() => undefined);
+    this.requestId = undefined;
+    this.phase = "idle";
+    this.draft = "";
+    this.voiceTranscript = false;
+    this.recordingBase = "";
+    this.context = { relation: "none", truncated: false, extractorVersion: this.context.extractorVersion, confidence: "high" };
+    chrome.storage.onChanged.removeListener(this.onSettingsChanged);
+    this.host.remove();
+    this.onRemove();
+    this.previousFocus?.focus();
   }
 
   // Folding keeps the panel mounted and its typed content intact; only the

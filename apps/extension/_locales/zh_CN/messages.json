@@ -3,9 +3,9 @@
     "message": "你的意图，恰如其言。Verbia 把你的想法变成自然的回复草稿——由你检查、编辑并亲自发送。"
   },
   "actionTitle": {
-    "message": "打开 Verbia"
+    "message": "打开 Verbia 控制面板"
   },
   "openVerbiaDesc": {
-    "message": "点击输入框，然后按快捷键打开 Verbia"
+    "message": "聚焦输入框后，使用快捷键唤起回复面板"
   }
 }

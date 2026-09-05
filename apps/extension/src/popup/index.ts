@@ -10,9 +10,32 @@ async function applyLanguage() {
     const text = strings[el.dataset.i18n ?? ""];
     if (text) el.textContent = text;
   }
+  for (const el of document.querySelectorAll<HTMLElement>("[data-i18n-aria]")) {
+    const text = strings[el.dataset.i18nAria ?? ""];
+    if (text) el.setAttribute("aria-label", text);
+  }
 }
 
 void applyLanguage();
+
+async function applyShortcut() {
+  const commands = await chrome.commands.getAll().catch(() => []);
+  const shortcut = commands.find(command => command.name === "open-verbia")?.shortcut ?? "";
+  const container = document.querySelector<HTMLElement>("#popup-shortcut-keys");
+  if (!container) return;
+  renderShortcutKeys(container, shortcut || "—");
+}
+
+function renderShortcutKeys(container: HTMLElement, shortcut: string) {
+  container.replaceChildren();
+  for (const key of shortcut.split("+").filter(Boolean)) {
+    const chip = document.createElement("kbd");
+    chip.textContent = key === "Command" ? "⌘" : key === "Shift" ? "⇧" : key === "Alt" ? "⌥" : key;
+    container.append(chip);
+  }
+}
+
+void applyShortcut();
 
 document.querySelector<HTMLButtonElement>("#open-settings")?.addEventListener("click", () => {
   void chrome.runtime.openOptionsPage();
@@ -33,44 +56,98 @@ async function renderAuth() {
   const state = (response?.ok ? response.data : { signedIn: false }) as AuthState;
 
   row.textContent = "";
+  row.classList.remove("signed-out");
   row.hidden = false;
 
-  const label = document.createElement("span");
-  label.className = "auth-status";
-  // Google OAuth accounts show the provider mark before the email (mirrors
-  // the options page); Magic Link stays plain text.
-  if (state.signedIn && state.provider === "google") {
-    const providerMark = document.createElement("img");
-    providerMark.src = "assets/google.svg";
-    providerMark.alt = "";
-    providerMark.width = 14;
-    providerMark.height = 14;
-    providerMark.decoding = "async";
-    label.append(providerMark);
-  }
-  const name = document.createElement("span");
-  name.className = "auth-status-text";
-  name.textContent = state.signedIn ? (state.email ?? "") : (strings["account.signedOut"] ?? "Not signed in");
-  label.append(name);
-
-  const button = document.createElement("button");
-  button.type = "button";
-  button.className = "auth-link";
   if (state.signedIn) {
+    const head = document.createElement("div");
+    head.className = "account-head";
+    const avatar = createAccountAvatar(state);
+    const copy = document.createElement("div");
+    copy.className = "account-copy";
+    const email = document.createElement("p");
+    email.className = "account-email";
+    const emailText = document.createElement("span");
+    emailText.textContent = state.email ?? "";
+    email.append(emailText);
+    if (state.provider === "google") email.append(createGoogleBadge());
+    const plan = document.createElement("span");
+    plan.className = "account-plan";
+    plan.textContent = state.plan === "premium" ? (strings["account.planPremium"] ?? "Premium") : (strings["account.planFree"] ?? "Free");
+    copy.append(email, plan);
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "auth-link";
     button.textContent = strings["account.signOut"] ?? "Sign out";
     button.addEventListener("click", async () => {
       await chrome.runtime.sendMessage({ type: "SIGN_OUT" });
       await renderAuth();
     });
+    head.append(avatar, copy, button);
+    row.append(head, makeUsage(state, strings));
   } else {
+    row.classList.add("signed-out");
+    const label = document.createElement("p");
+    label.textContent = strings["account.signedOut"] ?? "Not signed in";
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "sign-in";
     button.textContent = strings["account.signIn"] ?? "Sign in";
     button.addEventListener("click", () => { void chrome.runtime.openOptionsPage(); });
+    row.append(label, button);
   }
-  row.append(label, button);
+}
+
+function createAccountAvatar(state: AuthState): HTMLElement {
+  const avatar = document.createElement("span");
+  avatar.className = "account-avatar";
+  avatar.textContent = (state.email?.[0] ?? "V").toUpperCase();
+  if (!state.avatarUrl) return avatar;
+  const image = document.createElement("img");
+  image.src = state.avatarUrl;
+  image.alt = "";
+  image.decoding = "async";
+  image.referrerPolicy = "no-referrer";
+  image.addEventListener("error", () => image.remove(), { once: true });
+  avatar.append(image);
+  return avatar;
+}
+
+function createGoogleBadge(): HTMLImageElement {
+  const badge = document.createElement("img");
+  badge.className = "provider-badge";
+  badge.src = "assets/google.svg";
+  badge.alt = "Google";
+  badge.width = 13;
+  badge.height = 13;
+  return badge;
+}
+
+function makeUsage(state: AuthState, strings: Record<string, string>): HTMLElement {
+  const usage = document.createElement("div"); usage.className = "usage";
+  const line = document.createElement("div"); line.className = "usage-line";
+  const label = document.createElement("span"); label.textContent = strings["account.todayUsage"] ?? "Today’s usage";
+  const count = document.createElement("strong"); count.className = "usage-count";
+  if (!state.usage) {
+    count.classList.add("is-unavailable");
+    count.textContent = strings["account.usageUnavailable"] ?? "Temporarily unavailable";
+    line.append(label, count); usage.append(line);
+    return usage;
+  }
+  const used = state.usage?.used ?? 0; const limit = state.usage?.limit ?? null;
+  const reached = limit !== null && used >= limit;
+  count.textContent = limit === null ? (strings["account.unlimited"] ?? "Unlimited") : `${used}/${limit}`;
+  if (reached) count.classList.add("is-limit");
+  line.append(label, count); usage.append(line);
+  if (limit !== null) {
+    const track = document.createElement("div"); track.className = "usage-track"; track.setAttribute("role", "progressbar"); track.setAttribute("aria-valuemin", "0"); track.setAttribute("aria-valuemax", String(limit)); track.setAttribute("aria-valuenow", String(Math.min(used, limit)));
+    const fill = document.createElement("div"); fill.className = "usage-fill"; fill.style.width = `${Math.min(used / limit * 100, 100)}%`; if (reached) fill.classList.add("is-limit"); track.append(fill); usage.append(track);
+  }
+  return usage;
 }
 
 void renderAuth();
 
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === "local" && changes.settings) void renderAuth();
+  if (area === "local" && (changes.settings || changes["verbia-auth-token"])) void renderAuth();
 });

@@ -60,7 +60,12 @@ type PersistedSession = {
   access_token?: string;
   refresh_token?: string;
   expires_at?: number;
-  user?: { id?: string; email?: string; app_metadata?: { provider?: string } } | null;
+  user?: {
+    id?: string;
+    email?: string;
+    app_metadata?: { provider?: string };
+    user_metadata?: { avatar_url?: string; picture?: string };
+  } | null;
 };
 
 export async function readSession(): Promise<PersistedSession | null> {
@@ -114,7 +119,12 @@ export async function authBearer(): Promise<string | undefined> {
   return session?.access_token ? `Bearer ${session.access_token}` : undefined;
 }
 
-export type AuthSnapshot = { signedIn: boolean; email?: string; provider?: "google" | "email" };
+export type AuthSnapshot = {
+  signedIn: boolean;
+  email?: string;
+  provider?: "google" | "email";
+  avatarUrl?: string;
+};
 
 // The sign-in method Supabase records on the user (app_metadata.provider):
 // "google" for the OAuth button, "email" for Magic Link. Anything else (or an
@@ -124,11 +134,28 @@ function sessionProvider(user: PersistedSession["user"]): "google" | "email" | u
   return provider === "google" || provider === "email" ? provider : undefined;
 }
 
+function sessionAvatarUrl(user: PersistedSession["user"]): string | undefined {
+  if (sessionProvider(user) !== "google") return undefined;
+  const raw = user?.user_metadata?.avatar_url ?? user?.user_metadata?.picture;
+  if (!raw) return undefined;
+  try {
+    const url = new URL(raw);
+    return url.protocol === "https:" ? url.href : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export async function authSnapshot(): Promise<AuthSnapshot> {
   if (!authEnabled) return { signedIn: false };
   const session = await currentSession();
   if (!session) return { signedIn: false };
-  return { signedIn: true, email: session.user?.email ?? undefined, provider: sessionProvider(session.user) };
+  return {
+    signedIn: true,
+    email: session.user?.email ?? undefined,
+    provider: sessionProvider(session.user),
+    avatarUrl: sessionAvatarUrl(session.user)
+  };
 }
 
 export async function signOut(): Promise<void> {

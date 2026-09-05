@@ -1,4 +1,4 @@
-import { DEFAULT_SETTINGS, UI_STRINGS, generateReplyRequestSchema, generateReplyResponseSchema, resolveUiLang, type ExtensionRequest, type ExtensionResponse, type StagedContext, type StagedSelection, type UiLang, type UserSettings } from "@verbia/shared";
+import { DEFAULT_SETTINGS, UI_STRINGS, generateReplyRequestSchema, generateReplyResponseSchema, resolveUiLang, type AccountUsage, type AuthState, type ExtensionRequest, type ExtensionResponse, type StagedContext, type StagedSelection, type UiLang, type UserSettings } from "@verbia/shared";
 import { SUPABASE_URL, authBearer, authEnabled, authSnapshot, getSupabase, signOut } from "../auth/supabase";
 
 const ADD_CONTEXT_MENU_ID = "verbia-add-context";
@@ -190,7 +190,8 @@ async function showActionError(title: string) {
 
 async function clearActionError() {
   await chrome.action.setBadgeText({ text: "" });
-  await chrome.action.setTitle({ title: "Open Verbia" });
+  const lang = await resolvedUiLang();
+  await chrome.action.setTitle({ title: UI_STRINGS[lang]["popup.dashboard"] ?? "Dashboard" });
 }
 
 chrome.runtime.onMessage.addListener((message: ExtensionRequest, _sender, sendResponse: (response: ExtensionResponse) => void) => {
@@ -215,7 +216,7 @@ chrome.runtime.onMessage.addListener((message: ExtensionRequest, _sender, sendRe
     return true;
   }
   if (message.type === "GET_AUTH_STATE") {
-    void authSnapshot().then(data => sendResponse({ ok: true, data })).catch(error => sendResponse(failure(error)));
+    void accountSnapshot().then(data => sendResponse({ ok: true, data })).catch(error => sendResponse(failure(error)));
     return true;
   }
   if (message.type === "SIGN_OUT") {
@@ -227,6 +228,24 @@ chrome.runtime.onMessage.addListener((message: ExtensionRequest, _sender, sendRe
 async function getSettings(): Promise<UserSettings> {
   const { settings } = await chrome.storage.local.get("settings");
   return { ...DEFAULT_SETTINGS, ...(settings ?? {}) };
+}
+
+async function accountSnapshot(): Promise<AuthState> {
+  const identity = await authSnapshot();
+  if (!identity.signedIn) return identity;
+  const [settings, bearer] = await Promise.all([getSettings(), authBearer()]);
+  if (!bearer) return identity;
+  try {
+    const response = await fetch(`${settings.backendBaseUrl.replace(/\/$/, "")}/v1/account/usage`, {
+      headers: { authorization: bearer }
+    });
+    if (!response.ok) return identity;
+    const usage = await response.json() as AccountUsage;
+    if ((usage.plan !== "free" && usage.plan !== "premium") || !Number.isFinite(usage.used) || (usage.limit !== null && !Number.isFinite(usage.limit))) return identity;
+    return { ...identity, plan: usage.plan, usage: { used: usage.used, limit: usage.limit, resetsAt: usage.resetsAt } };
+  } catch {
+    return identity;
+  }
 }
 
 async function generate(payload: unknown) {

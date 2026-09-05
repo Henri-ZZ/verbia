@@ -21,10 +21,11 @@ const EN: Strings = {
 
   // common
   "common.autoOption": "Auto (follow browser)",
+  "common.or": "OR",
 
   // options page
   "settings.title": "Settings",
-  "settings.desc": "Defaults for the inline reply assistant. Context and drafts are not stored.",
+  "settings.desc": "Manage your account and choose defaults for the reply panel.",
   "settings.backend": "Backend URL",
   "settings.backendHint": "Development builds connect to your local thin gateway. Production builds should use the Verbia backend.",
   "settings.voiceLanguage": "Voice language",
@@ -43,20 +44,25 @@ const EN: Strings = {
   "settings.saveError": "Couldn't save settings",
   "settings.urlInvalid": "Enter a valid http(s) backend URL",
   "settings.shortcutTitle": "Keyboard shortcut",
-  "settings.shortcutDesc": "Click a text field, then press the shortcut to open Verbia",
-  "settings.shortcutHelp": "Shortcuts can be customized in your browser’s extension settings:",
+  "settings.shortcutDesc": "Focus a text field, then use the shortcut to open the reply panel.",
+  "settings.shortcutHelp": "You can customize this shortcut in your browser’s extension settings.",
   "settings.openShortcutsPage": "Open shortcut settings",
   "settings.shortcutUnset": "Not set",
   "settings.howTitle": "How it works",
-  "settings.howBody": "Open a Reddit reply box and Verbia appears directly below it. On other sites, select text and choose Add to Verbia context, then press the shortcut. The toolbar icon opens the Verbia menu — open Settings from there.",
+  "settings.howBody": "On Reddit, focus a reply box to show the reply panel. On other sites, focus a text field and use the shortcut. You can also add selected text as context from the right-click menu. The toolbar icon opens the Dashboard.",
   "settings.privacyTitle": "Privacy by design",
   "settings.privacyBody": "Verbia sends data only when you click Generate and never clicks a website’s send or submit controls.",
+  "settings.replyDefaults": "Reply defaults",
+  "settings.replyDefaultsDesc": "Choose how Verbia drafts before you make changes in the reply panel.",
+  "settings.interfacePrivacy": "Interface & privacy",
+  "settings.interfacePrivacyDesc": "Control what you see and what diagnostic data can leave the extension.",
+  "settings.advanced": "Advanced",
 
   // popup
-  "popup.lead": "Reply in any language, right where you type.",
-  "popup.keys": "Focus a text field, then press Ctrl+Shift+Y to open Verbia.",
-  "popup.os": "Command+Shift+Y on Mac.",
+  "popup.lead": "Draft replies in any language, right where you type.",
+  "popup.shortcutHint": "Focus a text field, then use the shortcut to open the reply panel.",
   "popup.settings": "Settings",
+  "popup.dashboard": "Dashboard",
 
   // reply panel
   "panel.speak": "Speak",
@@ -77,6 +83,7 @@ const EN: Strings = {
   "panel.foot": "Verbia never sends for you.",
   "panel.collapseAria": "Collapse reply panel",
   "panel.expandAria": "Expand reply panel",
+  "panel.removeAria": "Remove reply panel",
   "panel.summaryContext": "Show context",
   "panel.warningLow": "Context confidence is low",
   "panel.warningTruncated": "Context was truncated",
@@ -141,8 +148,8 @@ const EN: Strings = {
 
   // account (settings card + popup)
   "account.title": "Account",
-  "account.desc": "Sign in to keep your usage across devices. Drafting keeps working without an account.",
-  "account.signedOut": "Not signed in",
+  "account.desc": "Sign in to start drafting replies and keep your daily usage in sync.",
+  "account.signedOut": "Sign in to start using Verbia",
   "account.signIn": "Sign in",
   "account.signInGoogle": "Continue with Google",
   "account.emailLabel": "Email",
@@ -151,6 +158,12 @@ const EN: Strings = {
   "account.signOut": "Sign out",
   "account.plan": "Plan",
   "account.planFree": "Free",
+  "account.planPremium": "Premium",
+  "account.todayUsage": "Today’s usage",
+  "account.dailyAllowance": "Resets daily at 00:00 UTC",
+  "account.limitReached": "Daily limit reached",
+  "account.unlimited": "Unlimited",
+  "account.usageUnavailable": "Temporarily unavailable",
   "account.sentEmail": "Check your inbox — the sign-in link expires soon.",
   "account.fillForm": "Enter your email.",
   "account.errorAuth": "Sign-in failed. Please try again."
@@ -163,10 +176,11 @@ const ZH_CN: Strings = {
 
   // common
   "common.autoOption": "自动（跟随浏览器）",
+  "common.or": "或",
 
   // options page
   "settings.title": "设置",
-  "settings.desc": "内联回复助手的默认项。不会存储上下文与草稿。",
+  "settings.desc": "管理账号，并设置回复面板的默认选项。",
   "settings.backend": "后端 URL",
   "settings.backendHint": "开发版本连接你的本地 thin gateway。生产环境应使用 Verbia 后端。",
   "settings.voiceLanguage": "语音语言",
@@ -185,20 +199,25 @@ const ZH_CN: Strings = {
   "settings.saveError": "设置保存失败",
   "settings.urlInvalid": "请输入有效的 http(s) 后端 URL",
   "settings.shortcutTitle": "键盘快捷键",
-  "settings.shortcutDesc": "点击输入框，然后按快捷键打开 Verbia",
-  "settings.shortcutHelp": "可在浏览器的扩展程序设置中自定义快捷键：",
+  "settings.shortcutDesc": "聚焦输入框后，使用快捷键唤起回复面板。",
+  "settings.shortcutHelp": "可以在浏览器的扩展程序设置中自定义此快捷键。",
   "settings.openShortcutsPage": "打开快捷键设置",
   "settings.shortcutUnset": "未设置",
   "settings.howTitle": "工作原理",
-  "settings.howBody": "打开 Reddit 回复框，Verbia 会直接出现在下方。其他网页可选中文字，右键选择“加入 Verbia 上下文”，再按快捷键打开。点击工具栏图标打开 Verbia 菜单——在那里打开 Settings。",
+  "settings.howBody": "在 Reddit 聚焦回复框即可显示回复面板；其他网页请聚焦输入框后使用快捷键。也可以通过右键菜单将所选文字加入上下文。点击工具栏图标可打开控制面板。",
   "settings.privacyTitle": "隐私设计",
   "settings.privacyBody": "Verbia 仅在你点击「生成」时发送数据，从不点击网站的发送或提交控件。",
+  "settings.replyDefaults": "回复默认项",
+  "settings.replyDefaultsDesc": "设置 Verbia 起草时的初始选项，仍可在回复面板中随时调整。",
+  "settings.interfacePrivacy": "界面与隐私",
+  "settings.interfacePrivacyDesc": "控制界面显示，以及哪些诊断数据可以离开扩展。",
+  "settings.advanced": "高级设置",
 
   // popup
-  "popup.lead": "在你打字的地方，用任何语言回复。",
-  "popup.keys": "点击输入框，然后按 Ctrl+Shift+Y 打开 Verbia。",
-  "popup.os": "Mac 上为 Command+Shift+Y。",
+  "popup.lead": "在任意输入框，用任何语言起草回复。",
+  "popup.shortcutHint": "聚焦输入框后，使用快捷键唤起回复面板。",
   "popup.settings": "设置",
+  "popup.dashboard": "控制面板",
 
   // reply panel
   "panel.speak": "口述",
@@ -219,6 +238,7 @@ const ZH_CN: Strings = {
   "panel.foot": "Verbia 从不替你发送。",
   "panel.collapseAria": "折叠回复面板",
   "panel.expandAria": "展开回复面板",
+  "panel.removeAria": "移除回复面板",
   "panel.summaryContext": "查看上下文",
   "panel.warningLow": "上下文置信度较低",
   "panel.warningTruncated": "上下文已被截断",
@@ -283,8 +303,8 @@ const ZH_CN: Strings = {
 
   // account (settings card + popup)
   "account.title": "账号",
-  "account.desc": "登录后在多设备间保留用量；不登录也能照常起草。",
-  "account.signedOut": "未登录",
+  "account.desc": "登录后即可开始起草回复，并同步每日用量。",
+  "account.signedOut": "登录后即可使用 Verbia",
   "account.signIn": "登录",
   "account.signInGoogle": "使用 Google 登录",
   "account.emailLabel": "邮箱",
@@ -293,6 +313,12 @@ const ZH_CN: Strings = {
   "account.signOut": "退出登录",
   "account.plan": "方案",
   "account.planFree": "免费",
+  "account.planPremium": "高级版",
+  "account.todayUsage": "今日用量",
+  "account.dailyAllowance": "每日 UTC 00:00 重置",
+  "account.limitReached": "已达到今日限额",
+  "account.unlimited": "不限次数",
+  "account.usageUnavailable": "暂时无法获取",
   "account.sentEmail": "已发送，登录链接请在邮件中查收，限时有效。",
   "account.fillForm": "请输入邮箱。",
   "account.errorAuth": "登录失败，请重试。"

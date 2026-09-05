@@ -3,9 +3,9 @@
     "message": "Your intent. The right words. Verbia turns what you mean into a natural reply draft—review, edit, and send it yourself."
   },
   "actionTitle": {
-    "message": "Open Verbia"
+    "message": "Open Verbia Dashboard"
   },
   "openVerbiaDesc": {
-    "message": "Click a text field, then press the shortcut to open Verbia"
+    "message": "Focus a text field, then use the shortcut to open the reply panel"
   }
 }

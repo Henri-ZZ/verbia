@@ -120,7 +120,7 @@ pnpm exec wrangler tail --cwd /tmp --config "$PWD/wrangler.jsonc"
 - 各提供商的模型名称。
 - 总超时、单次尝试超时、冷却时间、温度和输出长度。
 - `AUTH_REQUIRED`：是否强制登录。
-- `ENFORCE_QUOTA` 和 `FREE_DAILY_QUOTA`：是否启用额度以及每日次数。
+- `ENFORCE_QUOTA`、`FREE_DAILY_QUOTA` 和 `PREMIUM_DAILY_QUOTA`：是否启用额度，以及各账号方案的每日次数（`0` 表示不限次数）。
 
 权重示例：
 

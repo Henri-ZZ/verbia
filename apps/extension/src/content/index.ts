@@ -15,11 +15,18 @@ if (!window.__verbiaLoaded) {
   let lastEditable: HTMLElement | null = isSafeEditable(document.activeElement) ? document.activeElement : null;
   let panel: VerbiaPanel | undefined;
   let currentRef = "";
+  let dismissedRef = "";
+  let ignoreNextFocusRef = "";
   let scanFrame = 0;
 
   document.addEventListener("focusin", event => {
     if (!isSafeEditable(event.target)) return;
     lastEditable = event.target;
+    const focusedRef = toTarget(event.target).ref;
+    // destroy() restores focus to the editor. Ignore that synthetic return
+    // once so removing the panel does not immediately recreate it.
+    if (focusedRef === ignoreNextFocusRef) { ignoreNextFocusRef = ""; return; }
+    dismissedRef = "";
     if (isReddit && reddit.findComposers().some(target => target.element === event.target)) {
       void showFor(event.target, reddit, false);
     }
@@ -38,7 +45,12 @@ if (!window.__verbiaLoaded) {
     }
     const base = await adapter.extractContext(target);
     const context = applyStagedSelection(base, stagedSelection);
-    if (panel) panel.update(target, context); else panel = new VerbiaPanel(adapter, target, context);
+    if (panel) panel.update(target, context); else panel = new VerbiaPanel(adapter, target, context, () => {
+      dismissedRef = currentRef;
+      ignoreNextFocusRef = currentRef;
+      currentRef = "";
+      panel = undefined;
+    });
     currentRef = target.ref;
     panel.mountAfter(findReplyAnchor(element));
     await panel.open(focusIntent);
@@ -89,6 +101,7 @@ if (!window.__verbiaLoaded) {
     const active = isSafeEditable(document.activeElement) ? document.activeElement : null;
     const composers = reddit.findComposers();
     const chosen = active && composers.some(item => item.element === active) ? active : composers.at(-1)?.element;
+    if (chosen && toTarget(chosen).ref === dismissedRef) return;
     if (chosen) void showFor(chosen, reddit, false);
   }
 

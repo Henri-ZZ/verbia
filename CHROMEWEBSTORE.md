@@ -1,6 +1,6 @@
 # Chrome Web Store Listing — Verbia
 
-> Last Updated: 2026-09-05
+> Last Updated: 2026-09-06
 
 ## Store Listing
 
@@ -21,7 +21,7 @@ Verbia helps multilingual professionals express what they mean in a natural repl
 
 On Reddit, Verbia shows the relevant post and reply chain before generating. Elsewhere, you can use selected text or no context. Write or speak your intent, choose a tone and length, review the draft, then insert or copy it.
 
-To use Verbia, focus a reply field, click the Verbia icon, review the visible context, enter your intent, and choose Generate. Verbia always shows a draft first. It never sends or submits a message; only you do that.
+To use Verbia, sign in, focus a reply field, and use your configured shortcut to open the reply panel. Review the visible context, enter your intent, and choose Generate. Verbia always shows a draft first. It never sends or submits a message; only you do that. The toolbar icon opens the Dashboard, where you can manage your account and preferences.
 
 Verbia reads page content only after you invoke it, limits access to the reply you are working on, stores preferences locally, and does not use message text for analytics.
 
@@ -40,7 +40,7 @@ Verbia reads page content only after you invoke it, limits access to the reply y
 | Screenshot 2 | 1280×800 or 640×400 | ⬜ Not created | |
 | Small Promo Tile | 440×280 | ⬜ Not created | |
 
-Screenshot 1 should show reviewed Reddit context and the intent controls. Screenshot 2 should show a generated draft before insertion and the “Verbia never sends” boundary.
+Screenshot 1 should show reviewed Reddit context and the intent controls. Screenshot 2 should show a generated draft before insertion and the “Verbia never sends” boundary. Refresh the toolbar popup/settings screenshot to include the daily usage meter and reorganized account card.
 
 ## Permissions Justification
 
@@ -89,7 +89,7 @@ Screenshot 1 should show reviewed Reddit context and the intent controls. Screen
 
 | Version | Date | Changes | Status |
 |---|---|---|---|
-| 0.1.0 | 2026-09-04 | Reddit inline reply assistant, settings side panel, and Universal reply-drafting MVP | Draft |
+| 0.1.0 | 2026-09-06 | Reddit inline reply assistant, removable reply panels with clean-session reopening, Universal reply drafting, dashboard access from the popup, Google profile identity, and visible daily free-usage allowance | Draft |
 
 ## Review Notes
 

@@ -1,0 +1,97 @@
+.account-avatar {
+  position: relative;
+  overflow: hidden;
+}
+
+.account-avatar > img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.account-email {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.account-email .provider-badge {
+  display: block;
+  flex: none;
+  width: 14px;
+  height: 14px;
+}
+
+.usage-count.is-unavailable {
+  color: #78847c;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.dashboard-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 8px 12px;
+  border: 1px solid #cfdacf;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, .72);
+  color: #2f4d3c;
+  font: 750 12px/1 Inter, ui-sans-serif, system-ui, sans-serif;
+  cursor: pointer;
+  transition: background .15s ease, border-color .15s ease, color .15s ease;
+}
+
+.dashboard-button img {
+  display: block;
+  width: 16px;
+  height: 16px;
+}
+
+.dashboard-button:hover {
+  border-color: #9fb8a6;
+  background: #fff;
+  color: #0f6e56;
+}
+
+.dashboard-button:focus-visible {
+  outline: 3px solid #0f6e5633;
+  outline-offset: 2px;
+}
+
+.shortcut-keys {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  margin: 0 !important;
+}
+
+.shortcut-keys kbd {
+  display: grid;
+  place-items: center;
+  min-width: 25px;
+  height: 25px;
+  margin: 0;
+  padding: 0 6px;
+}
+
+.hero .shortcut {
+  align-items: flex-start;
+}
+
+.hero .shortcut > span:last-child {
+  margin-left: 6px;
+  line-height: 1.45;
+}
+
+.shortcut-customize-hint {
+  margin: 10px 0 5px;
+  color: #66736a;
+  font-size: 12px;
+  line-height: 1.5;
+}

@@ -16,7 +16,7 @@ Verbia 的账号体系：Google 第三方登录 + 邮箱 Magic Link（免密）�
 | 同上 Client Secret | 在 Google Cloud Console 该 client 里查看（机密，不写进仓库/文档） |
 
 - `.env.local` / `.env.example` 已加 `SUPABASE_URL`、`SUPABASE_PUBLISHABLE_KEY`（publishable key 公开，
-  由 `scripts/build.mjs` 在构建时注入扩展产物）；可选 `ENFORCE_QUOTA`、`FREE_DAILY_QUOTA`。
+  由 `scripts/build.mjs` 在构建时注入扩展产物）；可选 `ENFORCE_QUOTA`、`FREE_DAILY_QUOTA`、`PREMIUM_DAILY_QUOTA`。
 - `apps/extension/manifest.json` 已加 `host_permissions` 指向 Supabase 项目。
 
 ## 二、还需要你在 Supabase Dashboard 里做的（一次性）
@@ -94,7 +94,8 @@ pnpm api            # 网关 127.0.0.1:8787（tsx --env-file=.env.local）
 
 ```env
 ENFORCE_QUOTA=1
-FREE_DAILY_QUOTA=30      # 每天 30 次，超出返回 429 QUOTA_EXCEEDED
+FREE_DAILY_QUOTA=10      # 免费版每天 10 次，超出返回 429 QUOTA_EXCEEDED
+PREMIUM_DAILY_QUOTA=0    # 付费版；0 表示不限次数，也可设置独立限额
 ```
 
 - 匿名请求始终放行（与产品决策一致）。

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { createApiHandler } from "../services/api/src/app";
 
 const handler = createApiHandler({ LLM_PROVIDER: "mock" });
@@ -14,6 +14,7 @@ const validRequest = {
 };
 
 describe("API fetch handler", () => {
+  afterEach(() => vi.restoreAllMocks());
   it("reports provider health", async () => {
     const response = await handler(new Request("https://api.verbia.henriz.dev/health"));
     expect(response.status).toBe(200);
@@ -33,5 +34,32 @@ describe("API fetch handler", () => {
     expect(malformed.status).toBe(400);
     const oversized = await handler(new Request("https://api.verbia.henriz.dev/v1/replies:generate", { method: "POST", body: "x".repeat(48_001) }));
     expect(oversized.status).toBe(413);
+  });
+
+  it("requires authentication for account usage", async () => {
+    const response = await handler(new Request("https://api.verbia.henriz.dev/v1/account/usage"));
+    expect(response.status).toBe(401);
+  });
+
+  it("returns plan-specific usage and the API-owned limit", async () => {
+    vi.spyOn(globalThis, "fetch").mockImplementation(async input => {
+      const url = String(input);
+      if (url.includes("/auth/v1/user")) return Response.json({ id: "user-1", email: "user@example.com" });
+      if (url.includes("/rest/v1/profiles")) return Response.json([{ plan: "premium" }]);
+      if (url.includes("/rest/v1/quota_usage")) return Response.json([{ count: 4 }]);
+      return new Response(null, { status: 404 });
+    });
+    const accountHandler = createApiHandler({
+      LLM_PROVIDER: "mock",
+      SUPABASE_URL: "https://project.supabase.co",
+      SUPABASE_PUBLISHABLE_KEY: "public-key",
+      FREE_DAILY_QUOTA: "10",
+      PREMIUM_DAILY_QUOTA: "100"
+    });
+    const response = await accountHandler(new Request("https://api.verbia.henriz.dev/v1/account/usage", {
+      headers: { authorization: "Bearer valid-token" }
+    }));
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ plan: "premium", used: 4, limit: 100 });
   });
 });

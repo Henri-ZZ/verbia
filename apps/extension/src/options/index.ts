@@ -50,6 +50,14 @@ function applyLanguage() {
     }
   }
   document.title = `Verbia — ${strings["settings.title"] ?? "Settings"}`;
+  const sectionHeadings = document.querySelectorAll<HTMLElement>(".settings-section .section-heading h2");
+  const sectionDescriptions = document.querySelectorAll<HTMLElement>(".settings-section .section-heading p");
+  if (sectionHeadings[0]) sectionHeadings[0].textContent = strings["settings.replyDefaults"] ?? "Reply defaults";
+  if (sectionDescriptions[0]) sectionDescriptions[0].textContent = strings["settings.replyDefaultsDesc"] ?? "";
+  if (sectionHeadings[1]) sectionHeadings[1].textContent = strings["settings.interfacePrivacy"] ?? "Interface & privacy";
+  if (sectionDescriptions[1]) sectionDescriptions[1].textContent = strings["settings.interfacePrivacyDesc"] ?? "";
+  const advanced = document.querySelector<HTMLElement>(".advanced summary");
+  if (advanced) advanced.textContent = strings["settings.advanced"] ?? "Advanced";
   renderOptions(strings);
 }
 
@@ -159,10 +167,35 @@ async function applyShortcuts() {
     commands = await chrome.commands.getAll();
   } catch { return; } // commands API unavailable — keep the HTML defaults
   const byName = new Map(commands.map(c => [c.name, c.shortcut ?? ""]));
-  const el = document.getElementById("kbd-open-verbia");
+  let el = document.getElementById("kbd-open-verbia");
   if (!el) return;
+  if (el.tagName === "KBD") {
+    const container = document.createElement("span");
+    container.id = el.id;
+    container.className = "shortcut-keys";
+    container.setAttribute("aria-label", t("settings.shortcutTitle"));
+    el.replaceWith(container);
+    el = container;
+  }
+  el.setAttribute("aria-label", t("settings.shortcutTitle"));
   const value = byName.get("open-verbia") ?? "";
-  el.textContent = value ? displayShortcut(value) : t("settings.shortcutUnset");
+  renderShortcutKeys(el, value ? displayShortcut(value) : t("settings.shortcutUnset"));
+  const link = document.querySelector<HTMLElement>("#open-shortcuts-link");
+  if (link && !document.querySelector(".shortcut-customize-hint")) {
+    const hint = document.createElement("p");
+    hint.className = "shortcut-customize-hint";
+    hint.textContent = t("settings.shortcutHelp");
+    link.before(hint);
+  }
+}
+
+function renderShortcutKeys(container: HTMLElement, shortcut: string) {
+  container.replaceChildren();
+  for (const key of shortcut.split("+").filter(Boolean)) {
+    const chip = document.createElement("kbd");
+    chip.textContent = key === "Command" ? "⌘" : key === "Shift" ? "⇧" : key === "Option" || key === "Alt" ? "⌥" : key;
+    container.append(chip);
+  }
 }
 
 document.querySelector<HTMLAnchorElement>("#open-shortcuts-link")?.addEventListener("click", event => {
@@ -174,7 +207,7 @@ applyLanguage();
 void load();
 // Re-fetch the bound shortcut when the user returns from the browser's
 // shortcut-settings page (it opens in a new tab; coming back refocuses here).
-window.addEventListener("focus", () => { void applyShortcuts(); });
+window.addEventListener("focus", () => { void applyShortcuts(); void renderAccount(); });
 
 // ---- Account (Supabase sign-in) -------------------------------------------
 // Renders into #account-body. Google OAuth and Magic Link both redirect back
@@ -189,6 +222,7 @@ async function renderAccount() {
   const response = await chrome.runtime.sendMessage({ type: "GET_AUTH_STATE" });
   const state = (response?.ok ? response.data : { signedIn: false }) as AuthState;
   body.textContent = "";
+  body.className = `account-body ${state.signedIn ? "" : "signed-out-layout"}`;
   if (state.signedIn) {
     renderSignedIn(body, state);
   } else {
@@ -197,33 +231,37 @@ async function renderAccount() {
 }
 
 function renderSignedIn(body: HTMLElement, state: AuthState) {
-  // Identity row: the sign-in method's mark (Google icon for Google OAuth,
-  // nothing for Magic Link) sits before the email.
+  const layout = document.createElement("div");
+  layout.className = "account-signed-in";
   const identity = document.createElement("div");
   identity.className = "account-identity";
-  if (state.provider === "google") {
-    const providerMark = document.createElement("img");
-    providerMark.src = "assets/google.svg";
-    providerMark.alt = "Google";
-    providerMark.width = 16;
-    providerMark.height = 16;
-    providerMark.decoding = "async";
-    identity.append(providerMark);
-  }
+  const avatar = createAccountAvatar(state);
+  const copy = document.createElement("div"); copy.className = "account-copy";
   const email = document.createElement("p");
   email.className = "account-email";
-  email.textContent = state.email ?? "";
-  identity.append(email);
-  body.append(identity);
+  const emailText = document.createElement("span");
+  emailText.textContent = state.email ?? "";
+  email.append(emailText);
+  if (state.provider === "google") email.append(createGoogleBadge());
+  const plan = document.createElement("span"); plan.className = "account-plan";
+  plan.textContent = state.plan === "premium" ? t("account.planPremium") : t("account.planFree");
+  copy.append(email, plan); identity.append(avatar, copy);
 
-  // The plan row is created immediately (Free) and only upgraded in place
-  // once the profiles table answers, so it always sits under the email and
-  // above the sign-out button regardless of query latency.
-  const meta = document.createElement("p");
-  meta.className = "account-meta";
-  const planText = () => `${t("account.plan")}: ${t("account.planFree")}`;
-  meta.textContent = planText();
-  body.append(meta);
+  const usage = document.createElement("div");
+  const usageLine = document.createElement("div"); usageLine.className = "usage-line";
+  const usageLabel = document.createElement("span"); usageLabel.textContent = t("account.todayUsage");
+  const usageCount = document.createElement("strong"); usageCount.className = "usage-count";
+  const used = state.usage?.used ?? 0; const limit = state.usage?.limit ?? null;
+  const reached = Boolean(state.usage && limit !== null && used >= limit);
+  usageCount.textContent = state.usage ? (limit === null ? t("account.unlimited") : `${used}/${limit}`) : t("account.usageUnavailable");
+  if (!state.usage) usageCount.classList.add("is-unavailable");
+  else if (reached) usageCount.classList.add("is-limit");
+  usageLine.append(usageLabel, usageCount); usage.append(usageLine);
+  if (state.usage && limit !== null) {
+    const track = document.createElement("div"); track.className = "usage-track"; track.setAttribute("role", "progressbar"); track.setAttribute("aria-valuemin", "0"); track.setAttribute("aria-valuemax", String(limit)); track.setAttribute("aria-valuenow", String(Math.min(used, limit)));
+    const fill = document.createElement("div"); fill.className = "usage-fill"; fill.style.width = `${Math.min(used / limit * 100, 100)}%`; if (reached) fill.classList.add("is-limit"); track.append(fill); usage.append(track);
+    const note = document.createElement("p"); note.className = "usage-note"; note.textContent = reached ? t("account.limitReached") : t("account.dailyAllowance"); usage.append(note);
+  }
 
   const signOutButton = document.createElement("button");
   signOutButton.type = "button";
@@ -233,31 +271,41 @@ function renderSignedIn(body: HTMLElement, state: AuthState) {
     await chrome.runtime.sendMessage({ type: "SIGN_OUT" });
     await renderAccount();
   });
-  body.append(signOutButton);
+  layout.append(identity, usage, signOutButton);
+  body.append(layout);
+}
 
-  // The plan column lives in Supabase (profiles), reserved for paid tiers.
-  // Until the table exists (or a query fails) the Free label stays.
-  if (authEnabled) {
-    void (async () => {
-      try {
-        const supabase = getSupabase();
-        const { data: current } = await supabase.auth.getUser();
-        const user = current.user;
-        if (!user) return;
-        const { data: profile } = await supabase.from("profiles").select("plan").eq("id", user.id).maybeSingle();
-        if (profile?.plan) meta.textContent = `${t("account.plan")}: ${profile.plan === "premium" ? "Premium" : t("account.planFree")}`;
-      } catch {
-        // profiles may not be created yet — keep the Free label.
-      }
-    })();
-  }
+function createAccountAvatar(state: AuthState): HTMLElement {
+  const avatar = document.createElement("span");
+  avatar.className = "account-avatar";
+  avatar.textContent = (state.email?.[0] ?? "V").toUpperCase();
+  if (!state.avatarUrl) return avatar;
+  const image = document.createElement("img");
+  image.src = state.avatarUrl;
+  image.alt = "";
+  image.decoding = "async";
+  image.referrerPolicy = "no-referrer";
+  image.addEventListener("error", () => image.remove(), { once: true });
+  avatar.append(image);
+  return avatar;
+}
+
+function createGoogleBadge(): HTMLImageElement {
+  const badge = document.createElement("img");
+  badge.className = "provider-badge";
+  badge.src = "assets/google.svg";
+  badge.alt = "Google";
+  badge.width = 14;
+  badge.height = 14;
+  return badge;
 }
 
 function renderSignedOut(body: HTMLElement) {
+  const intro = document.createElement("div");
   const desc = document.createElement("p");
   desc.className = "account-desc";
   desc.textContent = t("account.desc");
-  body.append(desc);
+  intro.append(desc);
 
   // ---- Google button (deep brand-dark block, white label, full-color G) -----
   const googleButton = document.createElement("button");
@@ -274,18 +322,18 @@ function renderSignedOut(body: HTMLElement) {
     googleButton.disabled = true;
     void startGoogleSignIn(googleButton, msg);
   });
-  body.append(googleButton);
+  intro.append(googleButton);
 
   // ---- OR divider -------------------------------------------------------
   const divider = document.createElement("div");
   divider.className = "account-divider";
-  divider.textContent = "OR";
-  body.append(divider);
+  divider.textContent = t("common.or");
 
   // ---- Email magic-link form (matches the reference: label, row with mail
   // icon + input, full-width primary submit) -------------------------------
   const form = document.createElement("form");
   form.className = "account-form";
+  form.append(divider);
 
   const emailLabel = document.createElement("label");
   emailLabel.htmlFor = "account-email-input";
@@ -314,7 +362,7 @@ function renderSignedOut(body: HTMLElement) {
   msg.className = "account-msg";
 
   form.append(emailLabel, emailRow, magic, msg);
-  body.append(form);
+  body.append(intro, form);
 
   form.addEventListener("submit", event => {
     event.preventDefault();

@@ -7,7 +7,21 @@ export type StagedSelection = { text: string; truncated: boolean };
 // Sign-in state reported by the background, which owns the session lifecycle.
 // provider tells the UI which method the account used (google vs magic-link
 // email), so surfaces can show the matching provider mark next to the email.
-export type AuthState = { signedIn: boolean; email?: string; provider?: "google" | "email" };
+export type AccountUsage = {
+  plan: "free" | "premium";
+  used: number;
+  limit: number | null;
+  resetsAt: string;
+};
+
+export type AuthState = {
+  signedIn: boolean;
+  email?: string;
+  provider?: "google" | "email";
+  avatarUrl?: string;
+  plan?: AccountUsage["plan"];
+  usage?: Pick<AccountUsage, "used" | "limit" | "resetsAt">;
+};
 
 export type ExtensionRequest =
   | { type: "GENERATE_REPLY"; payload: GenerateReplyRequest }

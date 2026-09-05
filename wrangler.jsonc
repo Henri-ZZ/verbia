@@ -27,6 +27,7 @@
     "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_bchw5no2qRE8zZpjocJCCA_WDsVxlPP",
     "AUTH_REQUIRED": "1",
     "ENFORCE_QUOTA": "1",
-    "FREE_DAILY_QUOTA": "30"
+    "FREE_DAILY_QUOTA": "10",
+    "PREMIUM_DAILY_QUOTA": "0"
   }
 }
