@@ -9,6 +9,8 @@ option{color:#172019;background:#fff}.grid{display:grid;grid-template-columns:1f
 .account-card h2{font-size:15px;font-weight:750;margin:0 0 10px}
 .account-body{font-size:13px;line-height:1.55;color:#39483e}
 .account-desc{margin:0 0 14px;color:#66736a}
+.account-identity{display:flex;align-items:center;gap:7px}
+.account-identity img{display:block;width:16px;height:16px;flex:none;border-radius:50%}
 .account-email{font-weight:750;margin:0;color:#172019}
 .account-meta{margin:4px 0 0;color:#66736a}
 .account-form{margin-top:14px}
@@ -16,4 +18,16 @@ option{color:#172019;background:#fff}.grid{display:grid;grid-template-columns:1f
 .account-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px}
 .account-msg{margin:10px 0 0;font-size:12px;color:#66736a;min-height:0}
 .account-msg.error{color:#9C3C34}
+.account-google{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:46px;padding:11px 16px;background:#1E2A24;color:#fff;border:0;border-radius:10px;font:700 14px inherit;cursor:pointer;transition:background .15s ease}
+.account-google:hover:not(:disabled){background:#14201B}
+.account-google:disabled{opacity:.6;cursor:not-allowed}
+.account-google img{display:block;width:18px;height:18px}
+.account-divider{display:flex;align-items:center;gap:12px;margin:18px 0 14px;color:#9AA69D;font-size:11px;font-weight:750;letter-spacing:.12em}
+.account-divider::before,.account-divider::after{content:"";flex:1;height:1px;background:#E5EBE6}
+.account-email-row{position:relative}
+.account-email-row .mail-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);display:inline-flex;color:#9AA69D;pointer-events:none}
+.account-email-row input{padding-left:40px}
+.account-magic{display:block;width:100%;min-height:46px;margin-top:12px;padding:11px 16px;background:#0F6E56;color:#fff;border:0;border-radius:10px;font:700 14px inherit;cursor:pointer;transition:background .15s ease}
+.account-magic:hover:not(:disabled){background:#085041}
+.account-magic:disabled{background:#7FA28D;cursor:not-allowed}
 @media(max-width:560px){.account-actions{flex-direction:column;align-items:stretch}}

@@ -37,7 +37,21 @@ async function renderAuth() {
 
   const label = document.createElement("span");
   label.className = "auth-status";
-  label.textContent = state.signedIn ? (state.email ?? "") : (strings["account.signedOut"] ?? "Not signed in");
+  // Google OAuth accounts show the provider mark before the email (mirrors
+  // the options page); Magic Link stays plain text.
+  if (state.signedIn && state.provider === "google") {
+    const providerMark = document.createElement("img");
+    providerMark.src = "assets/google.svg";
+    providerMark.alt = "";
+    providerMark.width = 14;
+    providerMark.height = 14;
+    providerMark.decoding = "async";
+    label.append(providerMark);
+  }
+  const name = document.createElement("span");
+  name.className = "auth-status-text";
+  name.textContent = state.signedIn ? (state.email ?? "") : (strings["account.signedOut"] ?? "Not signed in");
+  label.append(name);
 
   const button = document.createElement("button");
   button.type = "button";

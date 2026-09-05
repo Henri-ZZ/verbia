@@ -60,7 +60,7 @@ type PersistedSession = {
   access_token?: string;
   refresh_token?: string;
   expires_at?: number;
-  user?: { id?: string; email?: string } | null;
+  user?: { id?: string; email?: string; app_metadata?: { provider?: string } } | null;
 };
 
 export async function readSession(): Promise<PersistedSession | null> {
@@ -114,13 +114,21 @@ export async function authBearer(): Promise<string | undefined> {
   return session?.access_token ? `Bearer ${session.access_token}` : undefined;
 }
 
-export type AuthSnapshot = { signedIn: boolean; email?: string };
+export type AuthSnapshot = { signedIn: boolean; email?: string; provider?: "google" | "email" };
+
+// The sign-in method Supabase records on the user (app_metadata.provider):
+// "google" for the OAuth button, "email" for Magic Link. Anything else (or an
+// older session without it) reports no provider so the UI shows no badge.
+function sessionProvider(user: PersistedSession["user"]): "google" | "email" | undefined {
+  const provider = user?.app_metadata?.provider;
+  return provider === "google" || provider === "email" ? provider : undefined;
+}
 
 export async function authSnapshot(): Promise<AuthSnapshot> {
   if (!authEnabled) return { signedIn: false };
   const session = await currentSession();
   if (!session) return { signedIn: false };
-  return { signedIn: true, email: session.user?.email ?? undefined };
+  return { signedIn: true, email: session.user?.email ?? undefined, provider: sessionProvider(session.user) };
 }
 
 export async function signOut(): Promise<void> {

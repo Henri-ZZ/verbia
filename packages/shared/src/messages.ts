@@ -5,7 +5,9 @@ import type { ContextEnvelope, GenerateReplyRequest, GenerateReplyResponse, User
 export type StagedSelection = { text: string; truncated: boolean };
 
 // Sign-in state reported by the background, which owns the session lifecycle.
-export type AuthState = { signedIn: boolean; email?: string };
+// provider tells the UI which method the account used (google vs magic-link
+// email), so surfaces can show the matching provider mark next to the email.
+export type AuthState = { signedIn: boolean; email?: string; provider?: "google" | "email" };
 
 export type ExtensionRequest =
   | { type: "GENERATE_REPLY"; payload: GenerateReplyRequest }

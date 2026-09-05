@@ -197,10 +197,24 @@ async function renderAccount() {
 }
 
 function renderSignedIn(body: HTMLElement, state: AuthState) {
+  // Identity row: the sign-in method's mark (Google icon for Google OAuth,
+  // nothing for Magic Link) sits before the email.
+  const identity = document.createElement("div");
+  identity.className = "account-identity";
+  if (state.provider === "google") {
+    const providerMark = document.createElement("img");
+    providerMark.src = "assets/google.svg";
+    providerMark.alt = "Google";
+    providerMark.width = 16;
+    providerMark.height = 16;
+    providerMark.decoding = "async";
+    identity.append(providerMark);
+  }
   const email = document.createElement("p");
   email.className = "account-email";
   email.textContent = state.email ?? "";
-  body.append(email);
+  identity.append(email);
+  body.append(identity);
 
   // The plan row is created immediately (Free) and only upgraded in place
   // once the profiles table answers, so it always sits under the email and
@@ -245,39 +259,61 @@ function renderSignedOut(body: HTMLElement) {
   desc.textContent = t("account.desc");
   body.append(desc);
 
+  // ---- Google button (deep brand-dark block, white label, full-color G) -----
   const googleButton = document.createElement("button");
   googleButton.type = "button";
-  googleButton.textContent = t("account.signInGoogle");
+  googleButton.className = "account-google";
+  const googleImg = document.createElement("img");
+  googleImg.src = "assets/google.svg";
+  googleImg.alt = "Google";
+  googleImg.width = 18;
+  googleImg.height = 18;
+  googleImg.decoding = "async";
+  googleButton.append(googleImg, document.createTextNode(t("account.signInGoogle")));
   googleButton.addEventListener("click", () => {
     googleButton.disabled = true;
     void startGoogleSignIn(googleButton, msg);
   });
   body.append(googleButton);
 
+  // ---- OR divider -------------------------------------------------------
+  const divider = document.createElement("div");
+  divider.className = "account-divider";
+  divider.textContent = "OR";
+  body.append(divider);
+
+  // ---- Email magic-link form (matches the reference: label, row with mail
+  // icon + input, full-width primary submit) -------------------------------
   const form = document.createElement("form");
   form.className = "account-form";
 
   const emailLabel = document.createElement("label");
+  emailLabel.htmlFor = "account-email-input";
   emailLabel.textContent = t("account.emailLabel");
+
+  const emailRow = document.createElement("div");
+  emailRow.className = "account-email-row";
+  const mailIcon = document.createElement("span");
+  mailIcon.className = "mail-icon";
+  mailIcon.setAttribute("aria-hidden", "true");
+  mailIcon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M3 6h18v12H3z"/><path d="M3 6l9 7 9-7"/></svg>';
   const emailInput = document.createElement("input");
   emailInput.type = "email";
+  emailInput.id = "account-email-input";
   emailInput.autocomplete = "email";
   emailInput.required = true;
-  emailLabel.append(emailInput);
+  emailInput.placeholder = t("account.emailPlaceholder");
+  emailRow.append(mailIcon, emailInput);
 
-  // Accounts are Google or email-magic-link only — password sign-in was cut
-  // by product decision, so this form has no password field.
-  const actions = document.createElement("div");
-  actions.className = "account-actions";
   const magic = document.createElement("button");
   magic.type = "submit";
-  magic.className = "secondary";
+  magic.className = "account-magic";
   magic.textContent = t("account.sendMagicLink");
-  actions.append(magic);
 
   const msg = document.createElement("p");
   msg.className = "account-msg";
-  form.append(emailLabel, actions, msg);
+
+  form.append(emailLabel, emailRow, magic, msg);
   body.append(form);
 
   form.addEventListener("submit", event => {
