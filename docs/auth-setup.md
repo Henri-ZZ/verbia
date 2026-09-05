@@ -8,33 +8,33 @@ Verbia 的账号体系：Google 第三方登录 + 邮箱 Magic Link（免密）�
 
 | 项 | 值 |
 |---|---|
-| Supabase 项目 ref | `wxswodypsgcteijuvjyf` |
-| API URL | `https://wxswodypsgcteijuvjyf.supabase.co` |
+| Supabase 项目 ref | `pthfyoejvlcwxboskrjr` |
+| API URL | `https://pthfyoejvlcwxboskrjr.supabase.co` |
 | 扩展固定 ID（manifest `key` 派生） | `ndkpnijcnjkkgoehfdcpfleoipfhfdnp` |
-| 登录回跳落地页（Google + Magic Link 统一） | `https://wxswodypsgcteijuvjyf.supabase.co/`（项目根，加载瞬间即被扩展后台截获） |
+| 登录回跳落地页（Google + Magic Link 统一） | `https://pthfyoejvlcwxboskrjr.supabase.co/`（项目根，加载瞬间即被扩展后台截获） |
 | Google OAuth Client（**Web application 类型**）Client ID | `524647893236-uoo6f3bb0abl36cae9rq8le2gfs3bpcv.apps.googleusercontent.com` |
 | 同上 Client Secret | 在 Google Cloud Console 该 client 里查看（机密，不写进仓库/文档） |
 
-- `.env.local` / `.env.example` 已加 `SUPABASE_URL`、`SUPABASE_ANON_KEY`（anon key 公开，
+- `.env.local` / `.env.example` 已加 `SUPABASE_URL`、`SUPABASE_PUBLISHABLE_KEY`（publishable key 公开，
   由 `scripts/build.mjs` 在构建时注入扩展产物）；可选 `ENFORCE_QUOTA`、`FREE_DAILY_QUOTA`。
 - `apps/extension/manifest.json` 已加 `host_permissions` 指向 Supabase 项目。
 
 ## 二、还需要你在 Supabase Dashboard 里做的（一次性）
 
 1. **执行建表 SQL**：打开
-   `https://supabase.com/dashboard/project/wxswodypsgcteijuvjyf/sql/new`，
+   `https://supabase.com/dashboard/project/pthfyoejvlcwxboskrjr/sql/new`，
    把 `docs/supabase-schema.sql` 全文粘进去执行。
 2. **Auth → Providers → Google**：开启 Google，填入上面表格里的 **Client ID** 与
    **Client Secret**。注意：client 必须是在 Google Cloud Console 创建的 **Web application** 类型
    （Chrome Extension 类型没有 Secret，配不了 Supabase）；Secret 只填进 Supabase 服务端，
    PKCE 流程中扩展端不会接触它。Google 侧 Authorized redirect URIs 填
-   `https://wxswodypsgcteijuvjyf.supabase.co/auth/v1/callback`（不是 chrome-extension 地址）。
+   `https://pthfyoejvlcwxboskrjr.supabase.co/auth/v1/callback`（不是 chrome-extension 地址）。
 3. **Auth → URL Configuration**：
-   - **Site URL** 填 `https://wxswodypsgcteijuvjyf.supabase.co/`（同落地页），
+   - **Site URL** 填 `https://pthfyoejvlcwxboskrjr.supabase.co/`（同落地页），
      否则未匹配的回跳会回落到 Supabase 默认的 `http://localhost:3000`；
    - **Redirect URLs** 添加：
    ```
-   https://wxswodypsgcteijuvjyf.supabase.co/
+   https://pthfyoejvlcwxboskrjr.supabase.co/
    ```
    这条项目根地址服务 **Google 登录与 Magic Link 两条链路**，必须在 Supabase 放行，
    否则登录失败。背景：Chrome 不允许服务端 302 跳进 `chrome-extension://` 页面
@@ -115,4 +115,4 @@ FREE_DAILY_QUOTA=30      # 每天 30 次，超出返回 429 QUOTA_EXCEEDED
 | `apps/extension/src/popup/index.ts` | popup 底部登录态 |
 | `apps/extension/src/background/index.ts` | generate 注入 Bearer、静默刷新、GET_AUTH_STATE、**回跳 code 捕获监听** |
 | `services/api/src/server.ts` | Bearer 校验 + 可选配额 gate |
-| `scripts/build.mjs` | 构建时注入 SUPABASE_URL / SUPABASE_ANON_KEY |
+| `scripts/build.mjs` | 构建时注入 SUPABASE_URL / SUPABASE_PUBLISHABLE_KEY |

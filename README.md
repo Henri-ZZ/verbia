@@ -56,9 +56,9 @@ pnpm build
 pnpm api
 ```
 
-默认后端地址是 `http://localhost:8787`。`pnpm api` 会读取项目根目录的 `.env.local`；如果其中配置了 `LLM_PROVIDER=gemini`、有效模型 ID 和 API Key，就会调用真实 Gemini。
+扩展默认使用生产后端 `https://api.verbia.henriz.dev`。本地联调时运行 `pnpm api`，再在扩展设置中把 Backend URL 改成 `http://localhost:8787`；该命令会读取项目根目录的 `.env.local`。
 
-账号登录（可选）依赖 `.env.local` 里的 `SUPABASE_URL` / `SUPABASE_ANON_KEY`（构建时注入扩展），并需先在 Supabase Dashboard 执行一次建表 SQL——完整步骤见 [docs/auth-setup.md](docs/auth-setup.md)。
+账号登录（可选）依赖 `.env.local` 里的 `SUPABASE_URL` / `SUPABASE_PUBLISHABLE_KEY`（构建时注入扩展），并需先在 Supabase Dashboard 执行一次建表 SQL——完整步骤见 [docs/auth-setup.md](docs/auth-setup.md)。
 
 如果只想测试插件流程而不调用 Gemini，可以执行：
 
@@ -185,21 +185,20 @@ pnpm test
 - Chrome Web Store 图标、截图、公开隐私政策地址、发布者信息和支持邮箱尚未完成。
 - 真实 Gemini 模型仍需通过回复质量基准测试后确定。
 
-## 推荐的生产部署方式
+## 生产部署
 
 - Chrome 插件：Chrome Web Store。
-- 后端服务：Google Cloud Run。
-- Gemini API Key：Google Secret Manager。
-- 未来产品官网：Cloudflare Pages、Vercel 或 Firebase Hosting。
-- 未来用户登录：Firebase Authentication。
-- 未来用户套餐和额度数据：Firestore。
+- 后端服务：Cloudflare Workers，部署步骤见 [docs/cloudflare-api-deploy.md](docs/cloudflare-api-deploy.md)。
+- 模型 API Key：Cloudflare Worker Secrets。
+- 未来产品官网：Cloudflare Workers Static Assets。
+- 用户登录、用户资料和额度数据：Supabase。
 
 推荐域名结构：
 
 ```text
-verbia.app          产品介绍官网
-api.verbia.app      后端 API
-app.verbia.app      未来的用户中心
+verbia.henriz.dev       产品介绍官网
+api.verbia.henriz.dev   后端 API
+app.verbia.henriz.dev   未来的用户中心
 ```
 
 ## 相关文档

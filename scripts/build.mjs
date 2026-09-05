@@ -25,9 +25,9 @@ function loadLocalEnv() {
 
 const localEnv = loadLocalEnv();
 const supabaseUrl = localEnv.SUPABASE_URL ?? "";
-const supabaseAnonKey = localEnv.SUPABASE_ANON_KEY ?? "";
-if (supabaseUrl && supabaseAnonKey) console.log(`[build] Supabase auth configured: ${supabaseUrl}`);
-else console.warn("[build] SUPABASE_URL/SUPABASE_ANON_KEY missing — sign-in is disabled in this build");
+const supabasePublishableKey = localEnv.SUPABASE_PUBLISHABLE_KEY ?? localEnv.SUPABASE_ANON_KEY ?? "";
+if (supabaseUrl && supabasePublishableKey) console.log(`[build] Supabase auth configured: ${supabaseUrl}`);
+else console.warn("[build] SUPABASE_URL/SUPABASE_PUBLISHABLE_KEY missing — sign-in is disabled in this build");
 
 const sharedOptions = {
   outdir: out,
@@ -38,7 +38,8 @@ const sharedOptions = {
   logLevel: "info",
   define: {
     "process.env.SUPABASE_URL": JSON.stringify(supabaseUrl),
-    "process.env.SUPABASE_ANON_KEY": JSON.stringify(supabaseAnonKey)
+    "process.env.SUPABASE_PUBLISHABLE_KEY": JSON.stringify(supabasePublishableKey),
+    "process.env.SUPABASE_ANON_KEY": JSON.stringify(supabasePublishableKey)
   },
   alias: { "@verbia/shared": path.join(root, "packages/shared/src/index.ts") }
 };

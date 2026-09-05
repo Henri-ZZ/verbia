@@ -1,6 +1,6 @@
 # Chrome Web Store Listing — Verbia
 
-> Last Updated: 2026-09-04
+> Last Updated: 2026-09-05
 
 ## Store Listing
 
@@ -49,8 +49,10 @@ Screenshot 1 should show reviewed Reddit context and the intent controls. Screen
 | storage | permissions | Saves the user's language, tone, length, privacy, and backend preferences locally, plus non-content request state needed to recover from worker suspension. |
 | activeTab | permissions | Gives Verbia temporary access to only the page where the user clicks its toolbar icon, so Universal Mode can locate the focused editor without permanent all-sites access. |
 | scripting | permissions | Loads Verbia's bundled interface into the active page after the user invokes it. No remotely hosted code is loaded. |
-| http://localhost:8787/* | host_permissions | Development builds send an explicit Generate request to the local Verbia gateway. Replace this with the production HTTPS origin before release. |
+| http://localhost:8787/* | host_permissions | Unpacked development builds can send an explicit Generate request to a gateway running on the developer's own computer. |
+| https://api.verbia.henriz.dev/* | host_permissions | Sends conversation context and the user's stated intent only after they click Generate, then returns a reply draft for review. |
 | reddit.com origins | host_permissions | Shows the inline assistant under Reddit reply boxes, reads only the active reply chain, and inserts a user-reviewed draft into its composer. |
+| https://pthfyoejvlcwxboskrjr.supabase.co/* | host_permissions | Completes user-initiated Google or email sign-in with Verbia's Supabase project and refreshes the resulting account session. |
 
 ## Privacy & Data Use
 
@@ -61,7 +63,7 @@ Screenshot 1 should show reviewed Reddit context and the intent controls. Screen
 | Personal communications | Yes | Yes | Generate the requested reply | Model processor only |
 | Website content | Yes | Yes | Provide minimum conversation context | Model processor only |
 | User activity | Limited metadata, opt-in | If enabled | Reliability diagnostics | No sale/advertising |
-| Authentication info | No | No | — | No |
+| Authentication info | Yes | Yes | Sign in, maintain the account session, and attribute usage quota | Supabase authentication processor |
 | Financial, health, location, web history | No | No | — | No |
 
 - [x] Data is NOT sold to third parties
@@ -91,4 +93,4 @@ Screenshot 1 should show reviewed Reddit context and the intent controls. Screen
 
 ## Review Notes
 
-Known release blockers: store assets, public privacy-policy URL, publisher identity, support contact, production HTTPS backend origin, final Gemini model benchmark, and current Reddit manual validation.
+Known release blockers: store assets, public privacy-policy URL, publisher identity, support contact, final model benchmark, and current Reddit manual validation.

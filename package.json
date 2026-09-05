@@ -8,6 +8,9 @@
     "dev": "node scripts/build.mjs --watch",
     "api": "tsx --env-file=.env.local services/api/src/server.ts",
     "api:mock": "LLM_PROVIDER=mock tsx services/api/src/server.ts",
+    "api:dev": "wrangler dev",
+    "api:deploy": "wrangler deploy",
+    "api:deploy:dry": "wrangler deploy --dry-run",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -24,6 +27,7 @@
     "jsdom": "^26.1.0",
     "tsx": "^4.19.3",
     "typescript": "^5.8.3",
-    "vitest": "^3.1.2"
+    "vitest": "^3.1.2",
+    "wrangler": "^4.35.0"
   }
 }

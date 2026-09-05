@@ -5,8 +5,8 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 // are missing the build ships with sign-in disabled so the extension keeps
 // working as a plain anonymous client.
 export const SUPABASE_URL = process.env.SUPABASE_URL ?? "";
-export const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY ?? "";
-export const authEnabled = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
+export const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_ANON_KEY ?? "";
+export const authEnabled = Boolean(SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY);
 
 // One session storage key for every surface (background service worker,
 // options page, popup, auth callback page). Supabase persists the session
@@ -25,7 +25,7 @@ export const SUPABASE_SIGNIN_REDIRECT = `${SUPABASE_URL}/`;
 let clientInstance: SupabaseClient | undefined;
 
 export function getSupabase(): SupabaseClient {
-  return (clientInstance ??= createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  return (clientInstance ??= createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     auth: {
       flowType: "pkce",
       // Service workers sleep: never rely on the client's own timer. Every

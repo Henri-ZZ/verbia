@@ -190,5 +190,5 @@ export const DEFAULT_SETTINGS: UserSettings = {
   showLengthInPanel: true,
   telemetryEnabled: false,
   contextPreviewExpanded: false,
-  backendBaseUrl: "http://localhost:8787"
+  backendBaseUrl: "https://api.verbia.henriz.dev"
 };
