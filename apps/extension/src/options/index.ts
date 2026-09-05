@@ -366,8 +366,9 @@ function setAccountMessage(msg: HTMLElement, text: string, kind: MsgKind = "succ
   setStatusMessage(msg, text, kind);
 }
 
-// Re-render when a session appears or disappears (auth.html callback page,
-// popup sign-out, silent refresh clearing an expired token, …).
+// Re-render when a session appears or disappears (popup sign-out, silent
+// refresh clearing an expired token, background completing an OAuth/Magic
+// Link exchange, …).
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area === "local" && changes[AUTH_STORAGE_KEY]) void renderAccount();
 });

@@ -44,7 +44,7 @@ Verbia 的账号体系：Google 第三方登录 + 邮箱 Magic Link（免密）�
    换 session 并自动关闭该标签——Google 打开的是扩展自己的授权标签，Magic Link 则是
    用户从邮件点开的标签（浏览器必须先装着扩展且由它发起的链接，verifier 才在本地）。
    （早期加过 `chrome-extension://…/**`、`https://…chromiumapp.org/**` 的现已不需要，
-   可删可留；`auth.html` 回调页已不再参与登录流程，仅作历史保留。）
+   可删可留。）
 4. **Auth → Providers → Email**：开启 Email 并**只保留 Magic Link**（关闭 password
    登录——产品决策：账号只允许 Google 或邮箱免密链接，不设密码）。
 5. **邮件发送：配 Resend 自定义 SMTP（上线必需）**。Supabase 默认代发仅限
@@ -107,10 +107,9 @@ FREE_DAILY_QUOTA=30      # 每天 30 次，超出返回 429 QUOTA_EXCEEDED
 | 文件 | 内容 |
 |---|---|
 | `docs/supabase-schema.sql` | profiles / quota_usage / 触发器 / consume_quota RPC / RLS |
-| `packages/shared/src/ui-strings.ts` | account.* / auth.* 双语文案（en/zh 对称） |
+| `packages/shared/src/ui-strings.ts` | account.* 双语文案（en/zh 对称） |
 | `packages/shared/src/messages.ts` | `GET_AUTH_STATE` / `SIGN_OUT` 消息 |
 | `apps/extension/src/auth/supabase.ts` | PKCE client + chrome.storage 会话适配器 + `signInWithGoogle`（标签授权 + 等 session 落盘） |
-| `apps/extension/src/auth/auth.html` + `auth-page.ts` | 历史遗留回调页（已不参与登录流程，保留） |
 | `apps/extension/src/options/index.ts` | Account 登录卡片（Google / 邮箱 Magic Link / 登出） |
 | `apps/extension/src/popup/index.ts` | popup 底部登录态 |
 | `apps/extension/src/background/index.ts` | generate 注入 Bearer、静默刷新、GET_AUTH_STATE、**回跳 code 捕获监听** |

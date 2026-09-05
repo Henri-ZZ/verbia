@@ -153,13 +153,7 @@ const EN: Strings = {
   "account.planFree": "Free",
   "account.sentEmail": "Check your inbox — the sign-in link expires soon.",
   "account.fillForm": "Enter your email.",
-  "account.errorAuth": "Sign-in failed. Please try again.",
-
-  // auth callback page
-  "auth.success": "Signed in — you can close this tab.",
-  "auth.error": "Sign-in failed. Close this tab and try again.",
-  "auth.linkExpired": "This link is invalid or has expired. Request a new one from Settings.",
-  "auth.close": "Close tab"
+  "account.errorAuth": "Sign-in failed. Please try again."
 };
 
 const ZH_CN: Strings = {
@@ -301,13 +295,7 @@ const ZH_CN: Strings = {
   "account.planFree": "免费",
   "account.sentEmail": "已发送，登录链接请在邮件中查收，限时有效。",
   "account.fillForm": "请输入邮箱。",
-  "account.errorAuth": "登录失败，请重试。",
-
-  // auth callback page
-  "auth.success": "登录成功，可以关闭此页。",
-  "auth.error": "登录失败，请关闭此页后重试。",
-  "auth.linkExpired": "此链接已失效或过期，请在设置页重新发送一封。",
-  "auth.close": "关闭此页"
+  "account.errorAuth": "登录失败，请重试。"
 };
 
 export const UI_STRINGS: Record<UiLang, Strings> = {

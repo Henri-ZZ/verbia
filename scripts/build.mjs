@@ -51,7 +51,6 @@ await Promise.all([
   cp("apps/extension/src/options/options.css", path.join(out, "options.css")),
   cp("apps/extension/src/popup/index.html", path.join(out, "popup.html")),
   cp("apps/extension/src/popup/popup.css", path.join(out, "popup.css")),
-  cp("apps/extension/src/auth/auth.html", path.join(out, "auth.html")),
   // apps/extension/assets holds third-party brand icons used in UI (google.svg
   // today; github/twitter etc. later). Each new icon is just a file drop — no
   // build script change needed.
@@ -61,7 +60,7 @@ await Promise.all([
 
 const builds = [
   { ...sharedOptions, entryPoints: { background: "apps/extension/src/background/index.ts" }, format: "esm" },
-  { ...sharedOptions, entryPoints: { content: "apps/extension/src/content/index.ts", options: "apps/extension/src/options/index.ts", popup: "apps/extension/src/popup/index.ts", auth: "apps/extension/src/auth/auth-page.ts" }, format: "iife" }
+  { ...sharedOptions, entryPoints: { content: "apps/extension/src/content/index.ts", options: "apps/extension/src/options/index.ts", popup: "apps/extension/src/popup/index.ts" }, format: "iife" }
 ];
 
 if (process.argv.includes("--watch")) {
