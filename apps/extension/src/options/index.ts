@@ -7,6 +7,14 @@ const status = document.querySelector<HTMLElement>("#status")!;
 let statusTimer: number | undefined;
 let lang: UiLang = "en";
 
+// Release builds (Chrome Web Store) are compiled with VERBIA_RELEASE=1 and a
+// pinned gateway, so the Developer settings card is removed and the Backend
+// URL always resolves to the production API. Development builds keep the
+// editable Backend URL in its own card at the bottom.
+const VERBIA_RELEASE = process.env.VERBIA_RELEASE === "1";
+const RELEASE_BACKEND_URL = process.env.VERBIA_BACKEND_URL ?? "";
+if (VERBIA_RELEASE) document.querySelector<HTMLElement>(".developer-section")?.remove();
+
 function renderOptions(strings: Record<string, string>) {
   const autoLabel = strings["common.autoOption"] ?? "";
   const withAuto = (items: ReadonlyArray<{ value: string; label: string }>) =>
@@ -56,8 +64,6 @@ function applyLanguage() {
   if (sectionDescriptions[0]) sectionDescriptions[0].textContent = strings["settings.replyDefaultsDesc"] ?? "";
   if (sectionHeadings[1]) sectionHeadings[1].textContent = strings["settings.interfacePrivacy"] ?? "Interface & privacy";
   if (sectionDescriptions[1]) sectionDescriptions[1].textContent = strings["settings.interfacePrivacyDesc"] ?? "";
-  const advanced = document.querySelector<HTMLElement>(".advanced summary");
-  if (advanced) advanced.textContent = strings["settings.advanced"] ?? "Advanced";
   renderOptions(strings);
 }
 
@@ -85,8 +91,8 @@ function t(key: string) { return UI_STRINGS[lang][key] ?? key; }
 
 // Autosave: every change persists immediately. Changing the interface
 // language reloads the page so the new language takes over the whole form.
-// Enter inside the Backend URL field submits the form, and leaving the field
-// saves too.
+// The Backend URL lives in its own Developer settings card below the form;
+// pressing Enter or leaving the field saves it.
 form.addEventListener("submit", event => {
   event.preventDefault();
   void save().then(reloadIfLanguageChanged);
@@ -97,6 +103,9 @@ form.addEventListener("change", event => {
   void save();
 });
 document.querySelector<HTMLInputElement>("#backend")?.addEventListener("blur", () => { void save(); });
+document.querySelector<HTMLInputElement>("#backend")?.addEventListener("keydown", event => {
+  if (event.key === "Enter") { event.preventDefault(); void save(); }
+});
 document.querySelector<HTMLSelectElement>("#ui-language")?.addEventListener("change", () => {
   void save().then(reloadIfLanguageChanged);
 });
@@ -119,8 +128,10 @@ async function resetSettings() {
 
 async function save(): Promise<boolean> {
   const data = new FormData(form);
-  const backendBaseUrl = String(data.get("backend") ?? "").trim();
-  if (!isValidBackendUrl(backendBaseUrl)) {
+  const backendBaseUrl = VERBIA_RELEASE
+    ? RELEASE_BACKEND_URL || DEFAULT_SETTINGS.backendBaseUrl
+    : String(document.querySelector<HTMLInputElement>("#backend")?.value ?? "").trim();
+  if (!VERBIA_RELEASE && !isValidBackendUrl(backendBaseUrl)) {
     show(t("settings.urlInvalid"), "error");
     return false;
   }

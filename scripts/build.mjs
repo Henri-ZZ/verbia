@@ -1,10 +1,16 @@
 import { build, context } from "esbuild";
-import { cp, mkdir, rm } from "node:fs/promises";
+import { cp, mkdir, rm, writeFile } from "node:fs/promises";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
 const root = process.cwd();
-const out = path.join(root, "dist/extension");
+
+// `--release` produces the Chrome Web Store build: it goes into dist/release,
+// pins the production backend, drops the Developer settings card and removes
+// the localhost host permission. Plain `pnpm build` / `pnpm dev` keep the
+// editable Backend URL and localhost access for development.
+const release = process.argv.includes("--release");
+const out = path.join(root, "dist", release ? "release" : "extension");
 await rm(out, { recursive: true, force: true });
 await mkdir(out, { recursive: true });
 
@@ -29,6 +35,11 @@ const supabasePublishableKey = localEnv.SUPABASE_PUBLISHABLE_KEY ?? localEnv.SUP
 if (supabaseUrl && supabasePublishableKey) console.log(`[build] Supabase auth configured: ${supabaseUrl}`);
 else console.warn("[build] SUPABASE_URL/SUPABASE_PUBLISHABLE_KEY missing — sign-in is disabled in this build");
 
+// Release builds talk only to the production gateway. Development builds keep
+// the user-configurable Backend URL (and therefore define an empty fallback).
+const VERBIA_BACKEND_URL = release ? process.env.VERBIA_BACKEND_URL ?? "https://api.verbia.henriz.dev" : "";
+console.log(`[build] mode=${release ? "release" : "development"} backend=${VERBIA_BACKEND_URL || "<settings>"}`);
+
 const sharedOptions = {
   outdir: out,
   bundle: true,
@@ -39,15 +50,41 @@ const sharedOptions = {
   define: {
     "process.env.SUPABASE_URL": JSON.stringify(supabaseUrl),
     "process.env.SUPABASE_PUBLISHABLE_KEY": JSON.stringify(supabasePublishableKey),
-    "process.env.SUPABASE_ANON_KEY": JSON.stringify(supabasePublishableKey)
+    "process.env.SUPABASE_ANON_KEY": JSON.stringify(supabasePublishableKey),
+    "process.env.VERBIA_RELEASE": release ? "1" : "0",
+    "process.env.VERBIA_BACKEND_URL": JSON.stringify(VERBIA_BACKEND_URL)
   },
   alias: { "@verbia/shared": path.join(root, "packages/shared/src/index.ts") }
 };
 
+// Release manifests must not ask for localhost access; dev builds keep it so
+// a local thin gateway is reachable during development.
+async function copyManifest() {
+  if (!release) {
+    await cp("apps/extension/manifest.json", path.join(out, "manifest.json"));
+    return;
+  }
+  const manifest = JSON.parse(readFileSync(path.join(root, "apps/extension/manifest.json"), "utf8"));
+  // `key` only pins the ID for unpacked development loads; the Web Store assigns
+  // its own ID and rejects/ignores it in uploaded packages.
+  delete manifest.key;
+  manifest.host_permissions = (manifest.host_permissions ?? []).filter(entry => !entry.startsWith("http://localhost"));
+  await writeFile(path.join(out, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
+  console.log(`[build] release manifest: removed key + localhost host permissions (${manifest.host_permissions.length} remain)`);
+}
+
+// Release options pages drop the whole Developer settings card (Backend URL)
+// instead of just hiding it, so it never ships in the zip.
+async function copyOptionsHtml() {
+  const source = readFileSync(path.join(root, "apps/extension/src/options/index.html"), "utf8");
+  const html = release ? source.replace(/<section class="settings-section developer-section">[\s\S]*?<\/section>/, "") : source;
+  await writeFile(path.join(out, "options.html"), html);
+}
+
 await Promise.all([
-  cp("apps/extension/manifest.json", path.join(out, "manifest.json")),
+  copyManifest(),
   cp("apps/extension/_locales", path.join(out, "_locales"), { recursive: true }),
-  cp("apps/extension/src/options/index.html", path.join(out, "options.html")),
+  copyOptionsHtml(),
   cp("apps/extension/src/options/options.css", path.join(out, "options.css")),
   cp("apps/extension/src/popup/index.html", path.join(out, "popup.html")),
   cp("apps/extension/src/popup/popup.css", path.join(out, "popup.css")),

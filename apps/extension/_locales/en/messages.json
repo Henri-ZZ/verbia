@@ -1,6 +1,9 @@
 {
+  "extensionName": {
+    "message": "Verbia - AI Reply & Writing Assistant"
+  },
   "description": {
-    "message": "Your intent. The right words. Verbia turns what you mean into a natural reply draft—review, edit, and send it yourself."
+    "message": "Speak or type in any language. Verbia understands the conversation and turns what you mean into natural, context-aware replies."
   },
   "actionTitle": {
     "message": "Open Verbia Dashboard"

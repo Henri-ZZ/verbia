@@ -5,6 +5,13 @@ const ADD_CONTEXT_MENU_ID = "verbia-add-context";
 const MAX_SELECTION_LENGTH = 8_000;
 const stagedKeyFor = (tabId: number) => `stagedContext:${tabId}`;
 
+// Release builds are compiled with a pinned gateway URL, so requests always go
+// to production even if an older development build stored a localhost backend.
+const VERBIA_BACKEND_URL = process.env.VERBIA_BACKEND_URL ?? "";
+function apiBaseUrl(settings: UserSettings): string {
+  return (VERBIA_BACKEND_URL || settings.backendBaseUrl || DEFAULT_SETTINGS.backendBaseUrl).replace(/\/$/, "");
+}
+
 chrome.runtime.onInstalled.addListener(async details => {
   if (details.reason === "install") {
     const { settings } = await chrome.storage.local.get("settings");
@@ -236,7 +243,7 @@ async function accountSnapshot(): Promise<AuthState> {
   const [settings, bearer] = await Promise.all([getSettings(), authBearer()]);
   if (!bearer) return identity;
   try {
-    const response = await fetch(`${settings.backendBaseUrl.replace(/\/$/, "")}/v1/account/usage`, {
+    const response = await fetch(`${apiBaseUrl(settings)}/v1/account/usage`, {
       headers: { authorization: bearer }
     });
     if (!response.ok) return identity;
@@ -258,7 +265,7 @@ async function generate(payload: unknown) {
     // Signed-in sessions ride along as a Bearer token so the gateway can
     // attribute usage to the account. Anonymous requests stay anonymous.
     const bearer = await authBearer();
-    const response = await fetch(`${settings.backendBaseUrl.replace(/\/$/, "")}/v1/replies:generate`, {
+    const response = await fetch(`${apiBaseUrl(settings)}/v1/replies:generate`, {
       method: "POST",
       headers: { "content-type": "application/json", ...(bearer ? { authorization: bearer } : {}) },
       body: JSON.stringify(request),

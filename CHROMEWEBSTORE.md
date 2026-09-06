@@ -4,14 +4,14 @@
 
 ## Store Listing
 
-**Extension Name:** Verbia
+**Extension Name:** Verbia - AI Reply & Writing Assistant（中文副语言：Verbia - AI 回复与写作助手）
 
 **Tagline (EN):** Your intent. The right words.  
 **Tagline (中文):** 你的意图，恰如其言。
 
-**Short Description (EN):** Your intent. The right words. Verbia turns what you mean into a natural reply draft—review, edit, and send it yourself.
+**Short Description (EN):** Speak or type in any language. Verbia understands the conversation and turns what you mean into natural, context-aware replies.
 
-**Short Description (中文):** 你的意图，恰如其言。Verbia 把你的想法变成自然的回复草稿——由你检查、编辑并亲自发送。
+**Short Description (中文):** 使用任何语言说出或输入你想表达的内容。Verbia 理解对话上下文，将你的真实意图转化为自然、贴合语境的回复。
 
 **Detailed Description (EN):**
 

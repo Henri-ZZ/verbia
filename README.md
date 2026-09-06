@@ -18,7 +18,8 @@ verbia/
 ├── services/api/         AI 生成后端服务
 ├── packages/shared/      前后端共享的数据结构与校验规则
 ├── tests/                自动化测试
-├── dist/extension/       构建后的可加载插件
+├── dist/extension/       构建后的可加载插件（开发构建）
+├── dist/release/         发布构建（Chrome Web Store 上传内容）
 └── artifacts/            打包后的插件 ZIP
 ```
 
@@ -140,11 +141,31 @@ pnpm test
 # 检查 TypeScript 类型
 pnpm typecheck
 
-# 构建并生成插件 ZIP
+# 打包发布到 Chrome Web Store（见下节）
 pnpm package
 ```
 
-打包后的文件位于 `artifacts/verbia-v0.1.0.zip`。
+## 打包发布到 Chrome Web Store
+
+发布构建与开发构建相互独立，执行：
+
+```bash
+pnpm package
+```
+
+脚本会依次完成：
+
+1. 以 release 模式重新构建插件到 `dist/release/`；
+2. 把 `dist/release/` 打包为 `artifacts/verbia-v0.1.0.zip`（版本号取自 manifest 的 `version`，不会自动递增，上传前如需发新版本请手动修改 `apps/extension/manifest.json` 的版本号）；
+3. `pnpm package` 不会改动 `dist/extension/`，本地开发和调试不受影响。
+
+与开发构建（`pnpm build` → `dist/extension`）相比，发布包做了以下调整：
+
+- **移除「开发者设置」**：发布版看不到后端 URL 设置项，无法再修改；
+- **固定后端地址**：请求在编译期固定指向线上 `https://api.verbia.henriz.dev`；
+- **Manifest 精简**：`host_permissions` 移除 `http://localhost:8787/*`，发布版不请求任何本地地址；同时删除仅用于开发期固定 ID 的 `key` 字段。
+
+拿到 zip 后，前往 [Chrome Web Store 开发者控制台](https://chrome.google.com/webstore/devconsole) 创建或选择项目并上传该 zip。发布前请对照 [CHROMEWEBSTORE.md](CHROMEWEBSTORE.md) 的检查清单核对资料与素材。
 
 ## 数据和隐私原则
 
@@ -180,14 +201,14 @@ pnpm test
 - 上下文识别不确定时会显示低置信度或退化为无上下文模式。
 - Universal Mode 支持基础的 `textarea`、文本输入框和普通 `contenteditable`；复杂富文本编辑器可能只能使用 Copy。
 - 浏览器语音识别的支持情况取决于 Chrome 版本及系统环境。
-- 当前开发版 Manifest 只允许访问本地后端；发布前需要换成生产 HTTPS API 地址。
+- 开发版 Manifest 允许访问本地后端（`http://localhost:8787`）用于联调；发布包由 `pnpm package` 自动移除该权限并固定使用线上后端。
 - 目前没有用户账户、登录、订阅、计费和数据库。
 - Chrome Web Store 图标、截图、公开隐私政策地址、发布者信息和支持邮箱尚未完成。
 - 真实 Gemini 模型仍需通过回复质量基准测试后确定。
 
 ## 生产部署
 
-- Chrome 插件：Chrome Web Store。
+- Chrome 插件：Chrome Web Store，用 `pnpm package` 打包上传（见[打包发布到 Chrome Web Store](#打包发布到-chrome-web-store)）。
 - 后端服务：Cloudflare Workers，部署步骤见 [docs/cloudflare-api-deploy.md](docs/cloudflare-api-deploy.md)。
 - 模型 API Key：Cloudflare Worker Secrets。
 - 未来产品官网：Cloudflare Workers Static Assets。

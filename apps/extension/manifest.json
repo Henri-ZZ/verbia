@@ -1,7 +1,7 @@
 {
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAv2NGnwirJfYhLGP6Qn5NrynV3OgfH2xRAjwZX85sYUIax0yPEqXClPN/xYxu02fSLSH6bt4juPVa9vu/0b9woFkWErqBooOA5IJKwqXboCAj6CIUhQ7SF/O9YPOVI51g3exqI6OpsnFu58To9OSTQ5d9BFYsPD0TTDPAkh9fQnk6tCAB7h25FPW15ch9dKNnbs64GvAZwUxATjzTl11jxCpNferPylkjHea/Fd/DkL2V0tSd3t/7LDpijHVy3rNTc/75ULaPW8JdbH0WtDqBBCG6QkO5xfmZcZcHKqawXzTbicx9Lsn7lVmNky91TQLk+2NXI+8oZ5nZyWaEemnYpQIDAQAB",
   "manifest_version": 3,
-  "name": "Verbia",
+  "name": "__MSG_extensionName__",
   "default_locale": "en",
   "version": "0.1.0",
   "description": "__MSG_description__",

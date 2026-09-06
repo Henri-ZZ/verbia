@@ -1,6 +1,9 @@
 {
+  "extensionName": {
+    "message": "Verbia - AI 回复与写作助手"
+  },
   "description": {
-    "message": "你的意图，恰如其言。Verbia 把你的想法变成自然的回复草稿——由你检查、编辑并亲自发送。"
+    "message": "使用任何语言说出或输入你想表达的内容。Verbia 理解对话上下文，将你的真实意图转化为自然、贴合语境的回复。"
   },
   "actionTitle": {
     "message": "打开 Verbia 控制面板"
