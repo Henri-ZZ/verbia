@@ -28,11 +28,32 @@ async function applyShortcut() {
 
 function renderShortcutKeys(container: HTMLElement, shortcut: string) {
   container.replaceChildren();
-  for (const key of shortcut.split("+").filter(Boolean)) {
+  for (const key of splitShortcutKeys(shortcut)) {
     const chip = document.createElement("kbd");
-    chip.textContent = key === "Command" ? "⌘" : key === "Shift" ? "⇧" : key === "Alt" ? "⌥" : key;
+    chip.textContent = key === "Command" ? "⌘" : key === "Shift" ? "⇧" : key === "Option" || key === "Alt" ? "⌥" : key === "Control" ? "⌃" : key;
     container.append(chip);
   }
+}
+
+// Chrome's commands API usually returns keys joined by "+" (e.g. "Command+Shift+Y"),
+// but on some platforms / custom bindings the modifier glyphs arrive already
+// concatenated (e.g. "⌘⇧Y") with no separator. Treat both shapes uniformly so each
+// key always lands in its own chip.
+const SHORTCUT_GLYPHS = new Set(["⌘", "⇧", "⌥", "⌃", "⌫", "⌦", "⏎", "⇥"]);
+
+function splitShortcutKeys(raw: string): string[] {
+  if (!raw) return [];
+  if (raw.includes("+")) return raw.split("+").map(s => s.trim()).filter(Boolean);
+  const parts: string[] = [];
+  let buf = "";
+  for (const ch of raw) {
+    if (SHORTCUT_GLYPHS.has(ch)) {
+      if (buf) { parts.push(buf); buf = ""; }
+      parts.push(ch);
+    } else buf += ch;
+  }
+  if (buf) parts.push(buf);
+  return parts;
 }
 
 void applyShortcut();

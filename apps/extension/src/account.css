@@ -66,18 +66,28 @@
 .shortcut-keys {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   flex: none;
   margin: 0 !important;
 }
 
 .shortcut-keys kbd {
-  display: grid;
-  place-items: center;
-  min-width: 25px;
-  height: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  min-width: 26px;
+  padding: 0;
   margin: 0;
-  padding: 0 6px;
+  border: 1px solid #c9d3c7;
+  border-bottom-width: 2px;
+  border-radius: 7px;
+  background: #f1f4ee;
+  color: #1d2a22;
+  font: 650 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  line-height: 1;
+  box-sizing: border-box;
 }
 
 .hero .shortcut {
