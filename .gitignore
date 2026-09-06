@@ -1,6 +1,8 @@
 node_modules/
 .pnpm-store/
 dist/
+apps/web/.next/
+apps/web/out/
 artifacts/
 .env
 .env.*

@@ -25,6 +25,18 @@ To use Verbia, sign in, focus a reply field, and use your configured shortcut to
 
 Verbia reads page content only after you invoke it, limits access to the reply you are working on, stores preferences locally, and does not use message text for analytics.
 
+**Detailed Description (中文):**
+
+你的想法，Verbia 帮你表达。（You mean it. Verbia says it.）
+
+Verbia 帮助多语言使用者直接用自己熟悉的语言表达想法，不必先在英文里组织好每一句话，也能得到自然、贴切、符合语境的回复草稿。
+
+在 Reddit 上，Verbia 会在生成前展示相关的帖子和回复链；在其他网页，你可以使用选中的文字作为上下文，也可以不带上下文直接起草。写下或说出你的意图，选择语气和长度，检查草稿后再插入或复制。
+
+要使用 Verbia：登录后聚焦任意回复框，用你配置的快捷键唤起回复面板。先确认面板中可见的上下文，输入你的意图，然后点击 Generate。Verbia 总是先把草稿展示给你，绝不会替你发送或提交任何消息——发送永远由你自己完成。点击工具栏图标可打开控制面板，管理账号与偏好设置。
+
+Verbia 只在你主动唤起后才读取页面内容，访问范围限定于你正在编辑的这条回复；偏好设置仅保存在本地，消息文本不会用于任何分析。
+
 **Category:** Social & Communication
 
 **Single Purpose:** Generate contextual, cross-language reply drafts for the user's current text editor.

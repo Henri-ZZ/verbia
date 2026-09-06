@@ -1,0 +1,943 @@
+<!DOCTYPE html><html lang="en" style=""><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><title>Verbia — AI Reply &amp; Writing Assistant</title><link href="https://fonts.googleapis.com" rel="preconnect"><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@600;700&amp;display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{colors:{"surface-container-lowest":"#ffffff","on-tertiary-fixed":"#002113","primary-fixed":"#a0f3d4","outline-variant":"#bec9c3","on-secondary-fixed":"#002113","tertiary-container":"#476856","secondary-fixed-dim":"#98d3b2","tertiary-fixed":"#c6ebd4","secondary-container":"#b3f0cd","surface-container-high":"#e1ebe3","surface-container":"#e7f0e9","surface-container-low":"#ecf6ee","outline":"#6f7a74","on-tertiary":"#ffffff","secondary":"#30694e","on-secondary-fixed-variant":"#145037","surface-variant":"#dbe5dd","error":"#ba1a1a","background":"#f2fcf4","on-primary":"#ffffff","on-surface":"#151d19","tertiary":"#2f503f","surface-bright":"#f2fcf4","on-background":"#151d19","on-tertiary-container":"#c0e5ce","on-error":"#ffffff","on-surface-variant":"#3f4944","on-secondary-container":"#366f54","tertiary-fixed-dim":"#abcfb8","on-primary-container":"#9aedcf","primary-container":"#0f6e56","inverse-surface":"#29322d","on-primary-fixed-variant":"#00513e","inverse-primary":"#84d6b9","error-container":"#ffdad6","inverse-on-surface":"#e9f3eb","primary-fixed-dim":"#84d6b9","primary":"#005440","surface-tint":"#086b53","secondary-fixed":"#b3f0cd","on-secondary":"#ffffff","surface-dim":"#d3dcd5","on-tertiary-fixed-variant":"#2d4d3c","surface":"#f2fcf4","on-primary-fixed":"#002117","surface-container-highest":"#dbe5dd","on-error-container":"#93000a"},borderRadius:{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},spacing:{"space-3xl":"2.5rem","space-xs":"0.25rem","space-2xl":"2rem","space-base":"1rem","space-md":"0.75rem","space-lg":"1.25rem","space-xl":"1.5rem","space-2xs":"0.125rem","space-sm":"0.5rem","extension-width-compact":"340px","extension-width-expanded":"420px","popover-padding":"1rem"},fontFamily:{"display-sm":["Plus Jakarta Sans"],"body-lg":["Inter"],"headline-md":["Plus Jakarta Sans"],"display-lg":["Plus Jakarta Sans"],"label-md":["Inter"],"headline-sm":["Plus Jakarta Sans"],"body-md":["Inter"],"label-sm":["Inter"],"body-sm":["Inter"]},fontSize:{"display-sm":["24px",{"lineHeight":"32px","letterSpacing":"-0.015em","fontWeight":"600"}],"body-lg":["16px",{"lineHeight":"26px","letterSpacing":"0","fontWeight":"400"}],"headline-md":["20px",{"lineHeight":"28px","letterSpacing":"-0.01em","fontWeight":"600"}],"display-lg":["32px",{"lineHeight":"40px","letterSpacing":"-0.02em","fontWeight":"700"}],"label-md":["13px",{"lineHeight":"18px","letterSpacing":"0.01em","fontWeight":"500"}],"headline-sm":["16px",{"lineHeight":"24px","letterSpacing":"-0.005em","fontWeight":"600"}],"body-md":["14px",{"lineHeight":"22px","letterSpacing":"0","fontWeight":"400"}],"label-sm":["11px",{"lineHeight":"16px","letterSpacing":"0.03em","fontWeight":"600"}],"body-sm":["12px",{"lineHeight":"18px","letterSpacing":"0.005em","fontWeight":"400"}]}}}};</script></head><body class="bg-surface font-body-md text-body-md text-on-surface min-h-screen flex flex-col selection:bg-secondary-container selection:text-on-secondary-container"><header class="fixed top-0 inset-x-0 z-50 bg-surface/90 backdrop-blur-xl border-b border-surface-variant/40 shadow-[0_1px_8px_rgba(23,32,25,0.03)]"><div class="h-20 max-w-[1240px] mx-auto px-6 lg:px-10 flex items-center justify-between gap-6"><div class="flex items-center gap-3"><a class="flex items-center gap-3 group" data-path="how-it-works" href="#"><img alt="icon512.png" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1UbAgl7jw61ySZ7OwqEJcJqxJPn_yrofYpjWoSU1CB2dotwKMue5RHa2jFBLkD2PgzJOXxVhvYopRHs2HN9JefH7YY9nHVJr4NVI0ekQBE150VrxT1mZdi7xTiaxtNIZU5lCawzpuPo0R9VWU7Kt6z0lWeCK3XRhehD2aR-UPyRAvPRp3zD2JuX5YGWnRMtsIqapGn9PBHCJIxLHoyzHZlz-DBc917l5vDSvkOPSQ1Dwk9mtmOZPBiD7impj1jExSRSMbYCkgku"><span class="font-headline-md text-headline-md font-bold tracking-tight text-on-surface">Verbia</span></a></div><nav class="hidden md:flex items-center gap-8" data-active-classes="text-on-surface font-semibold"><a aria-current="page" class="transition-colors text-on-surface font-semibold" data-path="how-it-works" href="#">How it works</a><a class="font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors" data-path="features" href="#">Features</a><a class="font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors" data-path="privacy" href="#">Privacy</a><a class="font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors" data-path="pricing" href="#">Pricing</a><a class="font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors" data-path="faq" href="#">FAQ</a></nav><div class="flex items-center gap-4"><a class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-primary-container hover:bg-primary text-on-primary font-label-md text-label-md transition-all shadow-[0_1px_2px_rgba(23,32,25,0.06)] hover:shadow-md" href="#"><span class="material-symbols-outlined text-[18px]">extension</span><span class="">Add to Chrome</span></a><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="w-full pt-20 bg-surface flex-grow"><div class="max-w-[1240px] mx-auto px-6 lg:px-10 py-12"><div class="flex flex-col w-full">
+<!-- Top Ambient Atmosphere Layer -->
+<div class="relative w-full overflow-hidden">
+<div class="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[480px] bg-gradient-to-b from-secondary-container/20 via-surface-container-low/10 to-transparent blur-3xl pointer-events-none -z-10"></div>
+<!-- 1. HERO SECTION -->
+<section class="pt-8 pb-16 md:pt-14 md:pb-24 max-w-[1180px] mx-auto w-full flex flex-col items-center text-center">
+<!-- Chrome Pill Badge -->
+<div class="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-surface-container-lowest shadow-[0_1px_4px_rgba(23,32,25,0.04)] mb-8 transition-transform hover:scale-[1.01] cursor-default">
+<span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+<span class="font-label-md text-label-md text-on-surface-variant flex items-center gap-1.5">
+<span class="font-semibold text-on-surface">Verbia for Chrome</span>
+<span class="text-outline-variant">•</span>
+<span class="">Instant in-line assistant</span>
+</span>
+</div>
+<!-- Hero Headline -->
+<h1 class="font-display-lg text-display-lg md:text-[54px] md:leading-[1.15] text-on-surface max-w-4xl tracking-tight mb-6">
+        Tell me what you want to say,
+        <span class="block mt-1 font-display-lg md:text-[54px] text-primary italic font-medium">
+          in any language.
+        </span>
+</h1>
+<!-- Supporting Copy -->
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl mx-auto mb-9 leading-relaxed">
+        Verbia understands the conversation and turns what you mean into natural, context-aware replies.
+      </p>
+<!-- Action Buttons -->
+<div class="flex flex-wrap items-center justify-center gap-4 mb-8">
+<a class="inline-flex items-center justify-center gap-2.5 px-6 py-3 rounded-lg bg-primary-container hover:bg-primary text-on-primary font-label-md text-label-md transition-all shadow-[0_2px_8px_rgba(15,110,86,0.18)] hover:shadow-lg" href="#install">
+<span class="material-symbols-outlined text-[20px]">extension</span>
+<span class="">Add to Chrome</span>
+<span class="font-normal text-on-primary/75 text-body-sm ml-1">Free</span>
+</a>
+<a class="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-surface-container-lowest hover:bg-surface-container-low text-on-surface font-label-md text-label-md shadow-[0_1px_3px_rgba(23,32,25,0.05)] transition-all" href="#how-it-works">
+<span class="">See how it works</span>
+<span class="material-symbols-outlined text-[18px] text-on-surface-variant">arrow_forward</span>
+</a>
+</div>
+<!-- Supported Platforms Footnote -->
+<p class="font-body-sm text-body-sm text-outline flex items-center justify-center gap-2 flex-wrap max-w-xl">
+<span class="material-symbols-outlined text-[16px] text-secondary">check_circle</span>
+<span class="">Works seamlessly across Gmail, LinkedIn, Slack Web, Reddit, GitHub, X &amp; Web forums.</span>
+</p>
+</section>
+<!-- 2. HERO PRODUCT INTERACTION DEMO (Centerpiece) -->
+<section class="max-w-[1140px] mx-auto w-full pb-20 md:pb-28">
+<!-- Browser Window Chrome Mockup -->
+<div class="bg-surface-container-lowest rounded-2xl shadow-[0_16px_48px_-12px_rgba(23,32,25,0.12),0_2px_8px_rgba(23,32,25,0.04)] overflow-hidden">
+<!-- macOS Safari/Chrome Title Bar -->
+<div class="bg-surface-container-high/60 px-5 py-3.5 flex items-center justify-between backdrop-blur-sm">
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 rounded-full bg-[#ec6a5e]/80"></span>
+<span class="w-3 h-3 rounded-full bg-[#f4bf4f]/80"></span>
+<span class="w-3 h-3 rounded-full bg-[#62c554]/80"></span>
+</div>
+<!-- Browser Address Bar -->
+<div class="flex items-center gap-2 bg-surface-container-lowest/90 px-4 py-1.5 rounded-md text-on-surface-variant font-label-sm text-label-sm w-80 max-w-full justify-center shadow-[0_1px_2px_rgba(23,32,25,0.03)]">
+<span class="material-symbols-outlined text-[14px] text-outline">lock</span>
+<span class="truncate">threads.designcommunity.internal/discussions/p891</span>
+</div>
+<div class="flex items-center gap-3 text-outline">
+<span class="material-symbols-outlined text-[18px]">share</span>
+<span class="material-symbols-outlined text-[18px]">more_horiz</span>
+</div>
+</div>
+<!-- Simulated Web Page Canvas -->
+<div class="p-6 md:p-10 bg-[#faf8f3]">
+<!-- Discussion Header -->
+<div class="mb-6">
+<div class="flex items-center gap-2 mb-2">
+<span class="px-2.5 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm">Tech &amp; Product Debates</span>
+<span class="text-outline-variant">•</span>
+<span class="font-body-sm text-body-sm text-outline">Active 12m ago</span>
+</div>
+<h2 class="font-display-sm text-display-sm text-on-surface">
+              Pricing debate on the new Pro plan updates
+            </h2>
+</div>
+<!-- Incoming Peer Message Card -->
+<div class="p-5 rounded-xl bg-surface-container-lowest shadow-[0_1px_3px_rgba(23,32,25,0.04)] mb-8">
+<div class="flex items-start gap-3.5 mb-3">
+<div class="w-10 h-10 rounded-full bg-surface-container-highest flex items-center justify-center font-headline-sm text-headline-sm text-secondary font-semibold">
+                MR
+              </div>
+<div>
+<div class="flex items-center gap-2">
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold">Marcus Reid</span>
+<span class="font-label-sm text-label-sm px-2 py-0.5 rounded bg-surface-container text-on-surface-variant">Product Lead</span>
+<span class="font-body-sm text-body-sm text-outline">18m ago</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface mt-2 leading-relaxed">
+                  "I get your point, but I still think the subscription is pretty affordable compared to the alternatives."
+                </p>
+</div>
+</div>
+</div>
+<!-- Verbia Integrated Reply Container -->
+<div class="rounded-xl bg-surface-container-lowest shadow-[0_4px_24px_-4px_rgba(23,32,25,0.08)] overflow-hidden">
+<!-- Verbia Status Header -->
+<div class="bg-surface-container-low px-5 py-3 flex items-center justify-between flex-wrap gap-2">
+<div class="flex items-center gap-2.5">
+<img alt="Verbia" class="w-5 h-5 object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1UbAgl7jw61ySZ7OwqEJcJqxJPn_yrofYpjWoSU1CB2dotwKMue5RHa2jFBLkD2PgzJOXxVhvYopRHs2HN9JefH7YY9nHVJr4NVI0ekQBE150VrxT1mZdi7xTiaxtNIZU5lCawzpuPo0R9VWU7Kt6z0lWeCK3XRhehD2aR-UPyRAvPRp3zD2JuX5YGWnRMtsIqapGn9PBHCJIxLHoyzHZlz-DBc917l5vDSvkOPSQ1Dwk9mtmOZPBiD7impj1jExSRSMbYCkgku">
+<span class="font-headline-sm text-headline-sm text-primary font-semibold">Verbia Assistant</span>
+<span class="font-label-sm text-label-sm px-2.5 py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed-variant flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                  Active In-line
+                </span>
+</div>
+<!-- Step A: Context Detected Pill -->
+<div class="flex items-center gap-1.5 px-3 py-1 rounded-md bg-surface-container font-label-sm text-label-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-[15px] text-primary">psychology</span>
+<span class="">Context detected: Marcus Reid • Subscription pricing debate</span>
+</div>
+</div>
+<div class="p-6 flex flex-col gap-5">
+<!-- Step B: WHAT I WANT TO SAY -->
+<div>
+<div class="flex items-center justify-between mb-2">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-outline font-semibold">Step 1 — What I want to say (Natural Thought)</span>
+<div class="flex items-center gap-2">
+<span class="font-label-sm text-label-sm px-2 py-0.5 rounded bg-surface-container-high text-on-surface-variant">Language: 简体中文</span>
+<span class="font-label-sm text-label-sm px-2 py-0.5 rounded bg-secondary-container text-on-secondary-container">Tone: Casual &amp; balanced</span>
+</div>
+</div>
+<div class="relative rounded-lg bg-surface-container-low/80 p-4 transition-all focus-within:bg-surface-container-lowest focus-within:shadow-[0_0_0_2px_#0f6e56]">
+<p class="font-body-lg text-body-lg text-on-surface font-medium mb-1">
+                    “我基本同意他的观点，但是我觉得现在的价格已经不算便宜了。语气随意一点，别太冲。”
+                  </p>
+<div class="flex items-center justify-between mt-3 pt-2">
+<div class="flex items-center gap-2 text-outline font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[16px]">translate</span>
+<span class="">Raw intent registered</span>
+</div>
+<button class="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-surface-container-high text-on-surface-variant hover:text-on-surface font-label-sm text-label-sm transition-colors" type="button">
+<span class="material-symbols-outlined text-[16px] text-primary">mic</span>
+<span class="">Speak your thought</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Step C: Transformation Flow Indicator -->
+<div class="flex items-center justify-center gap-3 py-1 text-outline">
+<span class="font-label-sm text-label-sm px-2.5 py-1 rounded bg-surface-container text-on-surface-variant font-medium">Context understood</span>
+<span class="material-symbols-outlined text-[16px]">add</span>
+<span class="font-label-sm text-label-sm px-2.5 py-1 rounded bg-surface-container text-on-surface-variant font-medium">User intent in Chinese</span>
+<span class="material-symbols-outlined text-[16px] text-primary">arrow_downward</span>
+<span class="font-label-sm text-label-sm px-3 py-1 rounded bg-primary text-on-primary font-semibold flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">auto_awesome</span>
+                  Verbia expression engine
+                </span>
+</div>
+<!-- Step D: NATURAL GENERATED REPLY -->
+<div class="rounded-xl bg-surface-container-lowest p-5 shadow-[0_2px_12px_rgba(15,110,86,0.08)]">
+<div class="flex items-center justify-between mb-2">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-primary font-semibold flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px]">check_circle</span>
+                    Natural Native Reply (Ready to insert)
+                  </span>
+<span class="font-label-sm text-label-sm text-outline">Tone match: 98%</span>
+</div>
+<div class="p-4 rounded-lg bg-surface-bright mb-4">
+<p class="font-body-lg text-body-lg text-on-surface leading-relaxed">
+                    “I mostly agree with your point, but I’m not sure I’d call it cheap anymore. The price has gone up quite a bit.”
+                  </p>
+</div>
+<!-- Action Toolbar -->
+<div class="flex flex-wrap items-center justify-between gap-3">
+<div class="flex items-center gap-2">
+<button class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-on-primary font-label-md text-label-md hover:bg-primary-container transition-all shadow-[0_1px_3px_rgba(23,32,25,0.08)]" type="button">
+<span class="material-symbols-outlined text-[18px]">input</span>
+<span class="">Insert into reply</span>
+</button>
+<button class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-surface-container-high text-on-surface-variant hover:text-on-surface font-label-md text-label-md transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">tune</span>
+<span class="">Adjust tone</span>
+</button>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 rounded-lg hover:bg-surface-container text-outline hover:text-on-surface transition-colors" title="Regenerate alternative" type="button">
+<span class="material-symbols-outlined text-[20px]">refresh</span>
+</button>
+<button class="p-2 rounded-lg hover:bg-surface-container text-outline hover:text-on-surface transition-colors" title="Copy to clipboard" type="button">
+<span class="material-symbols-outlined text-[20px]">content_copy</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Clean callout annotation underneath the demo -->
+<div class="mt-6 flex items-center justify-center text-center">
+<div class="inline-flex flex-wrap items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-surface-container-low text-on-surface-variant font-label-md text-label-md">
+<span class="font-semibold text-primary">CONVERSATION CONTEXT</span>
+<span class="text-outline-variant">+</span>
+<span class="font-semibold text-on-surface">WHAT I WANT TO SAY</span>
+<span class="text-outline-variant">→</span>
+<span class="font-semibold text-primary">NATURAL REPLY.</span>
+<span class="text-outline ml-1">User provides the meaning. Verbia handles the expression.</span>
+</div>
+</div>
+</section>
+</div>
+<!-- 3. SECOND SECTION (Whitespace & Philosophical Statement) -->
+<section class="py-24 md:py-36 max-w-[960px] mx-auto w-full text-center px-4">
+<span class="font-label-sm text-label-sm uppercase tracking-widest text-secondary font-semibold mb-4 block">
+      The Core Principle
+    </span>
+<h2 class="font-display-lg text-display-lg md:text-[46px] md:leading-tight text-on-surface mb-3 tracking-tight">
+      You already know what you mean.
+    </h2>
+<h3 class="font-display-sm text-display-sm md:text-[32px] text-primary italic font-normal mb-8">
+      Verbia helps you find the right words.
+    </h3>
+<p class="font-body-lg text-body-lg text-on-surface-variant leading-relaxed max-w-2xl mx-auto">
+      Communication shouldn't be trapped behind language friction, tone anxiety, or awkward translations. You bring the perspective, the nuance, and the judgment. Verbia ensures it arrives naturally in any room.
+    </p>
+</section>
+<!-- 4. HOW IT WORKS (3-Step Connected Flow) -->
+<!-- VIDEO DEMO WALKTHROUGH SECTION -->
+<section class="py-20 max-w-[1180px] mx-auto w-full" id="demo-video">
+  <div class="text-center max-w-2xl mx-auto mb-12">
+    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface-container mb-3 transition-transform hover:scale-[1.01]">
+      <span class="material-symbols-outlined text-[16px] text-primary">smart_display</span>
+      <span class="font-label-sm text-label-sm uppercase tracking-widest text-secondary font-semibold">Product Walkthrough</span>
+    </div>
+    <h2 class="font-display-lg text-display-lg text-on-surface mb-3 tracking-tight">
+      See the flow in sixty seconds.
+    </h2>
+    <p class="font-body-lg text-body-lg text-on-surface-variant leading-relaxed">
+      A quick 1-minute walkthrough showing how Verbia detects context, takes native speech or text, and crafts polished replies in real time.
+    </p>
+  </div>
+
+  <!-- 16:9 Video Mockup Player Container -->
+  <div class="relative rounded-2xl overflow-hidden bg-inverse-surface shadow-[0_16px_48px_-12px_rgba(23,32,25,0.12),0_2px_8px_rgba(23,32,25,0.04)] border border-surface-variant/40 group max-w-4xl mx-auto">
+    <!-- 16:9 Aspect Ratio Box with Preview Background -->
+    <div class="relative w-full pb-[56.25%] bg-[#1a2e26] overflow-hidden">
+      <!-- Ambient Soft Glow Background -->
+      <div class="absolute inset-0 bg-gradient-to-b from-primary/30 via-tertiary-container/40 to-inverse-surface backdrop-blur-sm"></div>
+      
+      <!-- Background UI Glimpse / Watermark Ambient Artwork -->
+      <div class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
+        <img alt="Verbia ambient mark" class="w-80 h-80 object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1UbAgl7jw61ySZ7OwqEJcJqxJPn_yrofYpjWoSU1CB2dotwKMue5RHa2jFBLkD2PgzJOXxVhvYopRHs2HN9JefH7YY9nHVJr4NVI0ekQBE150VrxT1mZdi7xTiaxtNIZU5lCawzpuPo0R9VWU7Kt6z0lWeCK3XRhehD2aR-UPyRAvPRp3zD2JuX5YGWnRMtsIqapGn9PBHCJIxLHoyzHZlz-DBc917l5vDSvkOPSQ1Dwk9mtmOZPBiD7impj1jExSRSMbYCkgku">
+      </div>
+
+      <!-- Top YouTube Style Header Bar -->
+      <div class="absolute top-0 inset-x-0 p-5 flex items-center justify-between z-20 bg-gradient-to-b from-black/60 to-transparent">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center shadow-md">
+            <img alt="Verbia" class="w-5 h-5 object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1UbAgl7jw61ySZ7OwqEJcJqxJPn_yrofYpjWoSU1CB2dotwKMue5RHa2jFBLkD2PgzJOXxVhvYopRHs2HN9JefH7YY9nHVJr4NVI0ekQBE150VrxT1mZdi7xTiaxtNIZU5lCawzpuPo0R9VWU7Kt6z0lWeCK3XRhehD2aR-UPyRAvPRp3zD2JuX5YGWnRMtsIqapGn9PBHCJIxLHoyzHZlz-DBc917l5vDSvkOPSQ1Dwk9mtmOZPBiD7impj1jExSRSMbYCkgku">
+          </div>
+          <div class="text-left">
+            <p class="font-label-md text-label-md text-white font-semibold tracking-tight">Verbia in Action — Context-Aware Multilingual Replying</p>
+            <span class="font-label-sm text-label-sm text-white/75">Official Walkthrough • 4K 60fps</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button class="px-3 py-1 rounded bg-black/40 hover:bg-black/60 text-white font-label-sm text-label-sm backdrop-blur-md transition-colors flex items-center gap-1.5" type="button">
+            <span class="material-symbols-outlined text-[16px]">share</span>
+            <span class="">Share</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Center Play Button with Soft Pulsating Ring -->
+      <div class="absolute inset-0 flex items-center justify-center z-20">
+        <button aria-label="Play walkthrough video" class="relative group/btn flex items-center justify-center transition-transform hover:scale-105 duration-300" type="button">
+          <span class="absolute -inset-4 rounded-full bg-primary/30 animate-pulse"></span>
+          <span class="relative w-20 h-20 rounded-full bg-primary hover:bg-primary-container text-white flex items-center justify-center shadow-[0_8px_32px_rgba(0,84,64,0.4)] border border-primary-fixed/30 backdrop-blur-md transition-all">
+            <span class="material-symbols-outlined text-[36px] text-white ml-1">play_arrow</span>
+          </span>
+        </button>
+      </div>
+
+      <!-- Bottom YouTube Video Controls Bar Overlay -->
+      <div class="absolute bottom-0 inset-x-0 p-4 bg-gradient-to-t from-black/80 via-black/40 to-transparent flex items-center justify-between z-20 text-white font-label-sm text-label-sm">
+        <div class="flex items-center gap-3">
+          <span class="material-symbols-outlined text-[20px] text-white/90 hover:text-white cursor-pointer">play_arrow</span>
+          <span class="material-symbols-outlined text-[20px] text-white/90 hover:text-white cursor-pointer">volume_up</span>
+          <span class="text-white/80 font-medium">0:00 / 1:18</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="px-2 py-0.5 rounded bg-black/50 text-[11px] font-semibold tracking-wide border border-white/10">HD</span>
+          <span class="material-symbols-outlined text-[18px] text-white/90 hover:text-white cursor-pointer">subtitles</span>
+          <span class="material-symbols-outlined text-[18px] text-white/90 hover:text-white cursor-pointer">settings</span>
+          <span class="material-symbols-outlined text-[20px] text-white/90 hover:text-white cursor-pointer">fullscreen</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Video Timestamp & Feature Breakdown Checklist -->
+  <div class="max-w-4xl mx-auto mt-6 bg-surface-container-lowest rounded-xl p-5 shadow-[0_1px_3px_rgba(23,32,25,0.04)] border border-surface-variant/20">
+    <div class="flex items-center justify-between flex-wrap gap-3 pb-3 border-b border-surface-variant/20 mb-3">
+      <span class="font-label-sm text-label-sm font-semibold uppercase text-secondary tracking-wider flex items-center gap-1.5">
+        <span class="material-symbols-outlined text-[16px]">schedule</span>
+        Video Chapters &amp; Highlights
+      </span>
+      <span class="font-label-sm text-label-sm text-outline">Duration: 1 min 18 sec</span>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div class="flex items-center gap-2.5 p-2 rounded-lg hover:bg-surface-container-low transition-colors cursor-default">
+        <span class="font-label-sm text-label-sm px-2 py-0.5 rounded bg-secondary-container text-on-secondary-container font-semibold flex-shrink-0">0:12</span>
+        <span class="font-body-sm text-body-sm text-on-surface truncate">Context detection in threads</span>
+      </div>
+      <div class="flex items-center gap-2.5 p-2 rounded-lg hover:bg-surface-container-low transition-colors cursor-default">
+        <span class="font-label-sm text-label-sm px-2 py-0.5 rounded bg-secondary-container text-on-secondary-container font-semibold flex-shrink-0">0:34</span>
+        <span class="font-body-sm text-body-sm text-on-surface truncate">Voice input in native tongue</span>
+      </div>
+      <div class="flex items-center gap-2.5 p-2 rounded-lg hover:bg-surface-container-low transition-colors cursor-default">
+        <span class="font-label-sm text-label-sm px-2 py-0.5 rounded bg-secondary-container text-on-secondary-container font-semibold flex-shrink-0">0:58</span>
+        <span class="font-body-sm text-body-sm text-on-surface truncate">Nuance &amp; tone adaptation</span>
+      </div>
+      <div class="flex items-center gap-2.5 p-2 rounded-lg hover:bg-surface-container-low transition-colors cursor-default">
+        <span class="font-label-sm text-label-sm px-2 py-0.5 rounded bg-secondary-container text-on-secondary-container font-semibold flex-shrink-0">1:12</span>
+        <span class="font-body-sm text-body-sm text-on-surface truncate">1-click reply insertion</span>
+      </div>
+    </div>
+  </div>
+</section><section class="py-20 max-w-[1180px] mx-auto w-full" id="how-it-works">
+<div class="text-center mb-16">
+<span class="font-label-sm text-label-sm uppercase tracking-widest text-secondary font-semibold mb-2 block">
+        Frictionless Process
+      </span>
+<h2 class="font-display-lg text-display-lg text-on-surface">
+        Just tell Verbia what you mean.
+      </h2>
+</div>
+<!-- 3 Connected Steps -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
+<!-- Step 01 -->
+<div class="bg-surface-container-lowest rounded-2xl p-8 shadow-[0_2px_12px_rgba(23,32,25,0.04)] flex flex-col justify-between relative group hover:-translate-y-1 transition-transform">
+<div>
+<div class="flex items-center justify-between mb-6">
+<span class="font-headline-md text-headline-md text-primary font-bold">01</span>
+<span class="p-2 rounded-xl bg-secondary-container text-on-secondary-container">
+<span class="material-symbols-outlined text-[24px]">chrome_reader_mode</span>
+</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface font-semibold mb-3">READ</h3>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+            Verbia understands the conversation you're replying to. It reads the parent thread, the conversational tone, and the nuance so you never need to copy-paste context.
+          </p>
+</div>
+<div class="mt-8 pt-4 flex items-center gap-2 text-outline font-label-sm text-label-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+<span class="">Zero copy-pasting required</span>
+</div>
+</div>
+<!-- Step 02 -->
+<div class="bg-surface-container-lowest rounded-2xl p-8 shadow-[0_2px_12px_rgba(23,32,25,0.04)] flex flex-col justify-between relative group hover:-translate-y-1 transition-transform">
+<div>
+<div class="flex items-center justify-between mb-6">
+<span class="font-headline-md text-headline-md text-primary font-bold">02</span>
+<span class="p-2 rounded-xl bg-secondary-container text-on-secondary-container">
+<span class="material-symbols-outlined text-[24px]">record_voice_over</span>
+</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface font-semibold mb-3">SAY</h3>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+            Tell Verbia what you want to say — in your own language. Type a quick sentence, bullet points, or tap the microphone to speak freely in Mandarin, Japanese, Spanish, German, or any tongue.
+          </p>
+</div>
+<div class="mt-8 pt-4 flex items-center gap-2 text-outline font-label-sm text-label-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+<span class="">Type or speak naturally</span>
+</div>
+</div>
+<!-- Step 03 -->
+<div class="bg-surface-container-lowest rounded-2xl p-8 shadow-[0_2px_12px_rgba(23,32,25,0.04)] flex flex-col justify-between relative group hover:-translate-y-1 transition-transform">
+<div>
+<div class="flex items-center justify-between mb-6">
+<span class="font-headline-md text-headline-md text-primary font-bold">03</span>
+<span class="p-2 rounded-xl bg-secondary-container text-on-secondary-container">
+<span class="material-symbols-outlined text-[24px]">send</span>
+</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface font-semibold mb-3">REPLY</h3>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+            Verbia turns your meaning into a natural reply that fits the conversation. Polished, culturally resonant, and native-sounding in the recipient's language.
+          </p>
+</div>
+<div class="mt-8 pt-4 flex items-center gap-2 text-outline font-label-sm text-label-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+<span class="">Culturally authentic voice</span>
+</div>
+</div>
+</div>
+</section>
+<!-- 5. WORKFLOW COMPARISON (Before vs. With Verbia) -->
+<section class="py-20 max-w-[1180px] mx-auto w-full">
+<div class="text-center mb-14">
+<span class="font-label-sm text-label-sm uppercase tracking-widest text-secondary font-semibold mb-2 block">
+        Workflow Comparison
+      </span>
+<h2 class="font-display-lg text-display-lg text-on-surface mb-3">
+        Communication shouldn't take ten steps.
+      </h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant">
+        Stop breaking your flow with tab hopping and prompt crafting.
+      </p>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
+<!-- BEFORE: Friction & 10 steps -->
+<div class="rounded-2xl p-8 bg-surface-container-low flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between mb-6">
+<span class="font-headline-md text-headline-md text-outline font-semibold">The Old Way</span>
+<span class="font-label-sm text-label-sm px-3 py-1 rounded-full bg-surface-variant text-on-surface-variant font-medium">
+              12 friction points • High cognitive load
+            </span>
+</div>
+<!-- Gray Timeline Steps -->
+<div class="space-y-3 font-body-md text-body-md text-outline">
+<div class="flex items-center gap-3">
+<span class="w-6 h-6 rounded-full bg-surface-variant flex items-center justify-center font-label-sm text-label-sm">1</span>
+<span class="">Read incoming discussion thread</span>
+</div>
+<div class="flex items-center gap-3">
+<span class="w-6 h-6 rounded-full bg-surface-variant flex items-center justify-center font-label-sm text-label-sm">2</span>
+<span class="">Translate mentally &amp; formulate intention</span>
+</div>
+<div class="flex items-center gap-3">
+<span class="w-6 h-6 rounded-full bg-surface-variant flex items-center justify-center font-label-sm text-label-sm">3</span>
+<span class="">Highlight and copy parent thread text</span>
+</div>
+<div class="flex items-center gap-3">
+<span class="w-6 h-6 rounded-full bg-surface-variant flex items-center justify-center font-label-sm text-label-sm">4</span>
+<span class="">Open ChatGPT tab or external translation tool</span>
+</div>
+<div class="flex items-center gap-3">
+<span class="w-6 h-6 rounded-full bg-surface-variant flex items-center justify-center font-label-sm text-label-sm">5</span>
+<span class="">Paste context into prompt window</span>
+</div>
+<div class="flex items-center gap-3">
+<span class="w-6 h-6 rounded-full bg-surface-variant flex items-center justify-center font-label-sm text-label-sm">6</span>
+<span class="">Write lengthy instructions ("Sound professional, not too blunt...")</span>
+</div>
+<div class="flex items-center gap-3">
+<span class="w-6 h-6 rounded-full bg-surface-variant flex items-center justify-center font-label-sm text-label-sm">7</span>
+<span class="">Wait for generic output and copy response</span>
+</div>
+<div class="flex items-center gap-3">
+<span class="w-6 h-6 rounded-full bg-surface-variant flex items-center justify-center font-label-sm text-label-sm">8</span>
+<span class="">Navigate back to original tab and paste into reply</span>
+</div>
+</div>
+</div>
+<div class="mt-8 pt-4 text-outline font-body-sm text-body-sm flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-error">close</span>
+<span class="">Breaks attention and drains creative momentum</span>
+</div>
+</div>
+<!-- WITH VERBIA: Seamless flow -->
+<div class="rounded-2xl p-8 bg-secondary-container/30 shadow-[0_4px_20px_rgba(15,110,86,0.06)] flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between mb-6">
+<div class="flex items-center gap-2">
+<img alt="Verbia" class="w-6 h-6 object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1UbAgl7jw61ySZ7OwqEJcJqxJPn_yrofYpjWoSU1CB2dotwKMue5RHa2jFBLkD2PgzJOXxVhvYopRHs2HN9JefH7YY9nHVJr4NVI0ekQBE150VrxT1mZdi7xTiaxtNIZU5lCawzpuPo0R9VWU7Kt6z0lWeCK3XRhehD2aR-UPyRAvPRp3zD2JuX5YGWnRMtsIqapGn9PBHCJIxLHoyzHZlz-DBc917l5vDSvkOPSQ1Dwk9mtmOZPBiD7impj1jExSRSMbYCkgku">
+<span class="font-headline-md text-headline-md text-primary font-bold">With Verbia</span>
+</div>
+<span class="font-label-sm text-label-sm px-3 py-1 rounded-full bg-primary text-on-primary font-medium">
+              Zero context switching • Instant in-line
+            </span>
+</div>
+<div class="space-y-6 font-body-md text-body-md text-on-surface">
+<div class="flex items-start gap-4 p-4 rounded-xl bg-surface-container-lowest shadow-[0_1px_4px_rgba(23,32,25,0.03)]">
+<span class="w-7 h-7 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center font-headline-sm text-headline-sm font-semibold flex-shrink-0">1</span>
+<div>
+<span class="font-semibold text-on-surface block">Read the room</span>
+<span class="text-on-surface-variant font-body-sm text-body-sm">You are already on the page. Verbia automatically registers the active thread context.</span>
+</div>
+</div>
+<div class="flex items-start gap-4 p-4 rounded-xl bg-surface-container-lowest shadow-[0_1px_4px_rgba(23,32,25,0.03)]">
+<span class="w-7 h-7 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center font-headline-sm text-headline-sm font-semibold flex-shrink-0">2</span>
+<div>
+<span class="font-semibold text-on-surface block">Tell Verbia what you mean</span>
+<span class="text-on-surface-variant font-body-sm text-body-sm">Type a quick unpolished phrase in your language, or speak into your microphone.</span>
+</div>
+</div>
+<div class="flex items-start gap-4 p-4 rounded-xl bg-surface-container-lowest shadow-[0_1px_4px_rgba(23,32,25,0.03)]">
+<span class="w-7 h-7 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center font-headline-sm text-headline-sm font-semibold flex-shrink-0">3</span>
+<div>
+<span class="font-semibold text-on-surface block">Review &amp; Reply</span>
+<span class="text-on-surface-variant font-body-sm text-body-sm">Click insert. The phrasing is contextual, polished, and ready. Zero external windows.</span>
+</div>
+</div>
+</div>
+</div>
+<div class="mt-8 pt-4 text-primary font-label-md text-label-md flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">verified</span>
+<span class="">Stay entirely inside your working flow</span>
+</div>
+</div>
+</div>
+</section>
+<!-- 6. FEATURE DEEP DIVES -->
+<section class="py-20 max-w-[1180px] mx-auto w-full space-y-24" id="features">
+<!-- Feature A: CONTEXT -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+<div>
+<span class="font-label-sm text-label-sm uppercase tracking-widest text-secondary font-semibold mb-2 block">
+          Context Intelligence
+        </span>
+<h2 class="font-display-lg text-display-lg text-on-surface mb-4">
+          It knows what you're replying to.
+        </h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant leading-relaxed mb-6">
+          No need to copy and paste the whole conversation. Verbia uses the relevant context to understand what you're responding to.
+        </p>
+<div class="space-y-3 font-body-md text-body-md text-on-surface">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-secondary text-[20px]">check_circle</span>
+<span class="">Pinpoints the specific argument or query being answered</span>
+</div>
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-secondary text-[20px]">check_circle</span>
+<span class="">Honors parent thread formalities, nicknames, and technical terms</span>
+</div>
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-secondary text-[20px]">check_circle</span>
+<span class="">Adapts tone depending on whether it's GitHub PR or casual Slack</span>
+</div>
+</div>
+</div>
+<!-- Visual Feature A Mockup -->
+<div class="p-6 rounded-2xl bg-surface-container-lowest shadow-[0_4px_24px_rgba(23,32,25,0.06)]">
+<div class="p-4 rounded-xl bg-surface-container-low mb-4">
+<div class="flex items-center gap-2 mb-2">
+<span class="font-label-sm text-label-sm text-outline">Thread Extract #492</span>
+<span class="px-2 py-0.5 rounded bg-surface-variant text-on-surface-variant font-label-sm text-label-sm">Pull Request #1204</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface italic">
+            "Should we decouple the authentication state from the local store before Friday's staging deployment?"
+          </p>
+</div>
+<div class="p-4 rounded-xl bg-secondary-container/20">
+<div class="flex items-center justify-between mb-2">
+<span class="font-label-sm text-label-sm font-semibold text-primary">Verbia Context Extraction</span>
+<span class="font-label-sm text-label-sm text-secondary">Target claim isolated</span>
+</div>
+<div class="space-y-2 font-body-sm text-body-sm text-on-surface-variant">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span class="">Topic: Auth state refactor schedule</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span class="">Key blocker: Staging deployment timeline</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Feature B: LANGUAGE (Freedom of Thought) -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+<div class="order-2 lg:order-1 space-y-3">
+<!-- Pairing Card 1 -->
+<div class="p-4 rounded-xl bg-surface-container-lowest shadow-[0_1px_3px_rgba(23,32,25,0.04)]">
+<div class="flex items-center justify-between font-label-sm text-label-sm text-outline mb-1">
+<span class="font-semibold text-on-surface">中文 (Chinese) → Native English</span>
+<span class="">Business Negotiation</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-2">
+            "别答应得太快，先探探他们的预算"
+          </p>
+<p class="font-body-md text-body-md text-primary font-medium">
+            "Let's take a beat before committing. Have they indicated what ballpark they're working with?"
+          </p>
+</div>
+<!-- Pairing Card 2 -->
+<div class="p-4 rounded-xl bg-surface-container-lowest shadow-[0_1px_3px_rgba(23,32,25,0.04)]">
+<div class="flex items-center justify-between font-label-sm text-label-sm text-outline mb-1">
+<span class="font-semibold text-on-surface">日本語 (Japanese) → Native English</span>
+<span class="">Client Coordination</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-2">
+            "恐れ入りますが、来週の火曜日に延期させていただけないでしょうか"
+          </p>
+<p class="font-body-md text-body-md text-primary font-medium">
+            "Would it be possible to push our sync to next Tuesday? Thanks so much for understanding."
+          </p>
+</div>
+<!-- Pairing Card 3 -->
+<div class="p-4 rounded-xl bg-surface-container-lowest shadow-[0_1px_3px_rgba(23,32,25,0.04)]">
+<div class="flex items-center justify-between font-label-sm text-label-sm text-outline mb-1">
+<span class="font-semibold text-on-surface">Español (Spanish) → Native English</span>
+<span class="">Design Feedback</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-2">
+            "No me convence el diseño, pero la funcionalidad está perfecta"
+          </p>
+<p class="font-body-md text-body-md text-primary font-medium">
+            "The feature set looks rock-solid, though I think the visual presentation could use another pass."
+          </p>
+</div>
+<!-- Pairing Card 4 -->
+<div class="p-4 rounded-xl bg-surface-container-lowest shadow-[0_1px_3px_rgba(23,32,25,0.04)]">
+<div class="flex items-center justify-between font-label-sm text-label-sm text-outline mb-1">
+<span class="font-semibold text-on-surface">한국어 (Korean) → Native English</span>
+<span class="">Internal Review</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-2">
+            "자료 검토해봤는데 데이터 기준이 조금 모호한 것 같아요"
+          </p>
+<p class="font-body-md text-body-md text-primary font-medium">
+            "I reviewed the deck; a few of the underlying data metrics could use a little more clarification."
+          </p>
+</div>
+</div>
+<div class="order-1 lg:order-2">
+<span class="font-label-sm text-label-sm uppercase tracking-widest text-secondary font-semibold mb-2 block">
+          Freedom of Thought
+        </span>
+<h2 class="font-display-lg text-display-lg text-on-surface mb-4">
+          Think in your language. Communicate in theirs.
+        </h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant leading-relaxed mb-6">
+          My thinking language should not limit how I communicate. Verbia is not literal machine translation—it translates your core intent into native expression.
+        </p>
+<div class="p-4 rounded-xl bg-surface-container-low font-body-sm text-body-sm text-on-surface leading-relaxed">
+<span class="font-semibold text-primary">Not word-for-word translation.</span> Literal translation produces clunky syntax. Verbia understands the thought's underlying pragmatic function and re-expresses it as an English native would say it.
+        </div>
+</div>
+</div>
+<!-- Feature C: TONE (The Right Way to Say It) -->
+<div>
+<div class="text-center max-w-2xl mx-auto mb-12">
+<span class="font-label-sm text-label-sm uppercase tracking-widest text-secondary font-semibold mb-2 block">
+          Nuance &amp; Range
+        </span>
+<h2 class="font-display-lg text-display-lg text-on-surface mb-3">
+          Not just the right language. The right way to say it.
+        </h2>
+<p class="font-body-md text-body-md text-on-surface-variant">
+          One single core thought adapted across very different communication rooms:
+        </p>
+<div class="mt-4 p-3 rounded-lg bg-surface-container inline-block font-body-sm text-body-sm text-on-surface italic">
+          Intent: "I can't finish this report today because I need the updated figures first"
+        </div>
+</div>
+<!-- 4 Contextual Variants Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+<!-- Community -->
+<div class="rounded-2xl p-6 bg-surface-container-lowest shadow-[0_1px_4px_rgba(23,32,25,0.04)] flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between mb-4">
+<span class="font-label-sm text-label-sm font-semibold uppercase text-secondary">Community</span>
+<span class="p-1 rounded bg-secondary-container text-on-secondary-container material-symbols-outlined text-[16px]">forum</span>
+</div>
+<span class="font-label-sm text-label-sm text-outline block mb-2">Casual and natural</span>
+<p class="font-body-md text-body-md text-on-surface leading-relaxed">
+              "Holding off on wrapping this up until the latest numbers drop—ping me when they're in!"
+            </p>
+</div>
+<div class="mt-6 pt-3 text-outline font-label-sm text-label-sm">
+            Best for Discord &amp; informal Slack
+          </div>
+</div>
+<!-- Email -->
+<div class="rounded-2xl p-6 bg-surface-container-lowest shadow-[0_1px_4px_rgba(23,32,25,0.04)] flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between mb-4">
+<span class="font-label-sm text-label-sm font-semibold uppercase text-secondary">Email</span>
+<span class="p-1 rounded bg-secondary-container text-on-secondary-container material-symbols-outlined text-[16px]">mail</span>
+</div>
+<span class="font-label-sm text-label-sm text-outline block mb-2">Clear and professional</span>
+<p class="font-body-md text-body-md text-on-surface leading-relaxed">
+              "I’ll finalize the report as soon as the updated figures are available later today."
+            </p>
+</div>
+<div class="mt-6 pt-3 text-outline font-label-sm text-label-sm">
+            Best for Outlook &amp; Gmail
+          </div>
+</div>
+<!-- Developer Discussion -->
+<div class="rounded-2xl p-6 bg-surface-container-lowest shadow-[0_1px_4px_rgba(23,32,25,0.04)] flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between mb-4">
+<span class="font-label-sm text-label-sm font-semibold uppercase text-secondary">Dev Thread</span>
+<span class="p-1 rounded bg-secondary-container text-on-secondary-container material-symbols-outlined text-[16px]">terminal</span>
+</div>
+<span class="font-label-sm text-label-sm text-outline block mb-2">Concise and technical</span>
+<p class="font-body-md text-body-md text-on-surface leading-relaxed">
+              "Blocked on final PR merge pending the updated metric schemas."
+            </p>
+</div>
+<div class="mt-6 pt-3 text-outline font-label-sm text-label-sm">
+            Best for GitHub &amp; Linear
+          </div>
+</div>
+<!-- Client Communication -->
+<div class="rounded-2xl p-6 bg-surface-container-lowest shadow-[0_1px_4px_rgba(23,32,25,0.04)] flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between mb-4">
+<span class="font-label-sm text-label-sm font-semibold uppercase text-secondary">Executive</span>
+<span class="p-1 rounded bg-secondary-container text-on-secondary-container material-symbols-outlined text-[16px]">shield_person</span>
+</div>
+<span class="font-label-sm text-label-sm text-outline block mb-2">Polite and confident</span>
+<p class="font-body-md text-body-md text-on-surface leading-relaxed">
+              "We’re eager to deliver the final report and will publish it promptly upon receiving the finalized datasets."
+            </p>
+</div>
+<div class="mt-6 pt-3 text-outline font-label-sm text-label-sm">
+            Best for Clients &amp; Board notes
+          </div>
+</div>
+</div>
+</div>
+</section>
+<!-- 7. PRIVACY AND CONTROL -->
+<section class="py-20 max-w-[1180px] mx-auto w-full" id="privacy">
+<div class="text-center mb-16">
+<span class="font-label-sm text-label-sm uppercase tracking-widest text-secondary font-semibold mb-2 block">
+        Privacy &amp; Respect
+      </span>
+<h2 class="font-display-lg text-display-lg text-on-surface mb-3">
+        Verbia drafts. You decide.
+      </h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-xl mx-auto">
+        Designed from the ground up to keep you firmly in control of every word you publish.
+      </p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+<!-- Principle 1 -->
+<div class="p-8 rounded-2xl bg-surface-container-lowest shadow-[0_1px_4px_rgba(23,32,25,0.04)]">
+<div class="w-12 h-12 rounded-xl bg-secondary-container flex items-center justify-center text-primary mb-6">
+<span class="material-symbols-outlined text-[24px]">visibility_off</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-semibold mb-3">
+          Context-Bounded Reading
+        </h3>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+          Verbia only inspects the active thread when you invoke it. It never scans your background tabs, search histories, or browsing sessions.
+        </p>
+</div>
+<!-- Principle 2 -->
+<div class="p-8 rounded-2xl bg-surface-container-lowest shadow-[0_1px_4px_rgba(23,32,25,0.04)]">
+<div class="w-12 h-12 rounded-xl bg-secondary-container flex items-center justify-center text-primary mb-6">
+<span class="material-symbols-outlined text-[24px]">fact_check</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-semibold mb-3">
+          Full User Review
+        </h3>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+          Verbia prepares drafts; you always review, tweak, and approve. Nothing is committed to a text area without your explicit consent.
+        </p>
+</div>
+<!-- Principle 3 -->
+<div class="p-8 rounded-2xl bg-surface-container-lowest shadow-[0_1px_4px_rgba(23,32,25,0.04)]">
+<div class="w-12 h-12 rounded-xl bg-secondary-container flex items-center justify-center text-primary mb-6">
+<span class="material-symbols-outlined text-[24px]">fingerprint</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-semibold mb-3">
+          No Automated Sending
+        </h3>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+          Your voice and identity remain entirely your own. Verbia will never send a message on your behalf autonomously or trigger submission.
+        </p>
+</div>
+</div>
+</section>
+<!-- 8. PRICING (Clean, Restrained Two-Tier) -->
+<section class="py-20 max-w-[960px] mx-auto w-full" id="pricing">
+<div class="text-center mb-16">
+<span class="font-label-sm text-label-sm uppercase tracking-widest text-secondary font-semibold mb-2 block">
+        Transparent Pricing
+      </span>
+<h2 class="font-display-lg text-display-lg text-on-surface">
+        Simple, transparent access.
+      </h2>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch">
+<!-- Free Tier -->
+<div class="p-8 md:p-10 rounded-2xl bg-surface-container-lowest shadow-[0_2px_12px_rgba(23,32,25,0.04)] flex flex-col justify-between">
+<div>
+<div class="mb-6">
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold block">Free</span>
+<div class="mt-2 flex items-baseline gap-1">
+<span class="font-display-lg text-display-lg text-on-surface">$0</span>
+<span class="font-body-sm text-body-sm text-outline">forever</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-2">
+              Essential in-line assistant for thoughtful individuals.
+            </p>
+</div>
+<div class="space-y-3.5 mb-8 font-body-md text-body-md text-on-surface">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[18px] text-secondary">check</span>
+<span class="">50 context-aware replies per month</span>
+</div>
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[18px] text-secondary">check</span>
+<span class="">10+ core languages supported</span>
+</div>
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[18px] text-secondary">check</span>
+<span class="">Voice dictation input</span>
+</div>
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[18px] text-secondary">check</span>
+<span class="">Inline Chrome extension widget</span>
+</div>
+</div>
+</div>
+<button class="w-full py-3 rounded-lg bg-surface-container-high hover:bg-surface-container text-on-surface font-label-md text-label-md transition-all shadow-[0_1px_2px_rgba(23,32,25,0.04)]" type="button">
+          Add to Chrome — Free
+        </button>
+</div>
+<!-- Pro Tier -->
+<div class="p-8 md:p-10 rounded-2xl bg-surface-container-lowest shadow-[0_4px_24px_rgba(15,110,86,0.12)] flex flex-col justify-between relative">
+<div>
+<div class="flex items-center justify-between mb-2">
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold block">Pro</span>
+<span class="font-label-sm text-label-sm px-3 py-1 rounded-full bg-primary-fixed text-on-primary-fixed-variant font-semibold">
+              For power communicators
+            </span>
+</div>
+<div class="mb-6">
+<div class="mt-2 flex items-baseline gap-1">
+<span class="font-display-lg text-display-lg text-primary">$12</span>
+<span class="font-body-sm text-body-sm text-outline">/ month</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-2">
+              For cross-border professionals and multilingual teams.
+            </p>
+</div>
+<div class="space-y-3.5 mb-8 font-body-md text-body-md text-on-surface">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[18px] text-primary">check_circle</span>
+<span class="font-medium">Unlimited context-aware replies</span>
+</div>
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[18px] text-primary">check_circle</span>
+<span class="">All 40+ languages supported</span>
+</div>
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[18px] text-primary">check_circle</span>
+<span class="">Custom tone presets &amp; industry profiles</span>
+</div>
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[18px] text-primary">check_circle</span>
+<span class="">Priority speed &amp; deep thread memory</span>
+</div>
+</div>
+</div>
+<button class="w-full py-3 rounded-lg bg-primary-container hover:bg-primary text-on-primary font-label-md text-label-md transition-all shadow-[0_2px_8px_rgba(15,110,86,0.2)]" type="button">
+          Upgrade to Pro
+        </button>
+</div>
+</div>
+</section>
+<!-- 9. FAQ (Accordion layout) -->
+<section class="py-20 max-w-[840px] mx-auto w-full" id="faq">
+<div class="text-center mb-14">
+<span class="font-label-sm text-label-sm uppercase tracking-widest text-secondary font-semibold mb-2 block">
+        Questions &amp; Answers
+      </span>
+<h2 class="font-display-lg text-display-lg text-on-surface">
+        Frequently asked questions
+      </h2>
+</div>
+<div class="space-y-4" id="faq-accordion">
+<!-- Item 1 -->
+<div class="rounded-xl bg-surface-container-lowest shadow-[0_1px_3px_rgba(23,32,25,0.03)] overflow-hidden">
+<button class="w-full px-6 py-5 text-left flex items-center justify-between font-headline-sm text-headline-sm text-on-surface font-medium transition-colors hover:bg-surface-container-low/50" onclick="this.nextElementSibling.classList.toggle('hidden'); this.querySelector('.faq-icon').classList.toggle('rotate-180');" type="button">
+<span class="">What is Verbia?</span>
+<span class="material-symbols-outlined faq-icon transition-transform text-outline">expand_more</span>
+</button>
+<div class="px-6 pb-5 font-body-md text-body-md text-on-surface-variant leading-relaxed">
+          Verbia is a Chrome extension that lives right where you write. It observes the discussion thread you are replying to, accepts your raw thinking in your native tongue, and generates culturally natural, context-aware replies in the recipient's language.
+        </div>
+</div>
+<!-- Item 2 -->
+<div class="rounded-xl bg-surface-container-lowest shadow-[0_1px_3px_rgba(23,32,25,0.03)] overflow-hidden">
+<button class="w-full px-6 py-5 text-left flex items-center justify-between font-headline-sm text-headline-sm text-on-surface font-medium transition-colors hover:bg-surface-container-low/50" onclick="this.nextElementSibling.classList.toggle('hidden'); this.querySelector('.faq-icon').classList.toggle('rotate-180');" type="button">
+<span class="">Is Verbia a translator?</span>
+<span class="material-symbols-outlined faq-icon transition-transform text-outline">expand_more</span>
+</button>
+<div class="px-6 pb-5 font-body-md text-body-md text-on-surface-variant leading-relaxed hidden">
+          No. Traditional translators translate words and sentences literally, which often results in rigid or socially awkward replies. Verbia acts as a bilingual communication companion—it analyzes the intention of your thought combined with the context of the thread to construct native phrasing.
+        </div>
+</div>
+<!-- Item 3 -->
+<div class="rounded-xl bg-surface-container-lowest shadow-[0_1px_3px_rgba(23,32,25,0.03)] overflow-hidden">
+<button class="w-full px-6 py-5 text-left flex items-center justify-between font-headline-sm text-headline-sm text-on-surface font-medium transition-colors hover:bg-surface-container-low/50" onclick="this.nextElementSibling.classList.toggle('hidden'); this.querySelector('.faq-icon').classList.toggle('rotate-180');" type="button">
+<span class="">What languages does Verbia support?</span>
+<span class="material-symbols-outlined faq-icon transition-transform text-outline">expand_more</span>
+</button>
+<div class="px-6 pb-5 font-body-md text-body-md text-on-surface-variant leading-relaxed hidden">
+          Verbia supports over 40 languages including English, Simplified &amp; Traditional Chinese, Japanese, Korean, Spanish, French, German, Portuguese, Italian, Dutch, and more. You can mix inputs freely.
+        </div>
+</div>
+<!-- Item 4 -->
+<div class="rounded-xl bg-surface-container-lowest shadow-[0_1px_3px_rgba(23,32,25,0.03)] overflow-hidden">
+<button class="w-full px-6 py-5 text-left flex items-center justify-between font-headline-sm text-headline-sm text-on-surface font-medium transition-colors hover:bg-surface-container-low/50" onclick="this.nextElementSibling.classList.toggle('hidden'); this.querySelector('.faq-icon').classList.toggle('rotate-180');" type="button">
+<span class="">Can I speak instead of typing?</span>
+<span class="material-symbols-outlined faq-icon transition-transform text-outline">expand_more</span>
+</button>
+<div class="px-6 pb-5 font-body-md text-body-md text-on-surface-variant leading-relaxed hidden">
+          Yes. Verbia features integrated whisper-grade voice dictation. Simply click the microphone icon inside the reply box or tap the shortcut to speak out loud in your preferred language.
+        </div>
+</div>
+<!-- Item 5 -->
+<div class="rounded-xl bg-surface-container-lowest shadow-[0_1px_3px_rgba(23,32,25,0.03)] overflow-hidden">
+<button class="w-full px-6 py-5 text-left flex items-center justify-between font-headline-sm text-headline-sm text-on-surface font-medium transition-colors hover:bg-surface-container-low/50" onclick="this.nextElementSibling.classList.toggle('hidden'); this.querySelector('.faq-icon').classList.toggle('rotate-180');" type="button">
+<span class="">Does Verbia understand conversation context?</span>
+<span class="material-symbols-outlined faq-icon transition-transform text-outline">expand_more</span>
+</button>
+<div class="px-6 pb-5 font-body-md text-body-md text-on-surface-variant leading-relaxed hidden">
+          Yes, that is its defining capability. Rather than requiring you to copy-paste the whole discussion into a separate tab, Verbia reads the immediate thread hierarchy on your screen to understand who said what and match the conversational tone.
+        </div>
+</div>
+<!-- Item 6 -->
+<div class="rounded-xl bg-surface-container-lowest shadow-[0_1px_3px_rgba(23,32,25,0.03)] overflow-hidden">
+<button class="w-full px-6 py-5 text-left flex items-center justify-between font-headline-sm text-headline-sm text-on-surface font-medium transition-colors hover:bg-surface-container-low/50" onclick="this.nextElementSibling.classList.toggle('hidden'); this.querySelector('.faq-icon').classList.toggle('rotate-180');" type="button">
+<span class="">Does Verbia send messages automatically?</span>
+<span class="material-symbols-outlined faq-icon transition-transform text-outline">expand_more</span>
+</button>
+<div class="px-6 pb-5 font-body-md text-body-md text-on-surface-variant leading-relaxed hidden">
+          Never. Verbia only drafts suggestions into your composer. You always have 100% manual control to read, edit, or delete any generated text before pressing send.
+        </div>
+</div>
+<!-- Item 7 -->
+<div class="rounded-xl bg-surface-container-lowest shadow-[0_1px_3px_rgba(23,32,25,0.03)] overflow-hidden">
+<button class="w-full px-6 py-5 text-left flex items-center justify-between font-headline-sm text-headline-sm text-on-surface font-medium transition-colors hover:bg-surface-container-low/50" onclick="this.nextElementSibling.classList.toggle('hidden'); this.querySelector('.faq-icon').classList.toggle('rotate-180');" type="button">
+<span class="">Where does Verbia work?</span>
+<span class="material-symbols-outlined faq-icon transition-transform text-outline">expand_more</span>
+</button>
+<div class="px-6 pb-5 font-body-md text-body-md text-on-surface-variant leading-relaxed hidden">
+          Verbia works on any web page with text inputs, with dedicated contextual parsing tuned for Gmail, LinkedIn, Slack Web, GitHub PRs &amp; issues, Reddit, X/Twitter, Linear, and internal enterprise discussion tools.
+        </div>
+</div>
+</div>
+</section>
+<!-- 10. FINAL CTA SECTION (Minimal Brand Moment) -->
+<section class="py-24 max-w-[840px] mx-auto w-full text-center flex flex-col items-center relative z-20" id="install"><div class="mb-6 transition-transform hover:scale-105 duration-300"><img alt="Verbia emblem" class="w-16 h-16 object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1UbAgl7jw61ySZ7OwqEJcJqxJPn_yrofYpjWoSU1CB2dotwKMue5RHa2jFBLkD2PgzJOXxVhvYopRHs2HN9JefH7YY9nHVJr4NVI0ekQBE150VrxT1mZdi7xTiaxtNIZU5lCawzpuPo0R9VWU7Kt6z0lWeCK3XRhehD2aR-UPyRAvPRp3zD2JuX5YGWnRMtsIqapGn9PBHCJIxLHoyzHZlz-DBc917l5vDSvkOPSQ1Dwk9mtmOZPBiD7impj1jExSRSMbYCkgku"></div><h2 class="font-display-lg text-display-lg md:text-[44px] text-on-surface tracking-tight mb-2">Tell me what you want to say.</h2><p class="font-display-sm text-display-sm text-primary italic font-normal mb-8">In any language.</p><div class="flex flex-col items-center gap-3"><a class="inline-flex items-center justify-center gap-2.5 px-8 py-3.5 rounded-lg bg-primary-container hover:bg-primary text-on-primary font-label-md text-label-md transition-all shadow-[0_4px_16px_rgba(15,110,86,0.22)] hover:shadow-xl" href="#"><span class="material-symbols-outlined text-[20px]">extension</span><span class="">Add to Chrome</span></a><span class="font-body-sm text-body-sm text-outline">Free to install • No credit card required.</span></div></section>
+</div></div></main><footer class="w-full bg-surface-container-low border-t border-surface-variant/40 mt-auto relative z-20"><div class="max-w-[1240px] mx-auto px-6 lg:px-10 py-12 flex flex-col md:flex-row items-start md:items-center justify-between gap-8"><div class="flex flex-col gap-2 max-w-md"><div class="flex items-center gap-3"><img alt="icon512.png" class="h-6 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1UbAgl7jw61ySZ7OwqEJcJqxJPn_yrofYpjWoSU1CB2dotwKMue5RHa2jFBLkD2PgzJOXxVhvYopRHs2HN9JefH7YY9nHVJr4NVI0ekQBE150VrxT1mZdi7xTiaxtNIZU5lCawzpuPo0R9VWU7Kt6z0lWeCK3XRhehD2aR-UPyRAvPRp3zD2JuX5YGWnRMtsIqapGn9PBHCJIxLHoyzHZlz-DBc917l5vDSvkOPSQ1Dwk9mtmOZPBiD7impj1jExSRSMbYCkgku"><span class="font-headline-sm text-headline-sm font-semibold text-on-surface">Verbia</span></div><p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">Verbia — AI Reply &amp; Writing Assistant. User provides meaning. Verbia handles expression.</p></div><nav class="flex flex-wrap items-center gap-x-8 gap-y-3"><a class="font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors" data-path="features" href="#features">Product</a><a class="font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors" data-path="privacy" href="#privacy">Privacy</a><a class="font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors" data-path="terms-of-service" href="#">Terms</a><a class="font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors" data-path="contact" href="#">Contact</a><a class="font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors flex items-center gap-1.5" data-path="chrome-web-store" href="#"><span class="material-symbols-outlined text-[16px]">open_in_new</span><span class="">Chrome Web Store</span></a></nav></div><div class="max-w-[1240px] mx-auto px-6 lg:px-10 pb-8 text-center md:text-left text-on-surface-variant font-body-sm text-body-sm border-t border-surface-variant/20 pt-6">© 2024 Verbia Technologies Inc. All rights reserved. Crafted for dignified communication.</div></footer>
+
+</body></html>

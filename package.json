@@ -6,6 +6,9 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "dev": "node scripts/build.mjs --watch",
+    "web:dev": "pnpm --filter @verbia/web dev",
+    "web:build": "pnpm --filter @verbia/web build",
+    "web:typecheck": "pnpm --filter @verbia/web typecheck",
     "api": "tsx --env-file=.env.local services/api/src/server.ts",
     "api:mock": "LLM_PROVIDER=mock tsx services/api/src/server.ts",
     "api:dev": "wrangler dev",
