@@ -6,6 +6,7 @@ import type { User } from "@supabase/supabase-js";
 import {
   AUTH_CONFIGURED, API_BASE, accountState, avatarUrlOf, getClient, providerOf, sendMagicLink, signInWithGoogle, signOut
 } from "../../lib/verbia-auth";
+import { ProCheckout } from "../../components/pro-checkout";
 
 type Locale = "en" | "zh";
 type Usage = { plan: "free" | "premium"; used: number; limit: number | null; resetsAt?: string } | null;
@@ -26,7 +27,7 @@ const T = {
     signedInTitle: "Signed in",
     emailLabel: "Email",
     planFree: "Free",
-    planPremium: "Premium",
+    planPremium: "Pro",
     providerGoogle: "Google",
     providerEmail: "Email link",
     usageLabel: "Today’s usage",
@@ -35,6 +36,9 @@ const T = {
     resets: (at: string) => `Resets ${new Date(at).toLocaleString()}`,
     usageUnavailable: "Usage is temporarily unavailable.",
     signOut: "Sign out",
+    upgradeTitle: "Upgrade to Verbia Pro",
+    upgradeBody: "Get 100 context-aware replies per day.",
+    checkoutSuccess: "Payment received. Your Pro status may take a moment to update.",
     accountNote: "This is the same Verbia account your browser extension uses. The website and the extension keep separate signed-in sessions — signing out here does not sign out the extension.",
     backHome: "← Back to verbia.henriz.dev"
   },
@@ -53,7 +57,7 @@ const T = {
     signedInTitle: "已登录",
     emailLabel: "邮箱",
     planFree: "免费版",
-    planPremium: "高级版",
+    planPremium: "Pro",
     providerGoogle: "Google",
     providerEmail: "邮箱链接",
     usageLabel: "今日用量",
@@ -62,6 +66,9 @@ const T = {
     resets: (at: string) => `${new Date(at).toLocaleString()} 重置`,
     usageUnavailable: "用量暂时不可用。",
     signOut: "退出登录",
+    upgradeTitle: "升级到 Verbia Pro",
+    upgradeBody: "每天可使用 100 次上下文回复。",
+    checkoutSuccess: "付款已完成，Pro 状态可能需要片刻更新。",
     accountNote: "这就是你的浏览器扩展使用的同一个 Verbia 账号。网站与扩展各自保持独立的登录会话——在此退出不会退出扩展。",
     backHome: "← 返回 verbia.henriz.dev"
   }
@@ -86,6 +93,10 @@ export default function AccountPage() {
     const explicit = params.get("locale");
     setLocale(explicit === "zh" || explicit === "en" ? explicit : preferred.startsWith("zh") ? "zh" : "en");
   }, []);
+
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("checkout") === "success") setNotice(t.checkoutSuccess);
+  }, [t.checkoutSuccess]);
 
   useEffect(() => {
     if (started.current || !AUTH_CONFIGURED) return;
@@ -218,6 +229,8 @@ export default function AccountPage() {
                 : <strong>{usage.limit === null ? t.unlimited : t.usedOf(usage.used, usage.limit)}</strong>}
               {usage?.resetsAt && <small>{t.resets(usage.resetsAt)}</small>}
             </div>
+
+            {usage?.plan !== "premium" && <div className="account-upgrade"><strong>{t.upgradeTitle}</strong><p>{t.upgradeBody}</p><ProCheckout locale={locale} compact/></div>}
 
             <p className="account-note muted">{t.accountNote}</p>
             <button className="button secondary" type="button" onClick={() => void onSignOut()}>{t.signOut}</button>

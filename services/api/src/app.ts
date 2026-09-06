@@ -1,5 +1,6 @@
 import { generateReplyRequestSchema, generateReplyResponseSchema, type AccountUsage, type ApiError } from "@verbia/shared";
 import { BalancedProvider, GeminiProvider, MockProvider, OpenAiCompatibleProvider, type ReplyProvider } from "./provider";
+import { billingConfigured, createCheckout, hasActiveProSubscription, verifyBillingWebhook, type BillingCycle } from "./billing";
 
 export type ApiEnv = Record<string, string | undefined>;
 const maxBodyBytes = 48_000;
@@ -28,6 +29,30 @@ export function createApiHandler(env: ApiEnv) {
       } catch (error) {
         console.error("[verbia-api] account usage failed:", error);
         return apiError(502, "account-usage", "PROVIDER_ERROR", true, "Account usage is temporarily unavailable.");
+      }
+    }
+    if (request.method === "POST" && path === "/v1/billing/checkout") {
+      const auth = await verifyBearer(request.headers.get("authorization"), env);
+      if (auth.status !== "ok") return apiError(401, "billing-checkout", "UNAUTHENTICATED", false, "Sign in before choosing Verbia Pro.");
+      if (!billingConfigured(env)) return apiError(503, "billing-checkout", "NOT_CONFIGURED", false, "Billing is temporarily unavailable.");
+      try {
+        const body = await readJson(request, 2_000) as { cycle?: BillingCycle; locale?: string };
+        const cycle = body.cycle === "annual" ? "annual" : "monthly";
+        return json(200, await createCheckout(auth, cycle, body.locale ?? "en", env));
+      } catch (error) {
+        console.error("[verbia-api] checkout creation failed", error);
+        return apiError(502, "billing-checkout", "PROVIDER_ERROR", true, "Checkout is temporarily unavailable. Try again.");
+      }
+    }
+    if (request.method === "POST" && path === "/v1/billing/webhook") {
+      try {
+        const rawBody = await request.text();
+        const event = verifyBillingWebhook(rawBody, request.headers.get("x-waffo-signature"), env);
+        console.log(`[verbia-api] verified Waffo webhook ${event.id} ${event.eventType}`);
+        return new Response("OK", { status: 200, headers: responseHeaders });
+      } catch (error) {
+        console.warn("[verbia-api] rejected Waffo webhook", error);
+        return new Response("Invalid signature", { status: 401, headers: responseHeaders });
       }
     }
     if (request.method !== "POST" || path !== "/v1/replies:generate") return json(404, { error: "Not found" });
@@ -136,7 +161,8 @@ function quotaLimitForPlan(plan: AccountPlan, env: ApiEnv): number | null {
 async function readAccountPlan(auth: AuthenticatedBearer, env: ApiEnv): Promise<AccountPlan> {
   try {
     const rows = await supabaseRows<{ plan?: string }>("profiles", { select: "plan", id: `eq.${auth.userId}`, limit: "1" }, auth.token, env);
-    return rows[0]?.plan === "premium" ? "premium" : "free";
+    if (rows[0]?.plan === "premium") return "premium";
+    return await hasActiveProSubscription(auth, env) ? "premium" : "free";
   } catch (error) {
     console.warn("[verbia-api] profile lookup failed; applying free plan", error);
     return "free";

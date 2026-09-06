@@ -41,6 +41,23 @@ describe("API fetch handler", () => {
     expect(response.status).toBe(401);
   });
 
+  it("requires authentication and server configuration for checkout", async () => {
+    const unauthenticated = await handler(new Request("https://api.verbia.henriz.dev/v1/billing/checkout", { method: "POST", body: "{}" }));
+    expect(unauthenticated.status).toBe(401);
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(Response.json({ id: "user-1", email: "user@example.com" }));
+    const unconfigured = await createApiHandler({
+      LLM_PROVIDER: "mock",
+      SUPABASE_URL: "https://project.supabase.co",
+      SUPABASE_PUBLISHABLE_KEY: "public-key"
+    })(new Request("https://api.verbia.henriz.dev/v1/billing/checkout", { method: "POST", headers: { authorization: "Bearer valid-token" }, body: "{}" }));
+    expect(unconfigured.status).toBe(503);
+  });
+
+  it("rejects unsigned billing webhooks", async () => {
+    const response = await handler(new Request("https://api.verbia.henriz.dev/v1/billing/webhook", { method: "POST", body: "{}" }));
+    expect(response.status).toBe(401);
+  });
+
   it("returns plan-specific usage and the API-owned limit", async () => {
     vi.spyOn(globalThis, "fetch").mockImplementation(async input => {
       const url = String(input);

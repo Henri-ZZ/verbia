@@ -4,6 +4,7 @@
   "account_id": "a8843ff8e3e7ee22bdbcdecd692d8414",
   "main": "services/api/src/worker.ts",
   "compatibility_date": "2026-09-05",
+  "compatibility_flags": ["nodejs_compat"],
   "workers_dev": false,
   "routes": [{ "pattern": "api.verbia.henriz.dev", "custom_domain": true }],
   "observability": { "enabled": true },
@@ -28,6 +29,11 @@
     "AUTH_REQUIRED": "1",
     "ENFORCE_QUOTA": "1",
     "FREE_DAILY_QUOTA": "10",
-    "PREMIUM_DAILY_QUOTA": "0"
+    "PREMIUM_DAILY_QUOTA": "100",
+    "WAFFO_MERCHANT_ID": "MER_0j7JYLKnqXPJJhoipG0D1v",
+    "WAFFO_STORE_ID": "STO_41l0bD1QF6oCBo7E59t2Fa",
+    "WAFFO_ENVIRONMENT": "prod",
+    "WAFFO_MONTHLY_PRODUCT_ID": "PROD_4I2xyWHmXqNkh9SLR8XQJ3",
+    "WAFFO_ANNUAL_PRODUCT_ID": "PROD_3DZiksLVO99qJnLagyShiN"
   }
 }
