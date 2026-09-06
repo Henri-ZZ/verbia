@@ -162,7 +162,7 @@ export default function AccountPage() {
         <section className="account-panel">
           <p className="account-eyebrow">{t.eyebrow}</p>
           <h1>{locale === "zh" ? "账号登录尚未配置" : "Account sign-in is not configured"}</h1>
-          <p className="muted">{locale === "zh" ? "请先在 apps/web/.env.local 中配置 NEXT_PUBLIC_SUPABASE_URL 与 NEXT_PUBLIC_SUPABASE_ANON_KEY。" : "Configure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in apps/web/.env.local first."}</p>
+          <p className="muted">{locale === "zh" ? "请先在 apps/web/.env.local 中配置 NEXT_PUBLIC_SUPABASE_URL 与 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY。" : "Configure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY in apps/web/.env.local first."}</p>
           <Link className="button secondary" href="/">{locale === "zh" ? "返回首页" : "Back to home"}</Link>
         </section>
       </main>

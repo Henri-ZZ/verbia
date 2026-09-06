@@ -8,7 +8,7 @@
 // web keeps its session in localStorage, the extension in chrome.storage.
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
 
-export const AUTH_CONFIGURED = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+export const AUTH_CONFIGURED = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
 export const API_BASE = (process.env.NEXT_PUBLIC_VERBIA_API || "https://api.verbia.henriz.dev").replace(/\/+$/, "");
 
 const SESSION_STORAGE_KEY = "verbia-web-auth";
@@ -19,7 +19,7 @@ export function getClient(): Promise<SupabaseClient> {
   if (!clientPromise) {
     if (!AUTH_CONFIGURED) return Promise.reject(new Error("Supabase is not configured for the web app."));
     clientPromise = import("@supabase/supabase-js").then(({ createClient: create }) =>
-      create(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+      create(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!, {
         auth: {
           flowType: "pkce",
           autoRefreshToken: true,

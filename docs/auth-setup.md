@@ -143,7 +143,7 @@ PREMIUM_DAILY_QUOTA=0    # 付费版；0 表示不限次数，也可设置独立
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://pthfyoejvlcwxboskrjr.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=<与根 .env.local 同一对>
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<与根 .env.local 的 SUPABASE_PUBLISHABLE_KEY 同一对>
 NEXT_PUBLIC_VERBIA_API=https://api.verbia.henriz.dev
 ```
 
