@@ -24,11 +24,9 @@ create policy "profiles_select_own"
   on public.profiles for select
   using (auth.uid() = id);
 
+-- Billing fields are server-managed. Authenticated users may read their row,
+-- but cannot promote their own plan through the REST API.
 drop policy if exists "profiles_update_own" on public.profiles;
-create policy "profiles_update_own"
-  on public.profiles for update
-  using (auth.uid() = id)
-  with check (auth.uid() = id);
 
 -- Auto-create a profile whenever a user signs up through any provider.
 create or replace function public.handle_new_user()
@@ -49,6 +47,11 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
+
+-- Backfill users created before this trigger was installed. Safe to rerun.
+insert into public.profiles (id, email)
+select id, email from auth.users
+on conflict (id) do update set email = excluded.email;
 
 -- ---------------------------------------------------------------------------
 -- 2. quota_usage + consume_quota RPC

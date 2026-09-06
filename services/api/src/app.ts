@@ -160,11 +160,9 @@ function quotaLimitForPlan(plan: AccountPlan, env: ApiEnv): number | null {
 
 async function readAccountPlan(auth: AuthenticatedBearer, env: ApiEnv): Promise<AccountPlan> {
   try {
-    const rows = await supabaseRows<{ plan?: string }>("profiles", { select: "plan", id: `eq.${auth.userId}`, limit: "1" }, auth.token, env);
-    if (rows[0]?.plan === "premium") return "premium";
     return await hasActiveProSubscription(auth, env) ? "premium" : "free";
   } catch (error) {
-    console.warn("[verbia-api] profile lookup failed; applying free plan", error);
+    console.warn("[verbia-api] subscription lookup failed; applying free plan", error);
     return "free";
   }
 }

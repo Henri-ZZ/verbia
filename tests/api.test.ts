@@ -58,7 +58,7 @@ describe("API fetch handler", () => {
     expect(response.status).toBe(401);
   });
 
-  it("returns plan-specific usage and the API-owned limit", async () => {
+  it("does not trust a client-editable profile plan", async () => {
     vi.spyOn(globalThis, "fetch").mockImplementation(async input => {
       const url = String(input);
       if (url.includes("/auth/v1/user")) return Response.json({ id: "user-1", email: "user@example.com" });
@@ -77,6 +77,6 @@ describe("API fetch handler", () => {
       headers: { authorization: "Bearer valid-token" }
     }));
     expect(response.status).toBe(200);
-    expect(await response.json()).toMatchObject({ plan: "premium", used: 4, limit: 100 });
+    expect(await response.json()).toMatchObject({ plan: "free", used: 4, limit: 10 });
   });
 });

@@ -123,6 +123,17 @@ export default function AccountPage() {
     return () => { disposed = true; };
   }, []);
 
+  useEffect(() => {
+    if (state !== "signed_in" || !user || new URLSearchParams(window.location.search).get("checkout") !== "success") return;
+    let attempts = 0;
+    const timer = window.setInterval(() => {
+      attempts += 1;
+      void loadUsage(user);
+      if (attempts >= 20) window.clearInterval(timer);
+    }, 3_000);
+    return () => window.clearInterval(timer);
+  }, [state, user]);
+
   async function loadUsage(current: User) {
     try {
       const client = await getClient();

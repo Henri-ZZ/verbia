@@ -53,7 +53,7 @@ export async function hasActiveProSubscription(user: BillingUser, env: ApiEnv): 
   if (result.errors?.length) throw new Error(result.errors[0]?.message ?? "Waffo subscription lookup failed");
   const products = new Set([env.WAFFO_MONTHLY_PRODUCT_ID, env.WAFFO_ANNUAL_PRODUCT_ID]);
   const pro = (result.data?.subscriptionOrders ?? []).some(order => !order.testMode && ["active", "canceling"].includes(order.status) && products.has(order.subscriptionProduct?.id));
-  planCache.set(user.userId, { pro, expiresAt: Date.now() + 120_000 });
+  planCache.set(user.userId, { pro, expiresAt: Date.now() + (pro ? 120_000 : 5_000) });
   return pro;
 }
 
