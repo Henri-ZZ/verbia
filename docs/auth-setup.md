@@ -116,3 +116,44 @@ PREMIUM_DAILY_QUOTA=0    # 付费版；0 表示不限次数，也可设置独立
 | `apps/extension/src/background/index.ts` | generate 注入 Bearer、静默刷新、GET_AUTH_STATE、**回跳 code 捕获监听** |
 | `services/api/src/server.ts` | Bearer 校验 + 可选配额 gate |
 | `scripts/build.mjs` | 构建时注入 SUPABASE_URL / SUPABASE_PUBLISHABLE_KEY |
+
+## 六、官网账号面板（web 与扩展共用账号）
+
+`apps/web`（Next.js 营销站）也接入了**同一个 Supabase 项目**——`profiles` /
+`quota_usage` / `auth.users` 共享，**账号是同一份**。两边各自维护本地登录状态：
+
+- 扩展：`chrome.storage.local` 的 session（包内 `auth/supabase.ts`）。
+- 官网：`localStorage` 中的 `verbia-web-auth` session（`apps/web/lib/verbia-auth.ts`）。
+
+所以同一用户在两边都能登录、看到同一份每日额度；两边互不影响，**登出一边不影响另一边**。
+
+### 1. Supabase Dashboard 需要做的一次性配置
+
+- **Auth → URL Configuration → Redirect URLs** 里增加 web 的回跳路径：
+  ```
+  http://localhost:3000/account/callback
+  https://verbia.henriz.dev/account/callback
+  ```
+  （与第三节里的扩展回跳 `https://...supabase.co/` 互不冲突；这是同一个项目里同时允许多个落地地址。）
+- **Auth → Providers → Google** 与 **Email** 的设置不用改 —— 扩展走项目根，官网走自身域名，Supabase 用同一个 Google OAuth client。
+
+### 2. 配置文件
+
+`apps/web/.env.local`（与根 `.env.local` 同源，已被 `.gitignore` 忽略）：
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://pthfyoejvlcwxboskrjr.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<与根 .env.local 同一对>
+NEXT_PUBLIC_VERBIA_API=https://api.verbia.henriz.dev
+```
+
+模板见 `apps/web/.env.example`。
+
+### 3. 本地联调与发布
+
+```bash
+pnpm --filter @verbia/web dev    # 本地跑 Next dev，看 /account 页面
+pnpm --filter @verbia/web build  # 静态导出到 apps/web/out，部署到 verbia.henriz.dev
+```
+
+`/account` 页面会根据用户浏览器语言或 `?locale=` 在中英文之间切换，文案与扩展的 account.* 保持口径一致。
