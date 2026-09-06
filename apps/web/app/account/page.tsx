@@ -147,6 +147,8 @@ export default function AccountPage() {
   }
 
   async function onSignOut() {
+    const confirmed = window.confirm(locale === "zh" ? "确定要退出登录吗？" : "Sign out of Verbia?");
+    if (!confirmed) return;
     setError(""); setNotice("");
     await signOut();
     setUser(null); setUsage(null); setState("signed_out");

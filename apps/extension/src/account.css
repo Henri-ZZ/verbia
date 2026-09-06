@@ -105,3 +105,15 @@
   font-size: 12px;
   line-height: 1.5;
 }
+
+/* Destructive-action armed state (sign-out confirmation) */
+.auth-link.is-confirm {
+  color: #a83a32;
+  font-weight: 800;
+}
+
+.secondary.is-confirm {
+  border: 1px solid #c2503f;
+  background: #fdf0ee;
+  color: #a83a32;
+}

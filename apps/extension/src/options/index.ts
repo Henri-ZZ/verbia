@@ -298,8 +298,25 @@ function renderSignedIn(body: HTMLElement, state: AuthState) {
   const signOutButton = document.createElement("button");
   signOutButton.type = "button";
   signOutButton.className = "secondary";
-  signOutButton.textContent = t("account.signOut");
+  const signOutLabel = t("account.signOut");
+  signOutButton.textContent = signOutLabel;
+  let armed = false;
+  let timer: number | undefined;
   signOutButton.addEventListener("click", async () => {
+    if (!armed) {
+      // Two-step confirmation guards against accidental taps; the button turns
+      // into "click again" and reverts on its own after 4s.
+      armed = true;
+      signOutButton.classList.add("is-confirm");
+      signOutButton.textContent = t("account.confirmSignOut");
+      timer = window.setTimeout(() => {
+        armed = false;
+        signOutButton.classList.remove("is-confirm");
+        signOutButton.textContent = signOutLabel;
+      }, 4_000);
+      return;
+    }
+    window.clearTimeout(timer);
     await chrome.runtime.sendMessage({ type: "SIGN_OUT" });
     await renderAccount();
   });

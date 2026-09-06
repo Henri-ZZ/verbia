@@ -99,8 +99,26 @@ async function renderAuth() {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "auth-link";
-    button.textContent = strings["account.signOut"] ?? "Sign out";
+    const signOutLabel = strings["account.signOut"] ?? "Sign out";
+    const confirmLabel = strings["account.confirmSignOut"] ?? "Click again to confirm";
+    button.textContent = signOutLabel;
+    let armed = false;
+    let timer: number | undefined;
     button.addEventListener("click", async () => {
+      if (!armed) {
+        // Two-step confirmation guards against accidental taps: the button
+        // turns into "click again" and reverts on its own after 4s.
+        armed = true;
+        button.classList.add("is-confirm");
+        button.textContent = confirmLabel;
+        timer = window.setTimeout(() => {
+          armed = false;
+          button.classList.remove("is-confirm");
+          button.textContent = signOutLabel;
+        }, 4_000);
+        return;
+      }
+      window.clearTimeout(timer);
       await chrome.runtime.sendMessage({ type: "SIGN_OUT" });
       await renderAuth();
     });
