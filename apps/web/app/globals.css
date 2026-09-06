@@ -43,6 +43,12 @@
 .account-msg.error{background:#fdeceb;color:#9c3c34}
 .account-back{display:inline-block;margin-top:22px;color:var(--primary);font-size:13px;font-weight:700;text-decoration:none}
 .account-back:hover{color:var(--primary-dark);text-decoration:underline;text-underline-offset:3px}
-.account-dot{width:8px;height:8px;flex:none;border-radius:50%;background:#34c98a}
-.account-btn-label{overflow:hidden;max-width:120px;text-overflow:ellipsis;white-space:nowrap}
+.account-chip{display:inline-flex;align-items:center;gap:8px;max-width:210px;min-height:40px;padding:4px 13px 4px 4px;border-radius:999px;background:var(--paper);border:1px solid var(--border);color:var(--ink);text-decoration:none;font-size:13px;font-weight:650;transition:border-color .15s ease,background .15s ease}
+.account-chip:hover{border-color:var(--jade);background:#f2faf5}
+.account-chip-avatar{width:26px;height:26px;flex:none;border-radius:50%;object-fit:cover}
+.account-chip-initial{display:grid;place-items:center;background:var(--low);color:var(--primary-dark);font-size:12px;font-weight:800}
+.account-chip-email{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media(max-width:560px){.account-panel{padding:34px 22px 26px}.account-panel h1{font-size:26px}}
+.account-google.button{background:#1e2a24;color:#fff;border:0}
+.account-google.button:hover{background:#15201b}
+.account-google.button svg{flex:none}
