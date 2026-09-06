@@ -17,7 +17,8 @@ export const metadata: Metadata = {
     description: "Turn your intent into natural, context-aware replies without leaving the conversation."
   },
   twitter: { card: "summary", title: "Verbia — AI Reply & Writing Assistant", description: "Your intent. The right words." },
-  icons: { icon: "/verbia-mark.svg", apple: "/verbia-mark.svg" }
+  icons: { icon: "/verbia-mark.svg", apple: "/verbia-mark.svg" },
+  other: { "google-site-verification": "xAcO-ctraDUIb4jND6iUlnNowsjS8EyMmHTllYHirZI" }
 };
 
 export const viewport: Viewport = { themeColor: "#f2fcf4", colorScheme: "light" };
