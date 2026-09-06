@@ -16,8 +16,8 @@ function detectStore(): Store {
   return "chrome";
 }
 
-export function InstallLink({ className = "button primary" }: { className?: string }) {
+export function InstallLink({ className = "button primary", label = "Install now" }: { className?: string; label?: string }) {
   const [href, setHref] = useState("#install");
   useEffect(() => { setHref(urls[detectStore()] || urls.chrome || "#install"); }, []);
-  return <a className={className} href={href}>Install now <span aria-hidden="true">↗</span></a>;
+  return <a className={className} href={href}>{label} <span aria-hidden="true">↗</span></a>;
 }

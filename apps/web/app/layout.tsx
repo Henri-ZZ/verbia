@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   title: "Verbia — AI Reply & Writing Assistant",
   description: "Tell Verbia what you want to say, in any language. Get a natural, context-aware reply you can review and insert.",
   applicationName: "Verbia",
-  alternates: { canonical: "/" },
+  alternates: { canonical: "/", languages: { en: "/", "zh-CN": "/zh" } },
   openGraph: {
     type: "website", url: "/", siteName: "Verbia",
     title: "Verbia — Tell me what you want to say, in any language.",

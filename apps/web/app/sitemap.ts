@@ -4,5 +4,5 @@ export const dynamic = "force-static";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const lastModified = new Date();
-  return ["", "/privacy", "/terms"].map(path => ({ url: `https://verbia.henriz.dev${path}`, lastModified, changeFrequency: path ? "yearly" : "weekly", priority: path ? 0.4 : 1 }));
+  return ["", "/zh", "/privacy", "/terms", "/zh/privacy", "/zh/terms"].map(path => ({ url: `https://verbia.henriz.dev${path}`, lastModified, changeFrequency: path === "" || path === "/zh" ? "weekly" : "yearly", priority: path === "" || path === "/zh" ? 1 : 0.4 }));
 }
