@@ -68,5 +68,5 @@ export default function ChineseHomePage() {
 
     <section className="section shell faq" id="faq"><SectionHeading eyebrow="问题与解答" title="常见问题"/><Faq items={faqs}/></section>
     <section className="final-cta shell" id="install"><Mark/><h2>告诉我你想说什么。</h2><p>用任何语言都可以。</p><InstallLink label="立即安装"/><small>免费安装 · 无需信用卡</small></section>
-  </main><footer className="site-footer"><div className="shell footer-inner"><div><Link className="brand" href="/zh"><Mark/>Verbia</Link><p>AI 回复与写作助手。你提供意思，Verbia 负责自然表达。</p></div><nav aria-label="页脚导航"><a href="#features">产品</a><Link href="/zh/privacy">隐私</Link><Link href="/zh/terms">条款</Link><a href="mailto:henri@henriz.dev">联系</a><InstallLink className="footer-install" label="立即安装"/></nav></div><div className="shell copyright">© {new Date().getFullYear()} Verbia。保留所有权利。</div></footer></div>;
+  </main><footer className="site-footer"><div className="shell footer-inner"><div><Link className="brand" href="/zh"><Mark/>Verbia</Link><p>AI 回复与写作助手。你提供意思，Verbia 负责自然表达。</p></div><nav aria-label="页脚导航"><a href="#features">产品</a><Link href="/zh/privacy">隐私</Link><Link href="/zh/terms">条款</Link><Link href="/zh/refund">退款</Link><a href="mailto:henri@henriz.dev">联系</a><InstallLink className="footer-install" label="立即安装"/></nav></div><div className="shell copyright">© {new Date().getFullYear()} Verbia。保留所有权利。</div></footer></div>;
 }

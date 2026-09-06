@@ -1,4 +1,20 @@
-import Link from "next/link";
+import type { Metadata } from "next";
+import { LegalPage } from "../../../components/legal-page";
 
-export const metadata = { title: "服务条款 — Verbia", description: "使用 Verbia 的服务条款。", alternates: { canonical: "/zh/terms", languages: { en: "/terms", "zh-CN": "/zh/terms" } } };
-export default function TermsPage() { return <main className="legal-page" lang="zh-CN"><Link className="brand" href="/zh"><img src="/verbia-mark.svg" alt="" width="32" height="32"/>Verbia</Link><p className="eyebrow">服务条款</p><h1>Verbia 服务条款。</h1><p>正式公开发布前，这里将更新为完整的服务条款。</p><Link href="/zh">返回首页</Link></main>; }
+export const metadata: Metadata = { title: "使用条款 — Verbia", description: "关于访问和使用 Verbia 的条款。", alternates: { canonical: "/zh/terms", languages: { en: "/terms", "zh-CN": "/zh/terms" } } };
+
+export default function TermsPage() { return <LegalPage locale="zh" eyebrow="使用条款" title="Verbia 使用条款" description="本条款适用于 Verbia 官网、浏览器扩展、AI 回复服务及付费套餐。">
+  <section><h2>1. 接受条款与使用资格</h2><p>安装、访问、购买或使用 Verbia，即表示你同意本使用条款及隐私政策。如果你代表某个组织使用 Verbia，你确认自己有权使该组织受本条款约束。你必须具备订立本协议的法律行为能力；在当地法律允许的情况下，未成年人只能在父母或法定监护人许可和监督下使用 Verbia。</p></section>
+  <section><h2>2. Verbia 提供的服务</h2><p>Verbia 是一款浏览器写作助手。当你主动要求生成回复时，它会处理你提供的意图、设置和相关可见上下文，并返回 AI 生成的草稿。Verbia 不会替你发送或发布消息。你有责任检查、修改并决定是否使用每一份草稿。</p><p>随着服务发展，功能、支持的网站、模型供应商、额度和可用性可能变化。实验性或测试功能可能被调整或停止。</p></section>
+  <section><h2>3. 账号与安全</h2><p>你需要对账号资料的准确性、账号安全以及登录会话中的活动负责。请保护好邮箱及登录方式；发现未经授权的使用时应及时联系我们。个人或组织不得通过创建、组织多个账号来规避额度、试用、限制或付款义务。</p></section>
+  <section><h2>4. 你的内容与 AI 处理</h2><p>你保留对所提交文本、上下文、指令和其他材料的权利。你授予 Verbia 一项有限的、全球范围的处理许可，仅用于运行、保护和支持服务，包括将相关材料发送给受约束的 AI 基础设施供应商，以生成你要求的草稿。</p><p>你必须有权提交这些材料。除非你有权这样做，并接受这些信息需要被处理才能完成请求，否则请勿提交机密、受监管或敏感个人信息。AI 输出可能不准确、不完整、不适宜，或与为其他用户生成的内容相似；它不构成法律、医疗、财务或其他专业建议。</p></section>
+  <section><h2>5. 可接受使用</h2><p>你不得使用 Verbia 违法；侵犯他人的隐私、保密义务、知识产权或其他权利；欺骗、冒充、骚扰、剥削或伤害他人；传播恶意软件或垃圾信息；生成涉及未成年人的性内容；协助暴力或不法行为；绕过安全措施、访问控制、额度或速率限制；探测或干扰服务；未经许可转售访问权限；或以自动化方式给服务造成不合理负担。</p><p>为了处理滥用、安全问题、法律要求、付款争议或严重违反本条款的情形，我们可以在合理必要范围内限制或暂停访问。</p></section>
+  <section><h2>6. 免费与付费套餐</h2><p>免费版目前提供每日生成额度。Verbia Pro 目前每天最多提供 100 次生成，并可按月或按年订阅。“一次生成”是指服务已处理的一次请求，包括成功产出草稿的请求；仅因已确认的服务故障而进行的重试，我们可以酌情不计入。每日额度按服务显示的时间重置，不能结转。</p><p>结账前会显示当前价格和套餐内容。税费与最终金额可能因所在地而异，并在收银台显示。我们可以调整未来价格或套餐功能；现有订阅的价格变化会按照适用法律和收银台提供商条款所要求的方式通知或征得同意。</p></section>
+  <section><h2>7. 付款、续订与 Waffo</h2><p>Waffo.com Limited（“Waffo”）是 Verbia 付费订阅的记录商户和授权经销商。Waffo 负责处理付款、计算和缴纳适用交易税、提供收据与发票，并处理付款争议和退款。购买还受到 <a href="https://www.waffo.ai/en/buyer-terms" target="_blank" rel="noreferrer">Waffo 买家条款</a>与<a href="https://www.waffo.ai/en/privacy" target="_blank" rel="noreferrer">隐私政策</a>约束。</p><p>订阅会以相同计费周期自动续订，直至取消。若要避免下一次扣款，请至少在续订日期前 48 小时通过 Waffo Buyer Portal 取消；Waffo 订单邮件中包含入口。取消通常在当前已付费周期结束时生效。退款适用我们的退款政策、Waffo 相关条款和强制性消费者法律。</p><p>Pro 权益绑定到发起已登录结账的 Verbia 账号。Waffo 收银台中的付款邮箱用于付款和收据；修改付款邮箱不会把 Pro 权益转移到其他 Verbia 账号。</p></section>
+  <section><h2>8. 知识产权</h2><p>Verbia 的软件、设计、品牌、文档和服务技术归 Verbia 或其许可方所有。在遵守本条款的前提下，我们授予你有限的、个人的、非独占、不可转让且可撤销的权利，以预定方式使用服务。除适用法律明确允许外，你不得复制、修改、反向工程、分发 Verbia，或基于 Verbia 创建衍生产品。</p></section>
+  <section><h2>9. 第三方服务与网站</h2><p>Verbia 会与我们无法控制的网站及服务配合使用，并依赖第三方提供登录、托管、AI 处理和付款服务；这些服务的条款和可用性可能影响 Verbia。你需要遵守使用 Verbia 草稿的网站规则。</p></section>
+  <section><h2>10. 可用性与免责声明</h2><p>我们致力于提供可靠服务，但 Verbia 按“现状”和“可用”状态提供。在法律允许的范围内，我们不作适销性、特定用途适用性、不侵权、准确性或持续可用性的默示保证，也不保证草稿一定正确、合适、独一无二或被第三方平台接受。</p></section>
+  <section><h2>11. 责任限制</h2><p>在法律允许的最大范围内，Verbia 不对间接、附带、特殊、后果性、惩戒性或惩罚性损害，以及利润、数据、商誉或商业机会损失负责。我们因服务产生的全部责任不超过以下两者中较高者：50 美元，或引发索赔的事件发生前 12 个月内你为 Verbia 支付的金额。法律禁止限制的责任不受本条限制。</p></section>
+  <section><h2>12. 停止使用</h2><p>你可以随时停止使用 Verbia，也可以联系我们申请删除账号。卸载扩展或删除 Verbia 账号不会自动取消仍在生效的 Waffo 订阅，你需要另行通过 Waffo Buyer Portal 取消。根据性质应在终止后继续有效的条款，包括所有权、付款义务、免责声明和责任限制，将继续有效。</p></section>
+  <section><h2>13. 条款变更与联系</h2><p>我们可能因产品、法律或运营变化更新本条款，并会公布更新日期；法律要求时会另行通知。生效日期后继续使用即表示接受更新。产品支持或条款问题请发送邮件至 <a href="mailto:henri@henriz.dev">henri@henriz.dev</a>；付款、发票或 Waffo Buyer Portal 问题请使用 Waffo 订单邮件中的联系方式。</p></section>
+</LegalPage>; }

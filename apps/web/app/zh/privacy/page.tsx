@@ -1,4 +1,20 @@
-import Link from "next/link";
+import type { Metadata } from "next";
+import { LegalPage } from "../../../components/legal-page";
 
-export const metadata = { title: "隐私 — Verbia", description: "了解 Verbia 如何处理对话上下文、账户信息和回复草稿。", alternates: { canonical: "/zh/privacy", languages: { en: "/privacy", "zh-CN": "/zh/privacy" } } };
-export default function PrivacyPage() { return <main className="legal-page" lang="zh-CN"><Link className="brand" href="/zh"><img src="/verbia-mark.svg" alt="" width="32" height="32"/>Verbia</Link><p className="eyebrow">隐私</p><h1>从设计开始保护隐私。</h1><p>只有在你明确选择生成回复后，Verbia 才会处理完成回复所需的最少对话上下文。它不会自动发送消息。</p><p>正式公开发布前，这里将更新为完整的隐私政策。</p><Link href="/zh">返回首页</Link></main>; }
+export const metadata: Metadata = { title: "隐私政策 — Verbia", description: "Verbia 如何收集、使用、共享和保护个人信息。", alternates: { canonical: "/zh/privacy", languages: { en: "/privacy", "zh-CN": "/zh/privacy" } } };
+
+export default function PrivacyPage() { return <LegalPage locale="zh" eyebrow="隐私政策" title="Verbia 隐私政策" description="本政策说明你使用 Verbia 官网、浏览器扩展、AI 生成服务、账号和订阅时，我们会处理哪些信息。">
+  <section><h2>1. 谁负责你的信息</h2><p>对于通过 Verbia 收集的账号、产品使用和支持信息，Verbia 是数据控制者。你可以通过 <a href="mailto:henri@henriz.dev">henri@henriz.dev</a> 联系我们。Waffo 作为记录商户，对其处理的付款、账单、税务、欺诈防范、退款和拒付信息独立承担数据控制者责任。</p></section>
+  <section><h2>2. 我们处理的信息</h2><ul><li><strong>账号信息：</strong>Supabase 用户 ID、邮箱、登录提供商，以及 Google 提供时的姓名、头像等基本资料。</li><li><strong>生成内容：</strong>你输入或口述的意图、输出语言与语气设置、你选择加入的相关可见对话或所选文本，以及生成的草稿。</li><li><strong>使用和技术信息：</strong>生成次数、套餐类型、请求标识、耗时、模型路由、大致输入长度、错误阶段、浏览器或扩展版本，以及安全和可靠性日志。可选诊断只包含元数据，不包含网页正文、意图或草稿。</li><li><strong>订阅信息：</strong>与 Verbia 用户 ID 关联的 Waffo 买家标识、商品与订阅状态、计费周期和相关订单标识。Verbia 不会收到或保存完整银行卡号。</li><li><strong>支持信息：</strong>你在寻求帮助、取消、隐私协助或退款时主动发送的消息和资料。</li></ul></section>
+  <section><h2>3. 何时读取内容</h2><p>只有在你主动发起生成请求时，Verbia 才会读取并发送生成内容。扩展可能把你选择的上下文临时保存在浏览器会话存储中，便于你在回复面板中查看或使用。生成的草稿会留在界面中供你审核。Verbia 不会替你点击“发送”或发布消息。</p></section>
+  <section><h2>4. 信息用途</h2><p>我们使用信息来验证登录、生成贴合上下文的草稿、执行套餐额度、激活和核验订阅、维护安全、诊断故障与性能、处理支持请求、防止滥用和欺诈、遵守法律，以及改善 Verbia 的可靠性和易用性。我们不会出售个人信息，也不会利用你的私密生成内容投放定向广告。</p></section>
+  <section><h2>5. 处理依据</h2><p>当数据保护法律要求处理依据时，我们基于履行与你的合同、运营和保护 Verbia 的合法利益、履行法律义务，以及适用时你的同意来处理信息。你可以在扩展设置中关闭可选诊断；撤回同意不影响此前处理的合法性。</p></section>
+  <section><h2>6. 服务提供商与披露</h2><p>我们仅向各提供商披露完成其职责所需的信息：</p><ul><li><strong>Supabase：</strong>登录验证、账号记录和每日用量记录。</li><li><strong>Cloudflare：</strong>网站分发、API 托管、安全，以及被自动路由选中时的 AI 推理。</li><li><strong>AI 模型提供商：</strong>当可用性均衡系统选中时，Google Gemini、Mistral AI 和 Groq 可能接收生成内容；每次请求使用的提供商可能不同。</li><li><strong>Waffo 及其付款合作方：</strong>收银台、订阅管理、税务、收据、退款、欺诈防范和付款争议。</li></ul><p>法律要求、保护用户或服务所必需，或服务发生合并、融资、收购或转让时，我们也可能披露信息，并依法提供适当通知和保护。</p></section>
+  <section><h2>7. 浏览器本地存储</h2><p>扩展会在浏览器提供的本地或会话存储中保存偏好设置、登录状态、每日用量显示数据和每个标签页的临时上下文。网站会在浏览器中保存独立的登录会话和语言偏好。卸载扩展、退出登录或清除浏览器存储可能删除这些本地数据。</p></section>
+  <section><h2>8. 保存期限</h2><p>生成内容用于返回草稿，Verbia 不会有意把它保存为对话历史。服务提供商的临时基础设施或安全日志可能依据其保存和滥用监测规则短暂保留相关数据。账号与订阅关联信息在账号有效期间保存，之后如为安全、争议或法律义务所需，会在合理期限内保留。每日额度记录和运营日志只在用量控制、排错、安全及防滥用所合理需要的期限内保存。Waffo 根据其政策和法定义务保存交易记录。</p></section>
+  <section><h2>9. 安全与跨境处理</h2><p>我们采用合理的技术和组织保护措施，包括加密传输、经验证的 API 访问、受限凭据，以及通过 Waffo 处理付款。任何互联网服务都无法保证绝对安全。Verbia 及其提供商在全球运营，信息可能在你所在国家以外处理；法律要求时，我们会采用合同保障或其他合法传输机制。</p></section>
+  <section><h2>10. 你的选择与权利</h2><p>你可以在生成前预览或移除上下文、编辑或放弃每一份草稿、关闭可选诊断、退出登录并取消订阅。根据所在地法律，你可以要求访问、更正、删除、限制、转移或反对处理，也可以撤回同意。请使用账号邮箱联系 <a href="mailto:henri@henriz.dev">henri@henriz.dev</a>。我们可能核验身份，也可能因法律、反欺诈、付款争议或安全需要保留部分信息。你还可以向当地数据保护机构投诉。</p></section>
+  <section><h2>11. 儿童</h2><p>Verbia 不面向 13 岁以下儿童；当地法律规定更高最低年龄的，以该年龄为准。我们不会故意收集无法合法同意的儿童个人信息。如果你认为儿童不当提供了信息，请联系我们。</p></section>
+  <section><h2>12. 付款隐私与外部网站</h2><p>Waffo 会根据其<a href="https://www.waffo.ai/en/privacy" target="_blank" rel="noreferrer">隐私政策</a>直接在收银台收集付款与账单资料。你使用 Verbia 的网站也有各自的隐私做法，Verbia 无法控制。提交个人或机密内容前，请查看相应政策。</p></section>
+  <section><h2>13. 政策变更</h2><p>随着 Verbia 和适用法律变化，我们可能更新本政策。我们会公布新的生效日期，并在法律要求时另行通知。重大变更仅适用于变更生效后的处理。</p></section>
+</LegalPage>; }

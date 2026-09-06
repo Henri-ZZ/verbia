@@ -5,11 +5,15 @@ type BillingUser = { userId: string; email?: string };
 type BillingCycle = "monthly" | "annual";
 const planCache = new Map<string, { pro: boolean; expiresAt: number }>();
 
+function isTestEnvironment(env: ApiEnv): boolean {
+  return env.WAFFO_ENVIRONMENT === "test";
+}
+
 function clientFor(env: ApiEnv) {
   const merchantId = env.WAFFO_MERCHANT_ID;
   const privateKey = env.WAFFO_PRIVATE_KEY;
   if (!merchantId || !privateKey) throw new Error("NOT_CONFIGURED: Waffo billing credentials are missing");
-  return new WaffoPancake({ merchantId, privateKey, environment: env.WAFFO_ENVIRONMENT === "test" ? "test" : "prod" });
+  return new WaffoPancake({ merchantId, privateKey, environment: isTestEnvironment(env) ? "test" : "prod" });
 }
 
 export function billingConfigured(env: ApiEnv): boolean {
@@ -52,14 +56,15 @@ export async function hasActiveProSubscription(user: BillingUser, env: ApiEnv): 
   });
   if (result.errors?.length) throw new Error(result.errors[0]?.message ?? "Waffo subscription lookup failed");
   const products = new Set([env.WAFFO_MONTHLY_PRODUCT_ID, env.WAFFO_ANNUAL_PRODUCT_ID]);
-  const pro = (result.data?.subscriptionOrders ?? []).some(order => !order.testMode && ["active", "canceling"].includes(order.status) && products.has(order.subscriptionProduct?.id));
+  const pro = (result.data?.subscriptionOrders ?? []).some(order => order.testMode === isTestEnvironment(env) && ["active", "canceling"].includes(order.status) && products.has(order.subscriptionProduct?.id));
   planCache.set(user.userId, { pro, expiresAt: Date.now() + (pro ? 120_000 : 5_000) });
   return pro;
 }
 
 export function verifyBillingWebhook(rawBody: string, signature: string | null, env: ApiEnv) {
-  const event = clientFor(env).webhooks.verify<WebhookEventData>(rawBody, signature, { environment: env.WAFFO_ENVIRONMENT === "test" ? "test" : "prod" });
-  if (event.storeId !== env.WAFFO_STORE_ID || event.mode !== (env.WAFFO_ENVIRONMENT === "test" ? "test" : "prod")) throw new Error("Webhook store or environment mismatch");
+  const environment = isTestEnvironment(env) ? "test" : "prod";
+  const event = clientFor(env).webhooks.verify<WebhookEventData>(rawBody, signature, { environment });
+  if (event.storeId !== env.WAFFO_STORE_ID || event.mode !== environment) throw new Error("Webhook store or environment mismatch");
   const userId = event.data.merchantProvidedBuyerIdentity;
   if (userId) planCache.delete(userId);
   return event;
