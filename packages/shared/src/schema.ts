@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const toneSchema = z.enum(["auto", "casual", "friendly", "professional", "polite", "direct"]);
 export const lengthSchema = z.enum(["short", "medium", "detailed"]);
-export const relationSchema = z.enum(["reply_to_post", "reply_to_comment", "selected_text", "none", "unknown"]);
+export const relationSchema = z.enum(["reply_to_post", "reply_to_comment", "reply_to_email", "compose_new", "selected_text", "none", "unknown"]);
 export const confidenceSchema = z.enum(["high", "medium", "low"]);
 
 export const contextEnvelopeSchema = z.object({
@@ -20,7 +20,7 @@ export const contextEnvelopeSchema = z.object({
 export const generateReplyRequestSchema = z.object({
   requestId: z.string().uuid(),
   schemaVersion: z.literal("1"),
-  platform: z.enum(["reddit", "universal"]),
+  platform: z.enum(["reddit", "gmail", "universal"]),
   page: z.object({ urlOrigin: z.string().url().max(300), locale: z.string().max(30).optional() }),
   context: contextEnvelopeSchema,
   intent: z.object({

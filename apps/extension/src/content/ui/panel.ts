@@ -5,8 +5,8 @@ import { msgColor, msgIcon, type MsgKind } from "../../ui/message";
 
 const styles = `
 :host{all:initial;display:block;inline-size:100%;color-scheme:light;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#172019}
-*,*::before,*::after{box-sizing:border-box}button,textarea,select,input{font:inherit}button{cursor:pointer}.panel :focus-visible{outline:1.5px solid #9FE1CB;outline-offset:1px}
-.inline-shell{display:block;inline-size:100%;margin-block-start:10px;container-type:inline-size;contain:layout style paint}.panel{inline-size:100%;overflow:auto;background:#fbfcf7;border:1px solid #dfe7dd;border-radius:12px;box-shadow:0 1px 2px #1720190a,0 6px 18px #17201912;padding:14px}.head{display:flex;align-items:center;justify-content:space-between}.brand{font:800 18px/1 Georgia,serif;color:#0F6E56;margin:0}.brand .wordmark{display:block;height:30px;width:auto}.slogan{font-size:.75rem;color:#33604E;margin:4px 0 0;font-weight:700}.icon{display:grid;place-items:center;min-inline-size:30px;min-block-size:30px;border:0;border-radius:8px;background:transparent;color:#526057;padding:0;transition:background .15s ease}.icon:hover{background:#e8efe9}.icon svg{inline-size:16px;block-size:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .18s ease}.panel.collapsed .icon svg{transform:rotate(180deg)}.panel.collapsed{padding-block:6px}.panel.collapsed .panel-body{display:none}.panel.collapsed .slogan{display:none}.chip{display:inline-flex;margin:12px 0 8px;padding:6px 9px;border-radius:999px;background:#E1F5EE;color:#0F6E56;font-size:.75rem;font-weight:700}.warning{background:#fff2cf;color:#6f4b00;padding:8px 10px;border-radius:9px;font-size:.75rem;margin:6px 0}.context{border:1px solid #dfe7dd;border-radius:10px;margin:0 0 12px}.context summary{padding:9px 11px;cursor:pointer;font-size:.8rem;font-weight:700}.context-body{padding:0 11px 9px;white-space:pre-wrap;max-block-size:150px;overflow:auto;font-size:.75rem;color:#526057}.remove-context{margin:0 11px 9px;border:0;background:transparent;color:#9c3c34;padding:0;text-decoration:underline;font-size:.75rem}
+*,*::before,*::after{box-sizing:border-box}button,textarea,select,input{font:inherit}button{cursor:pointer}.panel :focus-visible{outline:1.5px solid #9FE1CB;outline-offset:1px}:host(.is-dragging){cursor:grabbing}:host(.is-dragging) .head{cursor:grabbing}
+.inline-shell{display:block;inline-size:100%;margin-block-start:10px;container-type:inline-size;contain:layout style paint}.panel{inline-size:100%;overflow:auto;background:#fbfcf7;border:1px solid #dfe7dd;border-radius:12px;box-shadow:0 1px 2px #1720190a,0 6px 18px #17201912;padding:14px}.head{display:flex;align-items:center;justify-content:space-between;cursor:grab;touch-action:none}.brand{font:800 18px/1 Georgia,serif;color:#0F6E56;margin:0}.brand .wordmark{display:block;height:30px;width:auto}.slogan{font-size:.75rem;color:#33604E;margin:4px 0 0;font-weight:700}.icon{display:grid;place-items:center;min-inline-size:30px;min-block-size:30px;border:0;border-radius:8px;background:transparent;color:#526057;padding:0;transition:background .15s ease}.icon:hover{background:#e8efe9}.icon svg{inline-size:16px;block-size:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .18s ease}.panel.collapsed .icon svg{transform:rotate(180deg)}.panel.collapsed{padding-block:6px}.panel.collapsed .panel-body{display:none}.panel.collapsed .slogan{display:none}.chip{display:inline-flex;margin:12px 0 8px;padding:6px 9px;border-radius:999px;background:#E1F5EE;color:#0F6E56;font-size:.75rem;font-weight:700}.warning{background:#fff2cf;color:#6f4b00;padding:8px 10px;border-radius:9px;font-size:.75rem;margin:6px 0}.context{border:1px solid #dfe7dd;border-radius:10px;margin:0 0 12px}.context summary{padding:9px 11px;cursor:pointer;font-size:.8rem;font-weight:700}.context-body{padding:0 11px 9px;white-space:pre-wrap;max-block-size:150px;overflow:auto;font-size:.75rem;color:#526057}.remove-context{margin:0 11px 9px;border:0;background:transparent;color:#9c3c34;padding:0;text-decoration:underline;font-size:.75rem}
 label{display:block;font-size:.75rem;font-weight:750;color:#39483e;margin:10px 0 5px}.intent,.draft{inline-size:100%;resize:vertical;min-block-size:84px;border:1px solid #cad6cc;background:white;border-radius:10px;padding:9px 10px;line-height:1.45}.draft{min-block-size:100px}select{inline-size:100%;min-block-size:32px;appearance:none;-webkit-appearance:none;border:1px solid #cad6cc;border-radius:9px;background-color:#fff;padding:6px 27px 6px 9px;font-size:.78rem;font-weight:600;color:#1b2a20;cursor:pointer;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23526d5c' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M4 6.5L8 10.5L12 6.5'/></svg>");background-repeat:no-repeat;background-position:right 8px center;background-size:14px 14px;transition:border-color .15s ease,box-shadow .15s ease}
 select:hover{border-color:#8fae9b}
 select:focus-visible{border-color:#0F6E56;box-shadow:0 0 0 1px #0F6E5626}
@@ -36,6 +36,17 @@ export class VerbiaPanel {
   private restartTimer?: number;
   private recordingBase = "";
   private previousFocus: HTMLElement | null = null;
+  // Floating overlay position: the panel parks beside the focused editor and
+  // follows it while the page scrolls or resizes. The user can instead grab
+  // the header and drag the panel anywhere; dragging disables auto-follow and
+  // a double-click on the header re-enables it.
+  private floating = false;
+  private floatAnchor: HTMLElement | null = null;
+  private followAnchor = true;
+  private floatWidth = 400;
+  private floatFrame = 0;
+  private dragging = false;
+  private dragStart = { x: 0, y: 0, left: 0, top: 0 };
 
   constructor(private adapter: SiteAdapter, target: EditableTarget, context: ContextEnvelope, private onRemove: () => void) {
     this.target = target;
@@ -53,6 +64,10 @@ export class VerbiaPanel {
     this.root.addEventListener("keydown", this.onKeyDown);
     this.root.addEventListener("input", this.onInput);
     this.root.addEventListener("change", this.onChange);
+    // Floating drag handles live in the rebuilt header; delegate pointer
+    // events on the stable root so they survive every renderPanel().
+    this.root.addEventListener("pointerdown", this.onPanelPointerDown);
+    this.root.addEventListener("dblclick", this.onPanelDoubleClick);
     // The panel is a page-lifetime singleton (content/index.ts creates it
     // once), so a storage listener bound here never accumulates. It keeps a
     // mounted panel in sync when the Options page changes settings.
@@ -90,12 +105,134 @@ export class VerbiaPanel {
     }
   };
 
-  update(target: EditableTarget, context: ContextEnvelope) { this.target = target; this.context = context; }
+  update(target: EditableTarget, context: ContextEnvelope) {
+    // The editor changed (e.g. the user closed a Gmail compose and opened a
+    // new one): re-anchor the floating panel to the new editor. Staying on
+    // the same editor keeps any manual drag position the user chose.
+    const movedEditor = this.floating && this.floatAnchor !== target.element;
+    this.target = target;
+    this.context = context;
+    if (movedEditor) {
+      this.floatAnchor = target.element;
+      this.followAnchor = true;
+      this.scheduleFloat();
+    }
+  }
 
   mountAfter(anchor: Element) {
     if (anchor.nextSibling === this.host) return;
     anchor.parentNode?.insertBefore(this.host, anchor.nextSibling);
   }
+
+  // Overlay variant used when the editor lives inside its own document/iframe
+  // (e.g. Gmail's composer): pinning the panel beside the editable region would
+  // leak into the composed content, so float it over the editor viewport.
+  // The panel is parked next to the anchor (the focused editor) and follows it
+  // as the page scrolls/resizes; the user can drag the header to move it and
+  // double-click the header to snap it back to following the editor.
+  mountFloating(anchor?: HTMLElement) {
+    const doc = this.host.ownerDocument;
+    this.floating = true;
+    this.floatAnchor = anchor ?? null;
+    this.followAnchor = true;
+    Object.assign(this.host.style, {
+      position: "fixed",
+      top: "0px",
+      left: "0px",
+      width: "min(400px, calc(100vw - 20px))",
+      maxHeight: "calc(100vh - 20px)",
+      overflowY: "auto",
+      zIndex: "2147483647",
+      boxShadow: "0 6px 24px rgba(23,32,25,.22)"
+    });
+    doc.documentElement.append(this.host);
+    this.floatWidth = this.host.getBoundingClientRect().width || 400;
+    this.positionFloat();
+    window.addEventListener("resize", this.onViewportChange);
+    // Capture-phase scroll sees scrollers inside the host page (Gmail moves
+    // its composer by scrolling inner containers too), not just the window.
+    document.addEventListener("scroll", this.onScroll, true);
+  }
+
+  private onScroll = () => { if (this.followAnchor) this.scheduleFloat(); };
+
+  private onViewportChange = () => { if (this.followAnchor) this.positionFloat(); };
+
+  private scheduleFloat() {
+    if (this.floatFrame) return;
+    this.floatFrame = requestAnimationFrame(() => {
+      this.floatFrame = 0;
+      this.positionFloat();
+    });
+  }
+
+  // Park the floating panel beside the anchor editor (right edge, top-aligned)
+  // and keep it inside the viewport. No-op when auto-follow is off (the user
+  // dragged the panel somewhere) or when the anchor is gone.
+  private positionFloat() {
+    if (!this.floating || !this.host.isConnected || !this.followAnchor) return;
+    const anchor = this.floatAnchor;
+    if (!anchor || !anchor.isConnected) return;
+    const rect = anchor.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const height = Math.min(this.host.getBoundingClientRect().height || 0, vh - 20);
+    const left = vw - rect.right >= this.floatWidth + 24
+      ? rect.right + 16
+      : Math.max(8, vw - this.floatWidth - 8);
+    const top = Math.min(Math.max(8, rect.top), Math.max(8, vh - height - 8));
+    this.host.style.left = `${Math.round(left)}px`;
+    this.host.style.top = `${Math.round(top)}px`;
+  }
+
+  // Header drag: the pointer went down on the header (not on a button). The
+  // panel leaves auto-follow from that moment so it stays exactly where the
+  // user puts it.
+  private onPanelPointerDown = (event: Event) => {
+    if (!this.floating) return;
+    const pointer = event as PointerEvent;
+    if (pointer.button !== 0) return;
+    const target = pointer.target as HTMLElement | null;
+    if (!target?.closest(".head") || target.closest("button")) return;
+    event.preventDefault();
+    const rect = this.host.getBoundingClientRect();
+    this.dragging = true;
+    this.followAnchor = false;
+    this.dragStart = { x: pointer.clientX, y: pointer.clientY, left: rect.left, top: rect.top };
+    this.host.classList.add("is-dragging");
+    window.addEventListener("pointermove", this.onPointerMove);
+    window.addEventListener("pointerup", this.onPointerUp);
+    window.addEventListener("pointercancel", this.onPointerUp);
+  };
+
+  private onPointerMove = (event: PointerEvent) => {
+    if (!this.dragging) return;
+    const width = this.host.getBoundingClientRect().width;
+    const height = this.host.getBoundingClientRect().height;
+    const left = Math.max(8, Math.min(window.innerWidth - width - 8, this.dragStart.left + event.clientX - this.dragStart.x));
+    const top = Math.max(8, Math.min(window.innerHeight - height - 8, this.dragStart.top + event.clientY - this.dragStart.y));
+    this.host.style.left = `${Math.round(left)}px`;
+    this.host.style.top = `${Math.round(top)}px`;
+  };
+
+  private onPointerUp = () => {
+    if (!this.dragging) return;
+    this.dragging = false;
+    this.host.classList.remove("is-dragging");
+    window.removeEventListener("pointermove", this.onPointerMove);
+    window.removeEventListener("pointerup", this.onPointerUp);
+    window.removeEventListener("pointercancel", this.onPointerUp);
+  };
+
+  // Double-clicking the header while free-floating snaps the panel back to
+  // following the editor.
+  private onPanelDoubleClick = (event: Event) => {
+    if (!this.floating) return;
+    const target = event.target as HTMLElement | null;
+    if (!target?.closest(".head") || target.closest("button")) return;
+    this.followAnchor = true;
+    this.positionFloat();
+  };
 
   async open(focusIntent = true) {
     this.previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -107,11 +244,12 @@ export class VerbiaPanel {
     this.lang = resolveUiLang(this.settings.uiLanguage, chrome.i18n.getUILanguage());
     this.phase = "context_ready";
     this.renderPanel();
+    if (this.floating) this.scheduleFloat();
     if (focusIntent) queueMicrotask(() => this.el<HTMLTextAreaElement>("intent")?.focus());
   }
 
   private contextLabel() {
-    const source = this.adapter.id === "reddit" ? "Reddit" : this.t("context.universal");
+    const source = this.adapter.id === "reddit" ? "Reddit" : this.adapter.id === "gmail" ? this.t("context.gmail") : this.t("context.universal");
     const relation = this.t(`context.rel.${this.context.relation}`);
     return `${source} · ${relation}`;
   }
@@ -201,7 +339,7 @@ export class VerbiaPanel {
     this.setBusy(true);
     this.status(this.t("panel.status.writing"));
     const request: GenerateReplyRequest = {
-      requestId: this.requestId, schemaVersion: "1", platform: this.adapter.id === "reddit" ? "reddit" : "universal",
+      requestId: this.requestId, schemaVersion: "1", platform: this.adapter.id === "reddit" ? "reddit" : this.adapter.id === "gmail" ? "gmail" : "universal",
       page: { urlOrigin: location.origin, locale: document.documentElement.lang || undefined }, context: this.context,
       intent: { text: intent, source: this.voiceTranscript ? "voice_transcript" : "typed" },
       output: { language: this.value("language", this.settings.outputLanguage), tone: this.value("tone", this.settings.defaultTone) as GenerateReplyRequest["output"]["tone"], length: this.value("length", this.settings.defaultLength) as GenerateReplyRequest["output"]["length"] },
@@ -459,6 +597,13 @@ export class VerbiaPanel {
     this.voiceTranscript = false;
     this.recordingBase = "";
     this.context = { relation: "none", truncated: false, extractorVersion: this.context.extractorVersion, confidence: "high" };
+    this.onPointerUp();
+    if (this.floating) {
+      window.removeEventListener("resize", this.onViewportChange);
+      document.removeEventListener("scroll", this.onScroll, true);
+    }
+    this.floating = false;
+    this.floatAnchor = null;
     chrome.storage.onChanged.removeListener(this.onSettingsChanged);
     this.host.remove();
     this.onRemove();
@@ -484,6 +629,7 @@ export class VerbiaPanel {
     } else {
       queueMicrotask(() => this.el<HTMLTextAreaElement>("intent")?.focus());
     }
+    if (this.floating) this.scheduleFloat();
   }
   private value(id: string, fallback: string) { return this.root.querySelector<HTMLSelectElement>(`#${id}`)?.value || fallback; }
   private setSelect(id: string, value: string) { const select = this.root.querySelector<HTMLSelectElement>(`#${id}`); if (select && [...select.options].some(option => option.value === value)) select.value = value; }

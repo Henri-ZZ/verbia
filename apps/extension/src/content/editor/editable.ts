@@ -64,7 +64,18 @@ export async function insertText(target: EditableTarget, text: string, mode: "re
   selection?.removeAllRanges();
   selection?.addRange(range);
   if (mode === "append") range.collapse(false);
-  document.execCommand("insertText", false, mode === "append" && current ? `\n${text}` : text);
+
+  // `execCommand("insertText", ...)` treats the argument as plain text: Gmail's
+  // contenteditable drops embedded "\n" so multi-line drafts collapse onto a
+  // single line. Gmail happily accepts `insertHTML` with `<br>` separators, so
+  // on mail.google.com we route through that path; other editors (Reddit,
+  // universal) keep the plain-text command so we don't fight their handlers.
+  const payload = mode === "append" && current ? `\n${text}` : text;
+  if (/(^|\.)mail\.google\.com$/.test(location.hostname)) {
+    document.execCommand("insertHTML", false, escapeHtml(payload).replace(/\n/g, "<br>"));
+  } else {
+    document.execCommand("insertText", false, payload);
+  }
 
   // Fall back to a direct write only if the framework did not apply the text
   // within a short window. Delayed, not synchronous, to avoid the duplicate.
@@ -74,4 +85,8 @@ export async function insertText(target: EditableTarget, text: string, mode: "re
     if (!applied) element.textContent = next;
   }, 300);
   return { ok: true };
+}
+
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>'"]/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[char]!);
 }

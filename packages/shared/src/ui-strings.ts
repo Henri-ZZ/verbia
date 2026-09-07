@@ -26,7 +26,9 @@ const EN: Strings = {
   // options page
   "settings.title": "Dashboard",
   "settings.desc": "Manage your account, reply panel, and more.",
-  "settings.backend": "Backend URL",
+  "settings.backend": "Backend",
+  "settings.backendProduction": "Production (api.verbia.henriz.dev)",
+  "settings.backendLocal": "Local (localhost:8787)",
   "settings.backendHint": "Development builds connect to your local thin gateway. Production builds should use the Verbia backend.",
   "settings.voiceLanguage": "Voice language",
   "settings.voiceHint": "Used only when you speak your intent. Typing works in any language.",
@@ -118,6 +120,7 @@ const EN: Strings = {
 
   // context preview
   "context.universal": "Universal",
+  "context.gmail": "Gmail",
   "context.noText": "No page text will be sent.",
   "context.postTitle": "Post title",
   "context.post": "Post",
@@ -126,6 +129,8 @@ const EN: Strings = {
   "context.selectedText": "Selected text",
   "context.rel.reply_to_post": "reply to post",
   "context.rel.reply_to_comment": "reply to comment",
+  "context.rel.reply_to_email": "replying to email",
+  "context.rel.compose_new": "new email",
   "context.rel.selected_text": "selected text",
   "context.rel.none": "no context",
   "context.rel.unknown": "unknown context",
@@ -188,7 +193,9 @@ const ZH_CN: Strings = {
   // options page
   "settings.title": "控制面板",
   "settings.desc": "管理账号、回复面板等。",
-  "settings.backend": "后端 URL",
+  "settings.backend": "后端",
+  "settings.backendProduction": "线上 (api.verbia.henriz.dev)",
+  "settings.backendLocal": "本地 (localhost:8787)",
   "settings.backendHint": "开发版本连接你的本地 thin gateway。生产环境应使用 Verbia 后端。",
   "settings.voiceLanguage": "语音语言",
   "settings.voiceHint": "仅在口述意图时使用。打字输入可使用任何语言。",
@@ -280,6 +287,7 @@ const ZH_CN: Strings = {
 
   // context preview
   "context.universal": "通用",
+  "context.gmail": "Gmail",
   "context.noText": "不会发送任何页面文本。",
   "context.postTitle": "帖子标题",
   "context.post": "帖子",
@@ -288,6 +296,8 @@ const ZH_CN: Strings = {
   "context.selectedText": "所选文本",
   "context.rel.reply_to_post": "回复原帖",
   "context.rel.reply_to_comment": "回复评论",
+  "context.rel.reply_to_email": "回复邮件",
+  "context.rel.compose_new": "新邮件",
   "context.rel.selected_text": "所选文本",
   "context.rel.none": "无上下文",
   "context.rel.unknown": "未知上下文",

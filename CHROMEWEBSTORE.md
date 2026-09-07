@@ -19,7 +19,7 @@ You mean it. Verbia says it.（官方中文：你的想法，Verbia 帮你表达
 
 Verbia helps multilingual professionals express what they mean in a natural reply without composing every sentence in English first.
 
-On Reddit, Verbia shows the relevant post and reply chain before generating. Elsewhere, you can use selected text or no context. Write or speak your intent, choose a tone and length, review the draft, then insert or copy it.
+On Reddit and Gmail web, Verbia shows the relevant conversation you are replying to before generating — the post and reply chain, or the email being answered. Elsewhere, you can use selected text or no context. Write or speak your intent, choose a tone and length, review the draft, then insert or copy it.
 
 To use Verbia, sign in, focus a reply field, and use your configured shortcut to open the reply panel. Review the visible context, enter your intent, and choose Generate. Verbia always shows a draft first. It never sends or submits a message; only you do that. The toolbar icon opens the Dashboard, where you can manage your account and preferences.
 
@@ -31,7 +31,7 @@ Verbia reads page content only after you invoke it, limits access to the reply y
 
 Verbia 帮助多语言使用者直接用自己熟悉的语言表达想法，不必先在英文里组织好每一句话，也能得到自然、贴切、符合语境的回复草稿。
 
-在 Reddit 上，Verbia 会在生成前展示相关的帖子和回复链；在其他网页，你可以使用选中的文字作为上下文，也可以不带上下文直接起草。写下或说出你的意图，选择语气和长度，检查草稿后再插入或复制。
+在 Reddit 和 Gmail 网页版上，Verbia 会在生成前展示你正在回复的相关对话——帖子与回复链，或正在回复的那封邮件；在其他网页，你可以使用选中的文字作为上下文，也可以不带上下文直接起草。写下或说出你的意图，选择语气和长度，检查草稿后再插入或复制。
 
 要使用 Verbia：登录后聚焦任意回复框，用你配置的快捷键唤起回复面板。先确认面板中可见的上下文，输入你的意图，然后点击 Generate。Verbia 总是先把草稿展示给你，绝不会替你发送或提交任何消息——发送永远由你自己完成。点击工具栏图标可打开控制面板，管理账号与偏好设置。
 
@@ -64,6 +64,7 @@ Screenshot 1 should show reviewed Reddit context and the intent controls. Screen
 | http://localhost:8787/* | host_permissions | Unpacked development builds can send an explicit Generate request to a gateway running on the developer's own computer. |
 | https://api.verbia.henriz.dev/* | host_permissions | Sends conversation context and the user's stated intent only after they click Generate, then returns a reply draft for review. |
 | reddit.com origins | host_permissions | Shows the inline assistant under Reddit reply boxes, reads only the active reply chain, and inserts a user-reviewed draft into its composer. |
+| https://mail.google.com/* | host_permissions | Lets the content script run in Gmail's message-composer frame (all_frames + match_about_blank) so Verbia can draft replies inside the email composer the user is writing. Reads only the email being replied to after the composer is opened. |
 | https://pthfyoejvlcwxboskrjr.supabase.co/* | host_permissions | Completes user-initiated Google or email sign-in with Verbia's Supabase project and refreshes the resulting account session. |
 
 ## Privacy & Data Use

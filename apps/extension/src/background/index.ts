@@ -27,7 +27,7 @@ chrome.runtime.onInstalled.addListener(async details => {
     await chrome.tabs.create({ url: "https://verbia.henriz.dev/getting-started?installed=1" });
   }
   // Uninstall “farewell” page, refreshed on every install/update.
-  chrome.runtime.setUninstallURL("https://verbia.henriz.dev/goodbye").catch(() => undefined);
+  chrome.runtime.setUninstallURL("https://verbia.henriz.dev/goodbye");
   await ensureContextMenu();
 });
 
@@ -185,12 +185,27 @@ async function activate(tab: chrome.tabs.Tab) {
       await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["content.js"] });
       const response = await chrome.tabs.sendMessage(tab.id, message);
       if (response?.ok && response.opened) await clearStagedContext(tab.id);
-      await clearActionError();
+      if (response?.opened) await clearActionError();
+      else await showActionError(hintForUrl(tab.url));
     } catch (error) {
       console.error("Verbia could not open on this page", error);
-      await showActionError("Verbia could not open on this page.");
+      await showActionError(hintForUrl(tab.url));
     }
   }
+}
+
+function hintForUrl(url: string | undefined): string {
+  if (!url) return "Verbia could not open on this page.";
+  if (/^https:\/\/mail\.google\.com\//.test(url)) {
+    return "Open a reply or new email window, then try again.";
+  }
+  if (/^https:\/\/(www\.)?reddit\.com\//.test(url)) {
+    return "Focus a Reddit reply box, then try again.";
+  }
+  if (/^https:\/\/x\.com\//.test(url) || /^https:\/\/twitter\.com\//.test(url)) {
+    return "Focus a reply composer, then try again.";
+  }
+  return "Focus a text editor on the page, then try again.";
 }
 
 async function showActionError(title: string) {

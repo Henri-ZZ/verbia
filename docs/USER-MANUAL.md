@@ -62,7 +62,7 @@
 
 ## 5. 两种使用模式
 
-### 5.1 Reddit（自动模式，当前唯一自动适配）
+### 5.1 Reddit（自动模式）
 
 内容脚本只在 Reddit 域名注入。流程：
 
@@ -73,7 +73,18 @@
 
 如果上下文识别不确定，会给出**低置信度提示**；超长内容会**按字段边界截断**并在面板标记 `truncated`。
 
-### 5.2 Universal Mode（其它页面）
+### 5.2 Gmail Web（自动模式 · 逐步校准中）
+
+写信/回复邮件的正文编辑框位于 Gmail 的同源 iframe 中，因此扩展按 `all_frames + match_about_blank` 注入到写信帧：
+
+1. 打开 Gmail 回复某封邮件（或新建邮件）；
+2. 正文框获得焦点时自动出现 Verbia 面板（浮在编辑区上，不进入邮件正文）；
+3. 回复场景自动提取“被回复邮件的引用文本”作为上下文；新建邮件为无上下文；
+4. 生成、插入/追加替换逻辑与 Reddit 一致。
+
+> 注：Gmail 页面结构与 iframe 行为因版本而异，当前实现基于通用 DOM 规则编写，需要在真实 Gmail 中逐项校准；识别不到引用时会回退为取编辑器全文并给中等置信度。
+
+### 5.3 Universal Mode（其它页面）
 
 任意普通网页/应用：
 
@@ -169,7 +180,7 @@
 
 ## 13. 已知限制与路线图
 
-- **自动适配范围**：目前仅 Reddit；**未来将加入 X 等更多社区/平台**（通过新增 adapter 扩展，见 14 节代码结构）。
+- **自动适配范围**：Reddit 已稳定；**Gmail Web 已开始接入并逐步校准**；**下一个目标是 X（Twitter），随后 Outlook Web**（均通过新增 adapter 扩展，见 14 节代码结构）。
 - **上下文媒体类型**：暂只支持纯文字；图片/视频为未来目标。
 - **编辑器兼容性**：复杂富文本编辑器可能退化为手动复制。
 - **语音输入**：依赖浏览器/系统语音识别能力。
@@ -188,6 +199,7 @@
 |---|---|
 | `src/background/index.ts` | 常驻逻辑：消息路由、生成请求、用量快照、401 刷新后登出、Supabase 回跳 code 捕获、右键菜单 |
 | `src/content/adapters/reddit.ts` | Reddit 自动适配：回复框定位、帖/评论链上下文提取 |
+| `src/content/adapters/gmail.ts` | Gmail 写信 iframe 内编辑器定位与引用邮件上下文提取（`all_frames + match_about_blank`，仅写信帧激活） |
 | `src/content/adapters/universal.ts` | 通用模式：编辑器定位与无站点适配 |
 | `src/content/editor/editable.ts` | 可编辑目标封装（textarea/input/contenteditable 插入、追加/替换） |
 | `src/content/ui/panel.ts` | 回复面板 UI 与交互（HTML 模板内联样式 + 渲染） |
