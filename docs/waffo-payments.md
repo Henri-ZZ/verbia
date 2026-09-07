@@ -4,17 +4,17 @@ Verbia Pro 使用 Waffo Pancake 订阅制支付。测试阶段使用测试密钥
 
 - 月付：USD 9.99，每月续订
 - 年付：USD 69.99，每年续订
-- Pro 额度：每天 100 次
+- Premium 额度：每天 100 次
 - 收银台由 Waffo 托管，官网只创建结账会话并在新标签页打开
 
 ## 商品
 
 | 商品 | Product ID |
 | --- | --- |
-| Verbia Pro Monthly | `PROD_4I2xyWHmXqNkh9SLR8XQJ3` |
-| Verbia Pro Annual | `PROD_3DZiksLVO99qJnLagyShiN` |
+| Verbia Premium Monthly | `PROD_4I2xyWHmXqNkh9SLR8XQJ3` |
+| Verbia Premium Annual | `PROD_3DZiksLVO99qJnLagyShiN` |
 
-两个商品属于同一个 `Verbia Pro` 产品组，便于后续支持月付与年付切换。
+两个商品属于同一个 `Verbia Premium` 产品组，便于后续支持月付与年付切换。商品描述已写入（测试与生产共用同一份商品信息）。
 
 ## 服务端流程
 

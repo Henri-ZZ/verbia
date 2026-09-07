@@ -69,7 +69,7 @@ export function ProCheckout({ locale = "en", compact = false }: { locale?: "en" 
   return <div className={`checkout-actions${compact ? " compact" : ""}`}>
     <button className="button primary full" type="button" disabled={loading !== null} onClick={() => void prepareCheckout("monthly")}>{loading === "monthly" ? (zh ? "正在处理…" : "Working…") : (zh ? "$9.99 / 月" : "$9.99 monthly")}</button>
     <button className="button secondary full" type="button" disabled={loading !== null} onClick={() => void prepareCheckout("annual")}>{loading === "annual" ? (zh ? "正在处理…" : "Working…") : (zh ? "$69.99 / 年" : "$69.99 annually")}</button>
-    <p className="checkout-account-note">{zh ? "Pro 绑定当前 Verbia 账号；支付邮箱仅用于付款和收据。" : "Pro is linked to your Verbia account; the payment email is only for payment and receipts."}</p>
+    <p className="checkout-account-note">{zh ? "Premium 绑定当前 Verbia 账号；支付邮箱仅用于付款和收据。" : "Premium is linked to your Verbia account; the payment email is only for payment and receipts."}</p>
     {error && <p className="checkout-error" role="alert">{error}</p>}
     <dialog
       className="checkout-dialog"
@@ -79,14 +79,14 @@ export function ProCheckout({ locale = "en", compact = false }: { locale?: "en" 
       onClose={() => setPending(null)}
     >
       <div className="checkout-dialog-content">
-        <p className="eyebrow">VERBIA PRO</p>
-        <h2 id={dialogTitleId}>{zh ? "确认权益归属账号" : "Confirm your Pro account"}</h2>
-        <p>{zh ? "完成付款后，Pro 将开通到这个 Verbia 账号：" : "After payment, Pro will be activated for this Verbia account:"}</p>
+        <p className="eyebrow">VERBIA PREMIUM</p>
+        <h2 id={dialogTitleId}>{zh ? "确认权益归属账号" : "Confirm your Premium account"}</h2>
+        <p>{zh ? "完成付款后，Premium 将开通到这个 Verbia 账号：" : "After payment, Premium will be activated for this Verbia account:"}</p>
         <strong className="checkout-account-email">{pending?.accountEmail}</strong>
         <p className="checkout-email-explanation">
           {zh
-            ? "支付页中的邮箱用于付款和接收收据，可以修改。即使修改，它也不会改变 Pro 的归属账号。"
-            : "The email on the payment page is for payment and receipts, and you may change it. Changing it will not move Pro to another Verbia account."}
+            ? "支付页中的邮箱用于付款和接收收据，可以修改。即使修改，它也不会改变 Premium 的归属账号。"
+            : "The email on the payment page is for payment and receipts, and you may change it. Changing it will not move Premium to another Verbia account."}
         </p>
         <p className="checkout-legal-note">
           {zh ? <>继续即表示你同意 Verbia <a href="/zh/terms" target="_blank">使用条款</a>，并已阅读<a href="/zh/refund" target="_blank">退款政策</a>与 <a href="https://www.waffo.ai/en/buyer-terms" target="_blank" rel="noreferrer">Waffo 买家条款</a>。</> : <>By continuing, you agree to the Verbia <a href="/terms" target="_blank">Terms of Use</a> and acknowledge the <a href="/refund" target="_blank">Refund Policy</a> and <a href="https://www.waffo.ai/en/buyer-terms" target="_blank" rel="noreferrer">Waffo Buyer Terms</a>.</>}

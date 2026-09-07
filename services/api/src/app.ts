@@ -33,7 +33,7 @@ export function createApiHandler(env: ApiEnv) {
     }
     if (request.method === "POST" && path === "/v1/billing/checkout") {
       const auth = await verifyBearer(request.headers.get("authorization"), env);
-      if (auth.status !== "ok") return apiError(401, "billing-checkout", "UNAUTHENTICATED", false, "Sign in before choosing Verbia Pro.");
+      if (auth.status !== "ok") return apiError(401, "billing-checkout", "UNAUTHENTICATED", false, "Sign in before choosing Verbia Premium.");
       if (!billingConfigured(env)) return apiError(503, "billing-checkout", "NOT_CONFIGURED", false, "Billing is temporarily unavailable.");
       try {
         const body = await readJson(request, 2_000) as { cycle?: BillingCycle; locale?: string };
