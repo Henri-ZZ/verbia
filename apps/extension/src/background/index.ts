@@ -23,7 +23,11 @@ chrome.runtime.onInstalled.addListener(async details => {
       const initial: UserSettings = { ...DEFAULT_SETTINGS, uiLanguage: resolveUiLang("auto", chrome.i18n.getUILanguage()) };
       await chrome.storage.local.set({ settings: initial });
     }
+    // Welcome page after first install.
+    await chrome.tabs.create({ url: "https://verbia.henriz.dev/getting-started?installed=1" });
   }
+  // Uninstall “farewell” page, refreshed on every install/update.
+  chrome.runtime.setUninstallURL("https://verbia.henriz.dev/goodbye").catch(() => undefined);
   await ensureContextMenu();
 });
 

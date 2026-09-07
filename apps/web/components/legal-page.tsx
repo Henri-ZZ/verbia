@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { SiteHeader } from "./site-header";
+import { SiteFooter } from "./site-footer";
 
 export const LEGAL_EFFECTIVE_DATE = "September 7, 2026";
 export const LEGAL_EFFECTIVE_DATE_ZH = "2026 年 9 月 7 日";
@@ -17,5 +18,5 @@ export function LegalPage({ locale, eyebrow, title, description, children }: { l
     </nav>
     <article className="legal-content">{children}</article>
     <div className="legal-bottom"><Link href={home}>{zh ? "返回首页" : "Back to home"}</Link><a href="mailto:henri@henriz.dev">{zh ? "联系我们" : "Contact us"}</a></div>
-  </main></>;
+  </main><SiteFooter locale={locale}/></>;
 }

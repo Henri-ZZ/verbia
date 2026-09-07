@@ -18,7 +18,10 @@ export function LanguageRedirect() {
   useEffect(() => {
     const preferred = window.localStorage.getItem("verbia-locale");
     if (preferred === "en") return;
-    if (preferred === "zh" || navigator.languages.some(language => language.toLowerCase().startsWith("zh"))) window.location.replace("/zh");
+    if (preferred === "zh" || navigator.languages.some(language => language.toLowerCase().startsWith("zh"))) {
+      const destination = localePath(window.location.pathname, "zh");
+      window.location.replace(`${destination}${window.location.search}${window.location.hash}`);
+    }
   }, []);
   return null;
 }
