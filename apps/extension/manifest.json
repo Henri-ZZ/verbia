@@ -33,7 +33,7 @@
   "options_page": "options.html",
   "web_accessible_resources": [
     {
-      "resources": ["icons/verbia-logo.svg", "assets/*"],
+      "resources": ["icons/verbia-logo.svg", "icons/verbia-horizontal-logo.svg", "assets/*"],
       "matches": ["<all_urls>"]
     }
   ],

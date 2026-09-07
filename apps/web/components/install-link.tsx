@@ -30,5 +30,5 @@ function detectStore(): Store {
 export function InstallLink({ className = "button primary", label = "Install now" }: { className?: string; label?: string }) {
   const [href, setHref] = useState("#install");
   useEffect(() => { setHref(storeUrl(detectStore())); }, []);
-  return <a className={className} href={href}>{label} <span aria-hidden="true">↗</span></a>;
+  return <a className={className} href={href} target="_blank" rel="noopener noreferrer">{label} <span aria-hidden="true">↗</span></a>;
 }

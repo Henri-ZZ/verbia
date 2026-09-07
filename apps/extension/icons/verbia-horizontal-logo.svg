@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1060 320" role="img" aria-labelledby="title desc">
+  <title id="title">Verbia</title>
+  <desc id="desc">Verbia app icon and horizontal wordmark.</desc>
+  <defs>
+    <linearGradient id="tile" x1="32" y1="26" x2="286" y2="294" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#62EDA2"/>
+      <stop offset=".48" stop-color="#20DDB9"/>
+      <stop offset="1" stop-color="#29BEE5"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientTransform="translate(77 61) rotate(45) scale(180)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#C5F9C2" stop-opacity=".4"/>
+      <stop offset="1" stop-color="#C5F9C2" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="rightLeaf" x1="224" y1="80" x2="153" y2="240" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset=".5" stop-color="#FFFFFF"/>
+      <stop offset=".8" stop-color="#CDFBF4"/>
+      <stop offset="1" stop-color="#54DADF"/>
+    </linearGradient>
+    <filter id="shadow" x="45" y="50" width="235" height="225" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="7" stdDeviation="7" flood-color="#087F84" flood-opacity=".28"/>
+    </filter>
+  </defs>
+
+  <g>
+    <rect x="24" y="24" width="272" height="272" rx="62" fill="url(#tile)"/>
+    <rect x="24" y="24" width="272" height="272" rx="62" fill="url(#glow)"/>
+    <g filter="url(#shadow)">
+      <path fill="url(#rightLeaf)" d="M146 226c12-39 20-73 41-104 16-24 36-38 69-45 1 34-4 66-18 94-18 36-46 56-92 55Z"/>
+      <path fill="#FFFFFF" d="M78 102c33 5 56 22 70 52 10 22 13 48 36 84-33 6-60-5-78-27-23-29-31-65-28-109Z"/>
+    </g>
+  </g>
+
+  <text x="338" y="230" fill="#121820"
+        font-family="Arial, Helvetica, sans-serif"
+        font-size="210" font-weight="700" letter-spacing="-9">Verbıa</text>
+  <circle cx="789" cy="76" r="17" fill="#20D7A8"/>
+  <g fill="none" stroke-linecap="round">
+    <path d="M970 88l18-38" stroke="#54DDB4" stroke-width="18"/>
+    <path d="M1004 111l38-22" stroke="#49D7B2" stroke-width="18"/>
+  </g>
+</svg>

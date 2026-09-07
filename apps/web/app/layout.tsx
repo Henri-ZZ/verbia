@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 
@@ -23,6 +24,11 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = { themeColor: "#f2fcf4", colorScheme: "light" };
 
+const GA_ID = "G-540Y1K231S";
+
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en" className={`${inter.variable} ${jakarta.variable}`}><body><a className="skip-link" href="#main">Skip to content</a>{children}</body></html>;
+  return <html lang="en" className={`${inter.variable} ${jakarta.variable}`}><body><a className="skip-link" href="#main">Skip to content</a>{children}
+    <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="afterInteractive" />
+    <Script id="ga-config" strategy="afterInteractive" dangerouslySetInnerHTML={{ __html: `window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', '${GA_ID}');` }} />
+  </body></html>;
 }
