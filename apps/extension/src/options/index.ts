@@ -276,7 +276,16 @@ function renderSignedIn(body: HTMLElement, state: AuthState) {
   email.append(emailText);
   if (state.provider === "google") email.append(createGoogleBadge());
   const plan = document.createElement("span"); plan.className = "account-plan";
-  plan.textContent = state.plan === "premium" ? t("account.planPremium") : t("account.planFree");
+  if (state.plan === "premium") {
+    const mark = document.createElement("img");
+    mark.className = "plan-mark";
+    mark.src = "assets/premium.png";
+    mark.alt = "";
+    mark.width = 14;
+    mark.height = 14;
+    plan.append(mark);
+  }
+  plan.append(document.createTextNode(state.plan === "premium" ? t("account.planPremium") : t("account.planFree")));
   copy.append(email, plan); identity.append(avatar, copy);
 
   const usage = document.createElement("div");

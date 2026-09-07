@@ -117,3 +117,17 @@
   background: #fdf0ee;
   color: #a83a32;
 }
+
+/* Premium plan mark (shared popup + options) */
+.account-plan {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.account-plan .plan-mark {
+  display: block;
+  flex: none;
+  width: 14px;
+  height: 14px;
+}

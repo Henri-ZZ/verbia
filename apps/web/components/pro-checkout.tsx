@@ -67,8 +67,8 @@ export function ProCheckout({ locale = "en", compact = false }: { locale?: "en" 
   }
 
   return <div className={`checkout-actions${compact ? " compact" : ""}`}>
-    <button className="button primary full" type="button" disabled={loading !== null} onClick={() => void prepareCheckout("monthly")}>{loading === "monthly" ? (zh ? "正在处理…" : "Working…") : (zh ? "$9.99 / 月" : "$9.99 monthly")}</button>
-    <button className="button secondary full" type="button" disabled={loading !== null} onClick={() => void prepareCheckout("annual")}>{loading === "annual" ? (zh ? "正在处理…" : "Working…") : (zh ? "$69.99 / 年" : "$69.99 annually")}</button>
+    <button className="button secondary full" type="button" disabled={loading !== null} onClick={() => void prepareCheckout("monthly")}>{loading === "monthly" ? (zh ? "正在处理…" : "Working…") : (zh ? "$9.99 / 月" : "$9.99 monthly")}</button>
+    <button className="button primary full" type="button" disabled={loading !== null} onClick={() => void prepareCheckout("annual")}>{loading === "annual" ? (zh ? "正在处理…" : "Working…") : (zh ? "$69.99 / 年" : "$69.99 annually")}</button>
     <p className="checkout-account-note">{zh ? "Premium 绑定当前 Verbia 账号；支付邮箱仅用于付款和收据。" : "Premium is linked to your Verbia account; the payment email is only for payment and receipts."}</p>
     {error && <p className="checkout-error" role="alert">{error}</p>}
     <dialog

@@ -230,7 +230,7 @@ export default function AccountPage() {
               <div className="account-identity-copy">
                 <span className="account-email-label">{t.emailLabel}</span>
                 <strong className="account-email">{user.email}</strong>
-                <span className="account-badges"><span className="account-badge plan">{usage?.plan === "premium" ? t.planPremium : t.planFree}</span>{provider && <span className="account-badge provider">{provider === "google" ? t.providerGoogle : t.providerEmail}</span>}</span>
+                <span className="account-badges">{usage?.plan === "premium" ? <><span className="account-badge plan"><img className="premium-mark" src="/premium.png" alt="" width="14" height="14"/>{t.planPremium}</span></> : <span className="account-badge plan">{t.planFree}</span>}{provider && <span className="account-badge provider">{provider === "google" ? t.providerGoogle : t.providerEmail}</span>}</span>
               </div>
             </div>
 
@@ -241,7 +241,7 @@ export default function AccountPage() {
               {usage?.resetsAt && <small>{t.resets(usage.resetsAt)}</small>}
             </div>
 
-            {usage?.plan !== "premium" && <div className="account-upgrade"><strong>{t.upgradeTitle}</strong><p>{t.upgradeBody}</p><ProCheckout locale={locale} compact/></div>}
+            {usage?.plan !== "premium" && <div className="account-upgrade"><strong>{t.upgradeTitle}<img className="premium-mark" src="/premium.png" alt="" width="14" height="14"/></strong><p>{t.upgradeBody}</p><ProCheckout locale={locale} compact/></div>}
 
             <p className="account-note muted">{t.accountNote}</p>
             <button className="button secondary" type="button" onClick={() => void onSignOut()}>{t.signOut}</button>

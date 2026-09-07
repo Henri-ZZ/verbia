@@ -94,7 +94,16 @@ async function renderAuth() {
     if (state.provider === "google") email.append(createGoogleBadge());
     const plan = document.createElement("span");
     plan.className = "account-plan";
-    plan.textContent = state.plan === "premium" ? (strings["account.planPremium"] ?? "Premium") : (strings["account.planFree"] ?? "Free");
+    if (state.plan === "premium") {
+      const mark = document.createElement("img");
+      mark.className = "plan-mark";
+      mark.src = "assets/premium.png";
+      mark.alt = "";
+      mark.width = 14;
+      mark.height = 14;
+      plan.append(mark);
+    }
+    plan.append(document.createTextNode(state.plan === "premium" ? (strings["account.planPremium"] ?? "Premium") : (strings["account.planFree"] ?? "Free")));
     copy.append(email, plan);
     const button = document.createElement("button");
     button.type = "button";
