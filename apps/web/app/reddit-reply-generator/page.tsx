@@ -39,7 +39,7 @@ export default function RedditReplyGeneratorPage() {
     mainEntity: faqItems.map(({ question, answer }) => ({ "@type": "Question", name: question, acceptedAnswer: { "@type": "Answer", text: answer } })),
   };
 
-  return <><SiteHeader/><main id="main" className="seo-page reddit-page">
+  return <><SiteHeader localizedPage={false}/><main id="main" className="seo-page reddit-page">
     <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}/>
 
     <section className="seo-hero reddit-hero shell">

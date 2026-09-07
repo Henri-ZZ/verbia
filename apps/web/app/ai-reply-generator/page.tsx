@@ -46,7 +46,7 @@ export default function AiReplyGeneratorPage() {
     })),
   };
 
-  return <><SiteHeader/><main id="main" className="seo-page">
+  return <><SiteHeader localizedPage={false}/><main id="main" className="seo-page">
     <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}/>
 
     <section className="seo-hero shell">

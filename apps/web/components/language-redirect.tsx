@@ -31,10 +31,10 @@ export function RememberLocale({ locale }: { locale: SiteLocale }) {
   return null;
 }
 
-export function LanguageSelect({ locale, className }: { locale: SiteLocale; className?: string }) {
+export function LanguageSelect({ locale, className, fallbackToLocaleHome = false }: { locale: SiteLocale; className?: string; fallbackToLocaleHome?: boolean }) {
   function changeLocale(nextLocale: SiteLocale) {
     window.localStorage.setItem("verbia-locale", nextLocale);
-    const destination = localePath(window.location.pathname, nextLocale);
+    const destination = fallbackToLocaleHome ? (nextLocale === "zh" ? "/zh" : "/") : localePath(window.location.pathname, nextLocale);
     window.location.assign(`${destination}${window.location.search}${window.location.hash}`);
   }
   return <label className={`language-select${className ? ` ${className}` : ""}`}>
