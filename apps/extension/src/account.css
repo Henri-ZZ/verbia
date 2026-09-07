@@ -131,3 +131,68 @@
   width: 14px;
   height: 14px;
 }
+
+/* Free-user upgrade nudge (tiered: quiet → amber near limit → red at limit) */
+.upgrade-cta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 10px;
+  color: #0f6e56;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.45;
+  text-decoration: none;
+}
+
+.upgrade-cta .cta-mark {
+  display: block;
+  flex: none;
+  width: 14px;
+  height: 14px;
+}
+
+.upgrade-cta::after {
+  content: "→";
+  margin-left: 1px;
+}
+
+.upgrade-cta:hover {
+  color: #005440;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.upgrade-cta.is-near {
+  color: #8a5f00;
+}
+
+.upgrade-cta.is-limit {
+  color: #b13f36;
+  font-weight: 800;
+}
+
+/* Account loading placeholder (popup + options) */
+.account-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 2px;
+  color: #66736a;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.account-loading .spinner {
+  display: block;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  animation: verbia-spin 1s linear infinite;
+}
+
+@keyframes verbia-spin {
+  to { transform: rotate(360deg); }
+}

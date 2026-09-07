@@ -69,6 +69,11 @@ document.querySelector<HTMLButtonElement>("#open-settings")?.addEventListener("c
 async function renderAuth() {
   const row = document.querySelector<HTMLElement>("#auth-row");
   if (!row) return;
+  // Show a loading state right away while the account snapshot is fetched.
+  row.textContent = "";
+  row.classList.remove("signed-out");
+  row.hidden = false;
+  row.append(createLoading());
   const { settings } = await chrome.storage.local.get("settings");
   const value = (settings ?? DEFAULT_SETTINGS) as typeof DEFAULT_SETTINGS;
   const lang = resolveUiLang(value.uiLanguage, chrome.i18n.getUILanguage());
@@ -77,8 +82,6 @@ async function renderAuth() {
   const state = (response?.ok ? response.data : { signedIn: false }) as AuthState;
 
   row.textContent = "";
-  row.classList.remove("signed-out");
-  row.hidden = false;
 
   if (state.signedIn) {
     const head = document.createElement("div");
@@ -132,7 +135,7 @@ async function renderAuth() {
       await renderAuth();
     });
     head.append(avatar, copy, button);
-    row.append(head, makeUsage(state, strings));
+    row.append(head, makeUsage(state, strings, lang));
   } else {
     row.classList.add("signed-out");
     const label = document.createElement("p");
@@ -171,7 +174,52 @@ function createGoogleBadge(): HTMLImageElement {
   return badge;
 }
 
-function makeUsage(state: AuthState, strings: Record<string, string>): HTMLElement {
+function createLoading(): HTMLElement {
+  const quickLang = resolveUiLang("auto", chrome.i18n.getUILanguage());
+  const wrap = document.createElement("div");
+  wrap.className = "account-loading";
+  const img = document.createElement("img");
+  img.className = "spinner";
+  img.src = "assets/loading.png";
+  img.alt = "";
+  img.width = 16;
+  img.height = 16;
+  const label = document.createElement("span");
+  label.textContent = UI_STRINGS[quickLang]["account.loading"] ?? "Loading…";
+  wrap.append(img, label);
+  return wrap;
+}
+
+// Free users see a gentle upgrade nudge next to their daily usage. It stays a
+// quiet link at first, turns amber when the day is ~70% used, and turns red
+// once the daily limit is reached. Opens the website's account page (where the
+// full Premium checkout lives) in a normal tab.
+function appendUpgradeCta(usage: HTMLElement, state: AuthState, strings: Record<string, string>, lang: string): void {
+  if (state.plan !== "free") return;
+  const used = typeof state.usage?.used === "number" ? state.usage.used : null;
+  const limit = typeof state.usage?.limit === "number" && state.usage.limit !== null ? state.usage.limit : null;
+  let key = "account.upgradeLine";
+  let urgency = "";
+  if (used !== null && limit !== null && limit > 0) {
+    if (used >= limit) { key = "account.upgradeLimit"; urgency = " is-limit"; }
+    else if (used / limit >= 0.7) { key = "account.upgradeNear"; urgency = " is-near"; }
+  }
+  const link = document.createElement("a");
+  link.className = `upgrade-cta${urgency}`;
+  link.href = `https://verbia.henriz.dev/${lang.toLowerCase().startsWith("zh") ? "zh" : ""}#pricing`;
+  link.target = "_blank";
+  link.rel = "noopener";
+  const mark = document.createElement("img");
+  mark.className = "cta-mark";
+  mark.src = "assets/premium.png";
+  mark.alt = "";
+  mark.width = 14;
+  mark.height = 14;
+  link.append(mark, document.createTextNode(strings[key] ?? ""));
+  usage.append(link);
+}
+
+function makeUsage(state: AuthState, strings: Record<string, string>, lang: string): HTMLElement {
   const usage = document.createElement("div"); usage.className = "usage";
   const line = document.createElement("div"); line.className = "usage-line";
   const label = document.createElement("span"); label.textContent = strings["account.todayUsage"] ?? "Today’s usage";
@@ -180,6 +228,7 @@ function makeUsage(state: AuthState, strings: Record<string, string>): HTMLEleme
     count.classList.add("is-unavailable");
     count.textContent = strings["account.usageUnavailable"] ?? "Temporarily unavailable";
     line.append(label, count); usage.append(line);
+    appendUpgradeCta(usage, state, strings, lang);
     return usage;
   }
   const used = state.usage?.used ?? 0; const limit = state.usage?.limit ?? null;
@@ -191,6 +240,7 @@ function makeUsage(state: AuthState, strings: Record<string, string>): HTMLEleme
     const track = document.createElement("div"); track.className = "usage-track"; track.setAttribute("role", "progressbar"); track.setAttribute("aria-valuemin", "0"); track.setAttribute("aria-valuemax", String(limit)); track.setAttribute("aria-valuenow", String(Math.min(used, limit)));
     const fill = document.createElement("div"); fill.className = "usage-fill"; fill.style.width = `${Math.min(used / limit * 100, 100)}%`; if (reached) fill.classList.add("is-limit"); track.append(fill); usage.append(track);
   }
+  appendUpgradeCta(usage, state, strings, lang);
   return usage;
 }
 

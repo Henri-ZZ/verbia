@@ -104,7 +104,10 @@ export async function exchangeSignInCode(): Promise<{ ok: boolean; message?: str
 export async function signOut(): Promise<void> {
   try {
     const client = await getClient();
-    await client.auth.signOut();
+    // Local scope only: supabase-js defaults to "global", which revokes the
+    // SAME account's sessions on other surfaces (e.g. the browser extension).
+    // Website and extension keep independent login states by design.
+    await client.auth.signOut({ scope: "local" });
   } catch {
     // Local session clearing below still applies.
   }

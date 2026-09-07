@@ -1,5 +1,5 @@
 import { DEFAULT_SETTINGS, UI_STRINGS, generateReplyRequestSchema, generateReplyResponseSchema, resolveUiLang, type AccountUsage, type AuthState, type ExtensionRequest, type ExtensionResponse, type StagedContext, type StagedSelection, type UiLang, type UserSettings } from "@verbia/shared";
-import { SUPABASE_URL, authBearer, authEnabled, authSnapshot, getSupabase, signOut } from "../auth/supabase";
+import { SUPABASE_URL, authBearer, authEnabled, authSnapshot, clearSession, getSupabase, refreshStoredSession, signOut } from "../auth/supabase";
 
 const ADD_CONTEXT_MENU_ID = "verbia-add-context";
 const MAX_SELECTION_LENGTH = 8_000;
@@ -243,9 +243,25 @@ async function accountSnapshot(): Promise<AuthState> {
   const [settings, bearer] = await Promise.all([getSettings(), authBearer()]);
   if (!bearer) return identity;
   try {
-    const response = await fetch(`${apiBaseUrl(settings)}/v1/account/usage`, {
+    let response = await fetch(`${apiBaseUrl(settings)}/v1/account/usage`, {
       headers: { authorization: bearer }
     });
+    // A 401/403 usually means the access token was rejected server-side (for
+    // example after a global sign-out on another surface). Refresh once; if the
+    // server still refuses the session, treat the account as signed out so UI
+    // never lingers on "signed in but usage unavailable".
+    if (response.status === 401 || response.status === 403) {
+      if (await refreshStoredSession()) {
+        const freshBearer = await authBearer();
+        if (freshBearer) {
+          response = await fetch(`${apiBaseUrl(settings)}/v1/account/usage`, { headers: { authorization: freshBearer } });
+        }
+      }
+    }
+    if (response.status === 401 || response.status === 403) {
+      await clearSession();
+      return { signedIn: false };
+    }
     if (!response.ok) return identity;
     const usage = await response.json() as AccountUsage;
     if ((usage.plan !== "free" && usage.plan !== "premium") || !Number.isFinite(usage.used) || (usage.limit !== null && !Number.isFinite(usage.limit))) return identity;

@@ -119,6 +119,23 @@ export async function authBearer(): Promise<string | undefined> {
   return session?.access_token ? `Bearer ${session.access_token}` : undefined;
 }
 
+// Force one refresh of the stored session, e.g. after the server rejected the
+// current access token with 401. Returns true when a new token was obtained;
+// on failure the local session is cleared so every surface shows signed out.
+export async function refreshStoredSession(): Promise<boolean> {
+  if (!authEnabled) return false;
+  const session = await readSession();
+  if (!session?.refresh_token) return false;
+  try {
+    const { error } = await getSupabase().auth.refreshSession({ refresh_token: session.refresh_token });
+    if (error) { await clearSession(); return false; }
+    return Boolean((await readSession())?.access_token);
+  } catch {
+    await clearSession();
+    return false;
+  }
+}
+
 export type AuthSnapshot = {
   signedIn: boolean;
   email?: string;
@@ -160,7 +177,7 @@ export async function authSnapshot(): Promise<AuthSnapshot> {
 
 export async function signOut(): Promise<void> {
   try {
-    if (authEnabled) await getSupabase().auth.signOut();
+    if (authEnabled) await getSupabase().auth.signOut({ scope: "local" });
   } catch {
     // Sign-out still must clear local state even if the remote call fails.
   }

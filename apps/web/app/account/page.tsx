@@ -141,6 +141,14 @@ export default function AccountPage() {
       const token = data.session?.access_token;
       if (!token) return;
       const response = await fetch(`${API_BASE}/v1/account/usage`, { headers: { authorization: `Bearer ${token}` } });
+      if (response.status === 401 || response.status === 403) {
+        // The server rejected the token (e.g. revoked by a global sign-out on
+        // another surface). Sign out locally so we never linger signed-in with
+        // unusable usage.
+        await signOut();
+        setUser(null); setUsage(null); setState("signed_out");
+        return;
+      }
       if (!response.ok) return;
       const body = await response.json() as { plan?: string; used?: number; limit?: number | null; resetsAt?: string };
       const plan = body.plan === "premium" ? "premium" : "free";
@@ -230,7 +238,7 @@ export default function AccountPage() {
               <div className="account-identity-copy">
                 <span className="account-email-label">{t.emailLabel}</span>
                 <strong className="account-email">{user.email}</strong>
-                <span className="account-badges">{usage?.plan === "premium" ? <><span className="account-badge plan"><img className="premium-mark" src="/premium.png" alt="" width="14" height="14"/>{t.planPremium}</span></> : <span className="account-badge plan">{t.planFree}</span>}{provider && <span className="account-badge provider">{provider === "google" ? t.providerGoogle : t.providerEmail}</span>}</span>
+                <span className="account-badges">{usage?.plan === "premium" ? <><span className="account-badge plan"><img className="premium-mark" src="/premium.png" alt="" width="14" height="14"/>{t.planPremium}</span></> : <span className="account-badge plan">{t.planFree}</span>}{provider && (provider === "google" ? <span className="account-badge provider"><img className="provider-mark" src="/google.svg" alt={t.providerGoogle} width="14" height="14"/></span> : <span className="account-badge provider">{t.providerEmail}</span>)}</span>
               </div>
             </div>
 

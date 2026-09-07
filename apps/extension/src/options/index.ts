@@ -251,6 +251,10 @@ window.addEventListener("focus", () => { void applyShortcuts(); void renderAccou
 async function renderAccount() {
   const body = document.querySelector<HTMLElement>("#account-body");
   if (!body) return;
+  // Show a loading state right away while the account snapshot is fetched.
+  body.textContent = "";
+  body.className = "account-body";
+  body.append(createLoading());
   const response = await chrome.runtime.sendMessage({ type: "GET_AUTH_STATE" });
   const state = (response?.ok ? response.data : { signedIn: false }) as AuthState;
   body.textContent = "";
@@ -260,6 +264,50 @@ async function renderAccount() {
   } else {
     renderSignedOut(body);
   }
+}
+
+function createLoading(): HTMLElement {
+  const quickLang = resolveUiLang("auto", chrome.i18n.getUILanguage());
+  const wrap = document.createElement("div");
+  wrap.className = "account-loading";
+  const img = document.createElement("img");
+  img.className = "spinner";
+  img.src = "assets/loading.png";
+  img.alt = "";
+  img.width = 16;
+  img.height = 16;
+  const label = document.createElement("span");
+  label.textContent = UI_STRINGS[quickLang]["account.loading"] ?? "Loading…";
+  wrap.append(img, label);
+  return wrap;
+}
+
+// Free users see a tiered upgrade nudge beside their usage: quiet link by
+// default, amber at ~70% of the daily allowance, red when the limit is hit.
+// It opens the website account page (the Premium checkout) in a new tab.
+function appendUpgradeCta(usage: HTMLElement, state: AuthState): void {
+  if (state.plan !== "free") return;
+  const used = typeof state.usage?.used === "number" ? state.usage.used : null;
+  const limit = typeof state.usage?.limit === "number" && state.usage.limit !== null ? state.usage.limit : null;
+  let key = "account.upgradeLine";
+  let urgency = "";
+  if (used !== null && limit !== null && limit > 0) {
+    if (used >= limit) { key = "account.upgradeLimit"; urgency = " is-limit"; }
+    else if (used / limit >= 0.7) { key = "account.upgradeNear"; urgency = " is-near"; }
+  }
+  const link = document.createElement("a");
+  link.className = `upgrade-cta${urgency}`;
+  link.href = `https://verbia.henriz.dev/${lang.toLowerCase().startsWith("zh") ? "zh" : ""}#pricing`;
+  link.target = "_blank";
+  link.rel = "noopener";
+  const mark = document.createElement("img");
+  mark.className = "cta-mark";
+  mark.src = "assets/premium.png";
+  mark.alt = "";
+  mark.width = 14;
+  mark.height = 14;
+  link.append(mark, document.createTextNode(t(key)));
+  usage.append(link);
 }
 
 function renderSignedIn(body: HTMLElement, state: AuthState) {
@@ -303,6 +351,7 @@ function renderSignedIn(body: HTMLElement, state: AuthState) {
     const fill = document.createElement("div"); fill.className = "usage-fill"; fill.style.width = `${Math.min(used / limit * 100, 100)}%`; if (reached) fill.classList.add("is-limit"); track.append(fill); usage.append(track);
     const note = document.createElement("p"); note.className = "usage-note"; note.textContent = reached ? t("account.limitReached") : t("account.dailyAllowance"); usage.append(note);
   }
+  appendUpgradeCta(usage, state);
 
   const signOutButton = document.createElement("button");
   signOutButton.type = "button";
