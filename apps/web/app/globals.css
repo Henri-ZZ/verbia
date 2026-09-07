@@ -216,6 +216,7 @@ main {
   font-size: 12px;
   color: var(--outline);
 }
+.support-note { display: inline-flex; align-items: center; gap: 7px; }
 .support-note span {
   color: var(--primary);
   font-weight: 800;
@@ -1775,3 +1776,88 @@ button:focus-visible {
 .guide-ready > div { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 24px; }
 @media (max-width: 760px) { .guide-page { width: min(100% - 30px,980px); padding-top: 105px; } .guide-welcome { align-items: flex-start; } .guide-setup { grid-template-columns: 1fr; margin-bottom: 72px; padding: 27px; } .guide-section, .guide-privacy { margin-bottom: 72px; } .guide-universal { padding: 27px; } .guide-shortcut { grid-template-columns: auto 1fr; } .guide-shortcut small { grid-column: 1/-1; } .guide-controls { grid-template-columns: 1fr; } .guide-privacy { grid-template-columns: 1fr; } .guide-steps li { grid-template-columns: 42px 1fr; padding: 20px; gap: 14px; } }
 @media (max-width: 480px) { .guide-welcome { display: block; padding: 22px; } .guide-welcome-mark { width: 60px; height: 60px; margin-bottom: 15px; } .guide-welcome-mark img { width: 42px; height: 42px; } .guide-hero > p:not(.eyebrow) { font-size: 16px; } .guide-universal { margin-inline: -5px; padding: 22px 17px; } .guide-steps li { grid-template-columns: 1fr; } .guide-steps li > span { width: 34px; height: 34px; } .guide-ready { padding: 40px 20px; } .guide-ready > div, .guide-ready .button { width: 100%; } }
+
+/* ---- SEO landing pages ---- */
+.seo-page { overflow: hidden; }
+.seo-hero { max-width: 940px; padding-block: 105px 90px; text-align: center; }
+.seo-hero h1 { margin: 14px auto 22px; font: 730 clamp(42px,6vw,68px)/1.04 var(--display); letter-spacing: -.045em; }
+.seo-hero > p:not(.eyebrow) { max-width: 740px; margin: 0 auto; color: var(--muted); font-size: 18px; }
+.seo-trust { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px 26px; padding: 0; margin: 0; list-style: none; color: var(--outline); font-size: 12px; font-weight: 650; }
+.seo-trust li::before { content: "✓"; margin-right: 7px; color: var(--primary); }
+.seo-example { padding: 55px; display: grid; grid-template-columns: .85fr 1.15fr; gap: 60px; align-items: center; background: var(--paper); border-radius: 22px; box-shadow: 0 18px 50px -20px rgba(23,32,25,.16); }
+.seo-example-copy h2, .seo-heading h2 { margin: 8px 0 14px; font: 720 clamp(30px,4vw,42px)/1.12 var(--display); letter-spacing: -.035em; }
+.seo-example-copy > p:last-child, .seo-heading > p:last-child { color: var(--muted); font-size: 16px; }
+.seo-example-card { padding: 25px; background: var(--low); border: 1px solid var(--border); border-radius: 16px; }
+.seo-example-card > div { padding: 20px; background: rgba(255,255,255,.82); border-radius: 11px; }
+.seo-example-card > div.result { border: 1px solid rgba(15,110,86,.18); }
+.seo-example-card span { color: var(--primary); font-size: 11px; font-weight: 750; letter-spacing: .06em; text-transform: uppercase; }
+.seo-example-card p { margin: 7px 0 0; font-size: 15px; }
+.seo-example-card .result p { font-size: 17px; font-weight: 650; }
+.seo-arrow { display: block; padding: 7px; text-align: center; }
+.seo-section, .seo-flow, .seo-use-cases, .seo-faq { padding-block: 110px; }
+.seo-heading { max-width: 700px; margin-bottom: 42px; }
+.seo-card-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 16px; }
+.seo-card-grid article, .seo-use-cases article { padding: 28px; background: var(--paper); border-radius: 14px; box-shadow: 0 4px 18px rgba(23,32,25,.05); }
+.seo-card-grid h3, .seo-use-cases h3 { margin: 17px 0 8px; font: 700 19px/1.25 var(--display); }
+.seo-card-grid p, .seo-use-cases p { margin: 0; color: var(--muted); }
+.seo-icon { width: 42px; height: 42px; display: grid; place-items: center; background: var(--jade); border-radius: 10px; color: var(--primary-dark); font-weight: 800; }
+.seo-flow { display: grid; grid-template-columns: .8fr 1.2fr; gap: 70px; }
+.seo-flow ol { display: flex; flex-direction: column; gap: 12px; padding: 0; margin: 0; list-style: none; }
+.seo-flow li { padding: 26px; display: grid; grid-template-columns: 48px 1fr; gap: 18px; background: var(--paper); border-radius: 14px; }
+.seo-flow li > span { color: var(--primary); font: 750 14px var(--display); }
+.seo-flow h3 { margin: 0 0 6px; font: 700 19px var(--display); }
+.seo-flow li p { margin: 0; color: var(--muted); }
+.seo-use-cases { padding-top: 30px; }
+.seo-use-cases > div:last-child { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 16px; }
+.seo-scope { padding: 35px 40px; display: grid; grid-template-columns: auto 1fr auto; gap: 26px; align-items: center; background: linear-gradient(135deg,#e2f8e9,#f9fdfa); border: 1px solid rgba(15,110,86,.14); border-radius: 18px; }
+.seo-scope h2 { margin: 5px 0 7px; font: 700 25px/1.2 var(--display); }
+.seo-scope p { margin: 0; color: var(--muted); }
+.seo-scope > a, .seo-scope-links a { color: var(--primary); font-weight: 700; white-space: nowrap; }
+.seo-scope-links { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.seo-faq { max-width: 840px; }
+@media (max-width: 900px) { .seo-card-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } .seo-example, .seo-flow { grid-template-columns: 1fr; gap: 35px; } .seo-scope { grid-template-columns: auto 1fr; } .seo-scope-links { grid-column: 2; } }
+@media (max-width: 680px) { .seo-hero { padding-block: 70px 65px; } .seo-hero h1 { font-size: 40px; } .seo-example { width: min(100% - 30px,1180px); padding: 26px 20px; } .seo-section, .seo-flow, .seo-use-cases, .seo-faq { padding-block: 72px; } .seo-card-grid, .seo-use-cases > div:last-child { grid-template-columns: 1fr; } .seo-flow { gap: 16px; } .seo-flow li { padding: 22px 18px; } .seo-scope { grid-template-columns: 1fr; padding: 28px 22px; } .seo-scope-links { grid-column: auto; } }
+
+/* ---- Reddit reply generator ---- */
+.reddit-logo { flex: 0 0 auto; object-fit: contain; }
+.platform-eyebrow, .platform-title, .platform-pill { display: flex; align-items: center; gap: 9px; }
+.platform-title { margin-top: 15px !important; }
+.platform-pill { width: max-content; margin: 0 auto; padding: 7px 13px; background: rgba(255,255,255,.82); border: 1px solid rgba(255,69,0,.12); border-radius: 999px; color: #a83200; font-size: 11px; font-weight: 750; letter-spacing: .07em; }
+.reddit-hero { background: radial-gradient(circle at 50% 35%,rgba(255,69,0,.07),transparent 48%); }
+.reddit-demo { padding: 18px; display: grid; grid-template-columns: 1.15fr .85fr; gap: 18px; background: #e9f3eb; border: 1px solid var(--border); border-radius: 22px; box-shadow: 0 18px 50px -20px rgba(23,32,25,.16); }
+.reddit-thread, .reddit-assistant { background: var(--paper); border-radius: 15px; }
+.reddit-thread { padding: 28px; }
+.reddit-thread-head { display: flex; align-items: center; gap: 11px; }
+.reddit-thread-head div { display: flex; flex-direction: column; }
+.reddit-thread-head span { font-weight: 720; }
+.reddit-thread-head small { color: var(--outline); }
+.reddit-thread > h2 { margin: 20px 0 27px; font: 700 25px/1.25 var(--display); }
+.reddit-comment { position: relative; padding-left: 25px; }
+.comment-line { position: absolute; inset: 3px auto 0 4px; width: 2px; background: var(--border); border-radius: 2px; }
+.reddit-comment > b { font-size: 12px; }
+.reddit-comment > p { margin: 7px 0 12px; color: var(--muted); }
+.comment-actions { display: flex; gap: 18px; color: var(--outline); font-size: 12px; font-weight: 650; }
+.reddit-reply-box { margin-top: 22px; min-height: 52px; padding: 13px 15px; display: flex; justify-content: space-between; align-items: center; gap: 12px; border: 1px solid var(--border); border-radius: 9px; color: var(--outline); }
+.reddit-reply-box span { display: flex; align-items: center; gap: 7px; color: var(--primary); font-size: 12px; font-weight: 700; }
+.reddit-assistant { overflow: hidden; border: 1px solid rgba(15,110,86,.16); }
+.reddit-assistant header { padding: 16px 18px; display: flex; align-items: center; gap: 9px; border-bottom: 1px solid var(--border); }
+.reddit-assistant header span { margin-left: auto; color: var(--primary); font-size: 11px; font-weight: 700; }
+.reddit-assistant > div { padding: 22px; }
+.reddit-assistant small { color: var(--primary); font-size: 10px; font-weight: 750; letter-spacing: .08em; }
+.reddit-intent, .reddit-assistant blockquote { margin: 7px 0 19px; padding: 14px; background: var(--low); border-radius: 9px; }
+.reddit-assistant blockquote { margin-bottom: 16px; background: #f8fbf9; border-left: 3px solid var(--primary); font-size: 15px; font-weight: 620; }
+.reddit-assistant button { width: 100%; padding: 11px; border: 0; border-radius: 8px; background: var(--primary); color: white; font-weight: 700; }
+.step-platform { display: flex; align-items: flex-start; }
+.reddit-use-cases { padding-block: 40px 110px; }
+.reddit-case-list { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; }
+.reddit-case-list article { padding: 25px; display: grid; grid-template-columns: 38px 1fr; gap: 14px; background: var(--paper); border-radius: 13px; }
+.reddit-case-list article > span { color: #ff4500; font: 750 12px var(--display); }
+.reddit-case-list h3 { margin: 0 0 6px; font: 700 18px var(--display); }
+.reddit-case-list p { margin: 0; color: var(--muted); }
+.reddit-boundary { padding: 38px 42px; display: grid; grid-template-columns: auto 1fr; gap: 25px; align-items: center; background: linear-gradient(135deg,#fff4ef,#fff); border: 1px solid rgba(255,69,0,.13); border-radius: 18px; }
+.reddit-boundary h2 { margin: 5px 0 8px; font: 700 27px/1.2 var(--display); }
+.reddit-boundary p { margin: 0; color: var(--muted); }
+.platform-disclaimer { margin-top: -65px; padding-bottom: 55px; text-align: center; color: var(--outline); font-size: 11px; }
+.platform-disclaimer a { color: var(--primary); font-weight: 700; }
+@media (max-width: 800px) { .reddit-demo { grid-template-columns: 1fr; } }
+@media (max-width: 680px) { .reddit-demo { width: min(100% - 30px,1180px); padding: 10px; } .reddit-thread { padding: 20px 17px; } .reddit-reply-box { align-items: flex-start; flex-direction: column; } .reddit-use-cases { padding-block: 20px 72px; } .reddit-case-list { grid-template-columns: 1fr; } .reddit-boundary { grid-template-columns: 1fr; padding: 28px 22px; } .platform-disclaimer { margin-top: -45px; padding-bottom: 40px; } }

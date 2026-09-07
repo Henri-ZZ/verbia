@@ -6,6 +6,7 @@ import { InstallLink } from "./install-link";
 import { LanguageRedirect, RememberLocale, type SiteLocale } from "./language-redirect";
 import { SiteHeader } from "./site-header";
 import { SiteFooter } from "./site-footer";
+import { RedditLogo } from "./reddit-logo";
 
 const copy = {
   en: {
@@ -121,7 +122,7 @@ export function GettingStarted({ locale }: { locale: SiteLocale }) {
 
       <section className="guide-setup" aria-labelledby="setup-title"><div><p className="eyebrow">01</p><h2 id="setup-title">{t.start}</h2><p>{t.startBody}</p><Link className="button primary" href={`/account?locale=${locale}`}>{t.account} <span aria-hidden="true">→</span></Link></div><aside><span aria-hidden="true">⌖</span><div><h3>{t.pinTitle}</h3><p>{t.pinBody}</p></div></aside></section>
 
-      <section className="guide-section" aria-labelledby="reddit-title"><header><p className="eyebrow">{t.redditEyebrow}</p><h2 id="reddit-title">{t.redditTitle}</h2><p>{t.redditIntro}</p></header><StepList steps={t.redditSteps}/></section>
+      <section className="guide-section" aria-labelledby="reddit-title"><header><p className="eyebrow platform-eyebrow"><RedditLogo size={22}/>{t.redditEyebrow}</p><h2 id="reddit-title">{t.redditTitle}</h2><p>{t.redditIntro}</p></header><StepList steps={t.redditSteps}/></section>
 
       <section className="guide-section guide-universal" aria-labelledby="universal-title"><header><p className="eyebrow">{t.universalEyebrow}</p><h2 id="universal-title">{t.universalTitle}</h2><p>{t.universalIntro}</p></header><div className="guide-shortcut"><span>{t.shortcut}</span><kbd>{shortcut}</kbd><small>{t.shortcutHint}</small></div><StepList steps={t.universalSteps}/></section>
 
@@ -131,7 +132,7 @@ export function GettingStarted({ locale }: { locale: SiteLocale }) {
 
       <section className="guide-section guide-help" aria-labelledby="help-title"><header><p className="eyebrow">04</p><h2 id="help-title">{t.helpTitle}</h2></header><div>{t.help.map(([question, answer]) => <details key={question}><summary>{question}</summary><p>{answer}</p></details>)}</div></section>
 
-      <section className="guide-ready" id="install"><img src="/verbia-mark.svg" alt="" width="48" height="48"/><h2>{t.ready}</h2><p>{t.readyBody}</p><div>{!installed && <InstallLink label={locale === "zh" ? "立即安装" : "Install now"}/>}<a className="button primary" href="https://www.reddit.com/" target="_blank" rel="noreferrer">{t.openReddit} <span aria-hidden="true">↗</span></a><Link className="button secondary" href={`/account?locale=${locale}`}>{t.settings}</Link></div></section>
+      <section className="guide-ready" id="install"><img src="/verbia-mark.svg" alt="" width="48" height="48"/><h2>{t.ready}</h2><p>{t.readyBody}</p><div>{!installed && <InstallLink label={locale === "zh" ? "立即安装" : "Install now"}/>}<a className="button primary" href="https://www.reddit.com/" target="_blank" rel="noreferrer"><RedditLogo size={20}/>{t.openReddit} <span aria-hidden="true">↗</span></a><Link className="button secondary" href={`/account?locale=${locale}`}>{t.settings}</Link></div></section>
     </main><SiteFooter locale={locale}/>
   </div>;
 }
