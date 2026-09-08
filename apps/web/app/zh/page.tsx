@@ -6,6 +6,7 @@ import { SiteHeader } from "../../components/site-header";
 import { ProCheckout } from "../../components/pro-checkout";
 import { SiteFooter } from "../../components/site-footer";
 import { RedditLogo } from "../../components/reddit-logo";
+import { EmailPlatformLogos } from "../../components/email-platform-logos";
 
 export const metadata: Metadata = {
   title: "Verbia — AI 回复与写作助手",
@@ -38,7 +39,7 @@ const faqs: FaqItem[] = [
   { question: "可以不用打字，直接说话吗？", answer: "可以。你可以使用扩展中的语音输入，自然地说出你的想法。" },
   { question: "Verbia 能理解对话上下文吗？", answer: "可以。你调用 Verbia 时，它会读取相关的可见对话，从而回应正确的内容并适应当前语气。" },
   { question: "Verbia 会自动发送消息吗？", answer: "不会。Verbia 只准备草稿，你可以检查、编辑、插入，再自行发送。" },
-  { question: "Verbia 目前在哪里可以使用？", answer: "首个版本直接支持 Reddit，并通过通用模式适配其他网页编辑器。更多浏览器网站适配会陆续加入。" }
+  { question: "Verbia 目前在哪里可以使用？", answer: "自动模式支持 Reddit、Gmail 网页版和 Outlook 网页版。其他网站可通过通用模式在受支持的编辑器中手动添加所选文字作为上下文。" }
 ];
 
 function SectionHeading({ eyebrow, title, body }: { eyebrow: string; title: string; body?: string }) {
@@ -49,7 +50,7 @@ function Mark() { return <img className="mark" src="/verbia-mark.svg" alt="" wid
 export default function ChineseHomePage() {
   const jsonLd = { "@context": "https://schema.org", "@type": "SoftwareApplication", name: "Verbia", applicationCategory: "BrowserApplication", operatingSystem: "Chrome, Edge, Firefox", inLanguage: "zh-CN", offers: { "@type": "Offer", price: "0", priceCurrency: "USD" }, description: "理解上下文，把任何语言中的真实意图转化为自然回复的浏览器写作助手。" };
   return <div lang="zh-CN"><RememberLocale locale="zh"/><SiteHeader locale="zh"/><main id="main"><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}/>
-    <section className="hero shell"><div className="pill"><span className="live-dot"/>Verbia 浏览器扩展 · 页面内写作助手</div><h1>告诉我你想说什么，<em>用任何语言都可以。</em></h1><p className="hero-copy">Verbia 理解当前对话，把你的真实意思转化为自然、贴合上下文的回复。</p><div className="hero-actions"><InstallLink label="立即安装"/><a className="button secondary" href="#how-it-works">看看如何使用 <span aria-hidden="true">→</span></a></div><p className="support-note"><RedditLogo size={17}/> Reddit 自动识别上下文 · 其他网站可手动选择文字作为上下文</p></section>
+    <section className="hero shell"><div className="pill"><span className="live-dot"/>Verbia 浏览器扩展 · 页面内写作助手</div><h1>告诉我你想说什么，<em>用任何语言都可以。</em></h1><p className="hero-copy">Verbia 理解当前对话，把你的真实意思转化为自然、贴合上下文的回复。</p><div className="hero-actions"><InstallLink label="立即安装"/><a className="button secondary" href="#how-it-works">看看如何使用 <span aria-hidden="true">→</span></a></div><p className="support-note"><RedditLogo size={17}/><EmailPlatformLogos size={17}/> Reddit、Gmail 和 Outlook 网页版自动识别上下文 · 其他网站可手动选择文字</p></section>
 
     <section className="product-demo shell" aria-labelledby="demo-title"><div className="browser"><div className="browser-bar"><span className="traffic"><i/><i/><i/></span><span className="address">threads.designcommunity.internal/discussions/p891</span><span aria-hidden="true">•••</span></div><div className="browser-page"><div className="discussion"><span className="tag">技术与产品讨论</span><h2 id="demo-title">关于新套餐定价的讨论</h2><div className="message"><b>MR</b><p><strong>Marcus Reid <small>产品负责人</small></strong>“I get your point, but I still think the subscription is pretty affordable compared to the alternatives.”</p></div></div><div className="assistant"><div className="assistant-head"><span><Mark/><strong>Verbia 助手</strong></span><span className="status">● 已在当前页面启用</span></div><div className="assistant-body"><p className="step-label">第 1 步 — 我想表达的意思</p><div className="intent"><strong>“我基本同意他的观点，但是我觉得现在的价格已经不算便宜了。语气随意一点，别太冲。”</strong><span>语言：简体中文 · 语气：轻松、客观</span></div><div className="transform"><span>对话上下文</span><b>+</b><span>用户意图</span><b>→</b><strong>Verbia</strong></div><div className="draft"><p className="step-label">自然回复 · 可以插入</p><blockquote>“I mostly agree with your point, but I’m not sure I’d call it cheap anymore. The price has gone up quite a bit.”</blockquote><div><button type="button">插入回复</button><button type="button" className="quiet">调整语气</button></div></div></div></div></div></div><p className="formula"><b>对话上下文</b> + 我想表达的意思 → <b>自然回复</b></p></section>
 
@@ -68,7 +69,7 @@ export default function ChineseHomePage() {
     <section className="section shell pricing" id="pricing"><SectionHeading eyebrow="清晰定价" title="简单、透明地使用。"/><div className="card-grid two"><article className="price-card"><h3>免费版</h3><p className="price">$0 <small>永久免费</small></p><p>与 Premium 功能完全一致，每天回复上限为 10 次。</p><ul className="checks"><li>每天 10 次上下文回复</li><li>多语言文字意图输入</li><li>语音输入</li><li>浏览器扩展</li></ul><InstallLink className="button secondary full" label="立即安装"/></article><article className="price-card premium"><span className="tag">年付节省 42%</span><h3>Verbia Premium <img className="premium-mark" src="/premium.png" alt="" width="22" height="22"/></h3><p className="price">$9.99 <small>/ 月</small></p><p>与免费版功能完全一致，仅将每日次数放开到 100 次。</p><ul className="checks"><li>每天 100 次上下文回复</li><li>多语言文字意图输入</li><li>语音输入</li><li>浏览器扩展</li></ul><ProCheckout locale="zh"/></article></div></section>
 
     <section className="section shell faq" id="faq"><SectionHeading eyebrow="问题与解答" title="常见问题"/><Faq items={faqs}/></section>
-    <section className="roadmap shell" aria-labelledby="roadmap-title"><div className="roadmap-copy"><p className="eyebrow">即将支持</p><h2 id="roadmap-title">更多平台与上下文能力正在路上。</h2><p>自动模式目前支持 Reddit，可直接识别帖子和评论上下文。在其他网站上，你仍可通过通用模式选择文字并添加为上下文。</p></div><div className="roadmap-items" aria-label="产品路线"><article><span className="roadmap-status available">目前可用</span><h3 className="platform-title"><RedditLogo size={24}/>Reddit 自动上下文</h3><p>识别帖子与评论链</p></article><article><span className="roadmap-status planned">未来计划</span><h3>X 等主流社交平台</h3><p>增加更多深度适配</p></article><article><span className="roadmap-status planned">未来计划</span><h3>图片与视频上下文</h3><p>从文字扩展到更多内容形式</p></article></div></section>
+    <section className="roadmap shell" aria-labelledby="roadmap-title"><div className="roadmap-copy"><p className="eyebrow">目前可用与未来计划</p><h2 id="roadmap-title">更多平台与上下文能力正在路上。</h2><p>自动模式支持 Reddit、Gmail 和 Outlook 网页版。其他网站仍可通过通用模式选择文字并添加为上下文。</p></div><div className="roadmap-items" aria-label="产品路线"><article><span className="roadmap-status available">目前可用</span><h3 className="platform-title"><RedditLogo size={24}/>Reddit</h3><p>识别帖子与评论链</p></article><article><span className="roadmap-status available">目前可用</span><h3 className="platform-title"><EmailPlatformLogos size={24}/>Gmail 与 Outlook 网页版</h3><p>识别可见邮件上下文</p></article><article><span className="roadmap-status planned">未来计划</span><h3>X 等主流社交平台</h3><p>增加更多深度适配</p></article><article><span className="roadmap-status planned">未来计划</span><h3>图片与视频上下文</h3><p>从文字扩展到更多内容形式</p></article></div></section>
     <section className="final-cta shell" id="install"><Mark/><h2>告诉我你想说什么。</h2><p>用任何语言都可以。</p><InstallLink label="立即安装"/><small>免费安装 · 无需信用卡</small></section>
   </main><SiteFooter locale="zh"/></div>;
 }

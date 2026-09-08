@@ -7,6 +7,7 @@ import { LanguageRedirect, RememberLocale, type SiteLocale } from "./language-re
 import { SiteHeader } from "./site-header";
 import { SiteFooter } from "./site-footer";
 import { RedditLogo } from "./reddit-logo";
+import { EmailPlatformLogos } from "./email-platform-logos";
 
 const copy = {
   en: {
@@ -24,13 +25,22 @@ const copy = {
     pinBody: "Open your browser’s Extensions menu, find Verbia, and choose Pin. The Verbia icon will stay beside the address bar.",
     redditEyebrow: "REDDIT · AUTOMATIC MODE",
     redditTitle: "Reply with context automatically",
-    redditIntro: "Reddit is currently Verbia’s dedicated integration. It can identify the post and comment chain you are replying to.",
+    redditIntro: "On Reddit, Verbia can identify the post and comment chain you are replying to.",
     redditSteps: [
       ["Open a reply box", "Visit a Reddit post and click the reply field under the post or comment you want to answer. Verbia appears beside the editor."],
       ["Review the context", "Expand the context preview if you want to see what Verbia found. You can remove context before generating."],
       ["Say what you mean", "Type your thought in the language that feels most natural. You can also use voice input and choose the reply language, tone, and length."],
       ["Generate and review", "Choose Generate. Read and edit the draft before you use it. If needed, generate again with clearer intent or different settings."],
       ["Insert, then send yourself", "Insert the draft into Reddit’s reply box, make any final edits, and send it yourself. Verbia never clicks Send."],
+    ],
+    emailEyebrow: "GMAIL & OUTLOOK WEB · AUTOMATIC MODE",
+    emailTitle: "Reply with the open email as context",
+    emailIntro: "In Gmail and Outlook on the web, Verbia can use the visible email conversation while you compose or reply.",
+    emailSteps: [
+      ["Open an email editor", "Start a new message or open a reply editor in Gmail or Outlook on the web. Focus the message body, then open Verbia."],
+      ["Review the email context", "Check the context preview to confirm Verbia found the right visible message. Remove anything you do not want to include."],
+      ["Describe the reply", "Type or dictate what you want to say in any language, then choose the output language, tone, and length."],
+      ["Generate, edit, and send", "Insert or copy the draft, make any final edits, and press Send yourself. Verbia never sends an email for you."],
     ],
     universalEyebrow: "OTHER WEBSITES · UNIVERSAL MODE",
     universalTitle: "Use Verbia wherever you write",
@@ -48,9 +58,9 @@ const copy = {
     privacyTitle: "You stay in control",
     privacy: ["Verbia reads relevant visible text only after you invoke it.", "Context and intent are sent only when you choose Generate.", "Every result is an editable draft; nothing is posted automatically.", "Page text, intent, transcripts, and drafts are not stored as conversation history by Verbia."],
     helpTitle: "If something doesn’t work",
-    help: [["The panel did not appear", "On Reddit, click a reply box first. On another site, focus an editable field and use the shortcut. Some protected browser pages do not allow extensions."], ["The wrong context was detected", "Open the context preview and remove it, or select the exact text you need and add it from the right-click menu."], ["Insert is unavailable", "Some complex editors do not expose a reliable insertion point. Choose Copy, then paste the draft manually."], ["You are asked to sign in", "Online generation requires a Verbia account. Sign in from the extension’s Account area using Google or an email magic link."], ["The daily allowance is used", "Free accounts receive 10 generations per day. Premium includes 100 per day. Allowances reset at 00:00 UTC and do not roll over."]],
+    help: [["The panel did not appear", "Click a Reddit reply box or a Gmail/Outlook compose or reply editor first. On another site, focus an editable field and use the shortcut. Some protected browser pages do not allow extensions."], ["The wrong context was detected", "Open the context preview and remove it, or select the exact text you need and add it from the right-click menu."], ["Insert is unavailable", "Some complex editors do not expose a reliable insertion point. Choose Copy, then paste the draft manually."], ["You are asked to sign in", "Online generation requires a Verbia account. Sign in from the extension’s Account area using Google or an email magic link."], ["The daily allowance is used", "Free accounts receive 10 generations per day. Premium includes 100 per day. Allowances reset at 00:00 UTC and do not roll over."]],
     ready: "Ready to try your first reply?",
-    readyBody: "Open Reddit or any page with a text field, focus the place where you want to reply, and open Verbia.",
+    readyBody: "Open Reddit, Gmail, Outlook, or any page with a text field, focus the place where you want to reply, and open Verbia.",
     openReddit: "Try it on Reddit",
     settings: "View account",
   },
@@ -69,13 +79,22 @@ const copy = {
     pinBody: "打开浏览器的“扩展程序”菜单，找到 Verbia 并选择固定。之后地址栏旁会一直显示 Verbia 图标。",
     redditEyebrow: "REDDIT · 自动模式",
     redditTitle: "自动带上正在回复的上下文",
-    redditIntro: "Reddit 是 Verbia 目前直接适配的平台。它能够识别你正在回复的帖子、评论以及相关评论链。",
+    redditIntro: "在 Reddit 上，Verbia 能够识别你正在回复的帖子、评论以及相关评论链。",
     redditSteps: [
       ["打开回复框", "进入一个 Reddit 帖子，点击想回复的帖子或评论下方的输入框，Verbia 面板会出现在编辑器旁边。"],
       ["检查上下文", "你可以展开上下文预览，查看 Verbia 找到了什么。生成前可以移除不需要的上下文。"],
       ["说出你的意思", "使用自己最自然的语言输入想法，也可以使用语音输入，并选择回复语言、语气和长度。"],
       ["生成并审核", "点击“生成”，阅读并修改草稿。需要时，可以补充更清楚的意图或调整设置后重新生成。"],
       ["插入后自行发送", "把草稿插入 Reddit 回复框，完成最后修改，再由你自己发送。Verbia 永远不会替你点击发送。"],
+    ],
+    emailEyebrow: "GMAIL 与 OUTLOOK 网页版 · 自动模式",
+    emailTitle: "自动带上当前邮件上下文",
+    emailIntro: "在 Gmail 和 Outlook 网页版中，Verbia 可以在你写信或回复时参考当前可见的邮件对话。",
+    emailSteps: [
+      ["打开邮件编辑器", "在 Gmail 或 Outlook 网页版中新建邮件或打开回复框。聚焦邮件正文，然后唤起 Verbia。"],
+      ["检查邮件上下文", "查看上下文预览，确认 Verbia 找到了正确的可见邮件。不希望发送给 AI 的内容可以先移除。"],
+      ["描述你想怎么回复", "用任意语言输入或说出你的意思，再选择输出语言、语气和长度。"],
+      ["生成、修改并自行发送", "插入或复制草稿，完成最后修改，再由你点击发送。Verbia 永远不会替你发送邮件。"],
     ],
     universalEyebrow: "其他网站 · 通用模式",
     universalTitle: "在你写作的页面使用 Verbia",
@@ -93,9 +112,9 @@ const copy = {
     privacyTitle: "所有决定都在你手中",
     privacy: ["只有你主动唤起后，Verbia 才会读取相关可见文字。", "只有点击“生成”时，上下文和意图才会发送。", "每次结果都是可编辑草稿，不会被自动发布。", "Verbia 不会把页面正文、意图、语音转写或草稿保存为对话历史。"],
     helpTitle: "遇到问题时",
-    help: [["面板没有出现", "在 Reddit 上先点击回复框；在其他网站先聚焦可编辑输入框，再使用快捷键。部分受保护的浏览器页面不允许扩展运行。"], ["识别了错误的上下文", "打开上下文预览并移除，或者准确选中需要的文字，通过右键菜单加入。"], ["无法直接插入", "部分复杂编辑器无法提供可靠的插入位置。请选择“复制”，再手动粘贴草稿。"], ["页面要求登录", "在线生成需要 Verbia 账号。请在扩展的账号区域使用 Google 或邮箱免密链接登录。"], ["今日额度已经用完", "免费账号每天 10 次，Premium 每天 100 次。额度在 UTC 0 点重置，不能结转。"]],
+    help: [["面板没有出现", "先点击 Reddit 回复框，或 Gmail/Outlook 的写信、回复编辑器；在其他网站先聚焦可编辑输入框，再使用快捷键。部分受保护的浏览器页面不允许扩展运行。"], ["识别了错误的上下文", "打开上下文预览并移除，或者准确选中需要的文字，通过右键菜单加入。"], ["无法直接插入", "部分复杂编辑器无法提供可靠的插入位置。请选择“复制”，再手动粘贴草稿。"], ["页面要求登录", "在线生成需要 Verbia 账号。请在扩展的账号区域使用 Google 或邮箱免密链接登录。"], ["今日额度已经用完", "免费账号每天 10 次，Premium 每天 100 次。额度在 UTC 0 点重置，不能结转。"]],
     ready: "准备好尝试第一条回复了吗？",
-    readyBody: "打开 Reddit 或任意带文本框的页面，聚焦想回复的位置，然后唤起 Verbia。",
+    readyBody: "打开 Reddit、Gmail、Outlook 或任意带文本框的页面，聚焦想回复的位置，然后唤起 Verbia。",
     openReddit: "前往 Reddit 试用",
     settings: "查看账号",
   },
@@ -123,6 +142,8 @@ export function GettingStarted({ locale }: { locale: SiteLocale }) {
       <section className="guide-setup" aria-labelledby="setup-title"><div><p className="eyebrow">01</p><h2 id="setup-title">{t.start}</h2><p>{t.startBody}</p><Link className="button primary" href={`/account?locale=${locale}`}>{t.account} <span aria-hidden="true">→</span></Link></div><aside><span aria-hidden="true">⌖</span><div><h3>{t.pinTitle}</h3><p>{t.pinBody}</p></div></aside></section>
 
       <section className="guide-section" aria-labelledby="reddit-title"><header><p className="eyebrow platform-eyebrow"><RedditLogo size={22}/>{t.redditEyebrow}</p><h2 id="reddit-title">{t.redditTitle}</h2><p>{t.redditIntro}</p></header><StepList steps={t.redditSteps}/></section>
+
+      <section className="guide-section" aria-labelledby="email-title"><header><p className="eyebrow platform-eyebrow"><EmailPlatformLogos size={22}/>{t.emailEyebrow}</p><h2 id="email-title">{t.emailTitle}</h2><p>{t.emailIntro}</p></header><StepList steps={t.emailSteps}/></section>
 
       <section className="guide-section guide-universal" aria-labelledby="universal-title"><header><p className="eyebrow">{t.universalEyebrow}</p><h2 id="universal-title">{t.universalTitle}</h2><p>{t.universalIntro}</p></header><div className="guide-shortcut"><span>{t.shortcut}</span><kbd>{shortcut}</kbd><small>{t.shortcutHint}</small></div><StepList steps={t.universalSteps}/></section>
 

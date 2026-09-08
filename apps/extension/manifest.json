@@ -3,7 +3,7 @@
   "manifest_version": 3,
   "name": "__MSG_extensionName__",
   "default_locale": "en",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "__MSG_description__",
   "minimum_chrome_version": "120",
   "icons": {
@@ -38,7 +38,11 @@
   "options_page": "options.html",
   "web_accessible_resources": [
     {
-      "resources": ["icons/verbia-logo.svg", "icons/verbia-horizontal-logo.svg", "assets/*"],
+      "resources": [
+        "icons/verbia-logo.svg",
+        "icons/verbia-horizontal-logo.svg",
+        "assets/*"
+      ],
       "matches": ["<all_urls>"]
     }
   ],
@@ -56,7 +60,12 @@
       "match_about_blank": true
     },
     {
-      "matches": ["https://outlook.live.com/*", "https://outlook.office.com/*", "https://outlook.com/*", "https://www.outlook.com/*"],
+      "matches": [
+        "https://outlook.live.com/*",
+        "https://outlook.office.com/*",
+        "https://outlook.com/*",
+        "https://www.outlook.com/*"
+      ],
       "js": ["content.js"],
       "run_at": "document_idle"
     }

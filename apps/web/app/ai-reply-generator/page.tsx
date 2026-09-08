@@ -5,6 +5,7 @@ import { InstallLink } from "../../components/install-link";
 import { SiteFooter } from "../../components/site-footer";
 import { SiteHeader } from "../../components/site-header";
 import { RedditLogo } from "../../components/reddit-logo";
+import { EmailPlatformLogos } from "../../components/email-platform-logos";
 
 export const metadata: Metadata = {
   title: "AI Reply Generator for Natural, Context-Aware Replies | Verbia",
@@ -27,7 +28,7 @@ const faqItems: FaqItem[] = [
   { question: "What is an AI reply generator?", answer: "An AI reply generator turns a short description of what you want to say into a complete response. Verbia also uses the relevant conversation context, your chosen language, tone, and length to make the draft fit the exchange." },
   { question: "Can Verbia generate replies in different languages?", answer: "Yes. You can describe your intent in the language that feels natural to you and choose a different language for the final reply. Verbia focuses on preserving your meaning rather than translating word for word." },
   { question: "Does the AI reply generator send messages automatically?", answer: "No. Verbia only prepares a draft. You review, edit, insert, or discard it, and you decide whether to send it." },
-  { question: "Where can I use Verbia?", answer: "Automatic Mode currently recognizes post and comment context on Reddit. On other websites, Universal Mode lets you select text and add it as context before generating a reply." },
+  { question: "Where can I use Verbia?", answer: "Automatic Mode recognizes relevant context on Reddit, Gmail on the web, and Outlook on the web. On other websites, Universal Mode lets you select text and add it as context before generating a reply." },
   { question: "Is Verbia free?", answer: "The Free plan includes 10 generations per day. Verbia Premium raises the daily allowance to 100 generations while keeping the same core features." },
 ];
 
@@ -74,7 +75,7 @@ export default function AiReplyGeneratorPage() {
     </div></section>
 
     <section className="seo-flow shell" aria-labelledby="flow-title"><div className="seo-heading"><p className="eyebrow">HOW IT WORKS</p><h2 id="flow-title">A useful reply in three steps.</h2></div><ol>
-      <li><span className="step-platform"><RedditLogo size={28}/></span><div><h3>Open Verbia in the conversation</h3><p>On Reddit, Automatic Mode identifies the post and comment thread. Elsewhere, select the text you want to respond to and add it through Universal Mode.</p></div></li>
+      <li><span className="step-platform"><RedditLogo size={24}/><EmailPlatformLogos size={24}/></span><div><h3>Open Verbia in the conversation</h3><p>Automatic Mode identifies relevant context on Reddit, Gmail, and Outlook web. Elsewhere, select the text you want to respond to and add it through Universal Mode.</p></div></li>
       <li><span>02</span><div><h3>Say what you actually mean</h3><p>Type or dictate a rough thought, then choose the output language, tone, and length.</p></div></li>
       <li><span>03</span><div><h3>Review your reply</h3><p>Edit the generated draft if needed, insert or copy it, and send it only when you are ready.</p></div></li>
     </ol></section>
@@ -85,7 +86,7 @@ export default function AiReplyGeneratorPage() {
       <article><h3>Handle tone carefully</h3><p>Express disagreement, ask a question, or set a boundary in language that fits the situation.</p></article>
     </div></section>
 
-    <section className="seo-scope shell" aria-labelledby="scope-title"><RedditLogo size={42}/><div><p className="eyebrow">AVAILABLE NOW</p><h2 id="scope-title">Automatic context on Reddit. Selected-text context elsewhere.</h2><p>Verbia currently reads Reddit post and comment context in Automatic Mode. Universal Mode works on other supported editors by letting you add selected text yourself. Automatic support for more social platforms is planned.</p></div><div className="seo-scope-links"><Link href="/reddit-reply-generator">Explore Reddit replies <span aria-hidden="true">→</span></Link><Link href="/getting-started">Read the usage guide <span aria-hidden="true">→</span></Link></div></section>
+    <section className="seo-scope shell" aria-labelledby="scope-title"><span className="scope-platforms"><RedditLogo size={38}/><EmailPlatformLogos size={38}/></span><div><p className="eyebrow">AVAILABLE NOW</p><h2 id="scope-title">Automatic context on Reddit and web email. Selected-text context elsewhere.</h2><p>Automatic Mode supports Reddit, Gmail, and Outlook on the web. Universal Mode works on other supported editors by letting you add selected text yourself.</p></div><div className="seo-scope-links"><Link href="/ai-email-reply-generator">Explore email replies <span aria-hidden="true">→</span></Link><Link href="/reddit-reply-generator">Explore Reddit replies <span aria-hidden="true">→</span></Link></div></section>
 
     <section className="seo-faq shell" aria-labelledby="seo-faq-title"><div className="seo-heading"><p className="eyebrow">QUESTIONS & ANSWERS</p><h2 id="seo-faq-title">AI reply generator FAQ</h2></div><Faq items={faqItems}/></section>
 

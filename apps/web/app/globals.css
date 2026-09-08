@@ -85,19 +85,18 @@ img {
   font: 700 18px var(--display);
 }
 .desktop-nav,
-.header-actions,
-.site-footer nav {
+.header-actions {
   display: flex;
   align-items: center;
   gap: 28px;
 }
 .desktop-nav a,
-.site-footer nav a {
+.site-footer a {
   color: var(--muted);
   font-weight: 500;
 }
 .desktop-nav a:hover,
-.site-footer nav a:hover {
+.site-footer a:hover {
   color: var(--ink);
 }
 .menu-button {
@@ -838,7 +837,7 @@ blockquote {
 }
 .roadmap-items {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
 .roadmap-items article {
@@ -900,18 +899,58 @@ blockquote {
   border-top: 1px solid var(--border);
 }
 .footer-inner {
-  padding-block: 45px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 30px;
+  padding-block: 48px 38px;
+  display: grid;
+  grid-template-columns: minmax(240px,.8fr) minmax(0,1.2fr);
+  align-items: start;
+  gap: 90px;
 }
-.footer-inner > div {
+.footer-brand {
   max-width: 430px;
 }
 .footer-inner p {
   color: var(--muted);
   font-size: 12px;
+}
+.footer-columns {
+  display: grid;
+  grid-template-columns: repeat(3,minmax(110px,1fr));
+  gap: 38px;
+}
+.site-footer nav {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+.site-footer nav h2 {
+  margin: 0 0 5px;
+  color: var(--outline);
+  font: 750 11px var(--display);
+  letter-spacing: .09em;
+  text-transform: uppercase;
+}
+.site-footer nav a {
+  width: fit-content;
+  font-size: 13px;
+}
+.footer-guides-row {
+  padding-block: 26px 30px;
+  border-top: 1px solid var(--border);
+}
+.footer-guides-row h2 {
+  margin: 0 0 15px;
+  color: var(--outline);
+  font: 750 11px var(--display);
+  letter-spacing: .09em;
+  text-transform: uppercase;
+}
+.footer-guides-row nav {
+  display: flex;
+  flex-flow: row wrap;
+  gap: 10px 26px;
+}
+.footer-guides-row nav a {
+  font-size: 13px;
 }
 .footer-install {
   color: var(--primary) !important;
@@ -979,8 +1018,8 @@ button:focus-visible {
     grid-template-columns: repeat(2, 1fr);
   }
   .footer-inner {
-    align-items: flex-start;
-    flex-direction: column;
+    grid-template-columns: 1fr;
+    gap: 32px;
   }
   .roadmap {
     grid-template-columns: 1fr;
@@ -1076,10 +1115,10 @@ button:focus-visible {
   .price-card {
     padding: 24px;
   }
-  .footer-inner nav {
-    align-items: flex-start;
-    flex-wrap: wrap;
-    gap: 14px 24px;
+  .footer-columns {
+    width: 100%;
+    grid-template-columns: repeat(2,minmax(0,1fr));
+    gap: 24px;
   }
   .pricing .tag {
     position: static;
@@ -1089,8 +1128,8 @@ button:focus-visible {
   .formula {
     line-height: 2;
   }
-  .site-footer nav {
-    display: flex;
+  .footer-guides-row nav {
+    gap: 11px 20px;
   }
   .roadmap {
     width: min(100% - 30px, 1180px);
@@ -1904,7 +1943,7 @@ button:focus-visible {
 .context-formula blockquote { margin: 10px 0 0; font: 650 15px/1.55 var(--display); }
 .context-formula > b { color: var(--primary); font-size: 22px; }
 .context-modes { padding-block: 40px 110px; }
-.context-modes > div:last-child { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; }
+.context-modes > div:last-child { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 16px; }
 .context-modes article { padding: 32px; background: var(--paper); border: 1px solid var(--border); border-radius: 16px; }
 .context-modes article.automatic { border-color: rgba(255,69,0,.18); }
 .context-modes article > span:not(.selection-icon) { display: block; margin-top: 17px; color: var(--outline); font-size: 10px; font-weight: 750; letter-spacing: .06em; }
@@ -1975,7 +2014,7 @@ button:focus-visible {
 .browser-panel > div span, .browser-panel > div strong { padding: 7px 9px; background: var(--low); border-radius: 7px; }
 .browser-panel > div strong { background: var(--jade); color: var(--primary-dark); }
 .browser-modes { padding-block: 30px 110px; }
-.browser-modes > div:last-child { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.browser-modes > div:last-child { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 16px; }
 .browser-modes article { padding: 31px; background: var(--paper); border: 1px solid var(--border); border-radius: 16px; }
 .browser-modes article.reddit-mode { border-color: rgba(255,69,0,.18); }
 .browser-modes article > span:not(.selection-icon) { display: block; margin-top: 16px; color: var(--outline); font-size: 10px; font-weight: 750; letter-spacing: .06em; }
@@ -1994,3 +2033,65 @@ button:focus-visible {
 .browser-limit p { margin: 0; color: var(--muted); }
 @media (max-width: 850px) { .assistant-workspace, .browser-workflow, .browser-support { grid-template-columns: 1fr; } }
 @media (max-width: 680px) { .assistant-workspace, .browser-workflow { width: min(100% - 30px,1180px); padding: 10px; } .assistant-context { padding: 21px 17px; } .assistant-context article.nested { margin-left: 12px; } .assistant-comparison { padding-block: 20px 72px; } .assistant-comparison > div:last-child, .browser-modes > div:last-child { grid-template-columns: 1fr; } .assistant-guardrails, .browser-limit { grid-template-columns: 1fr; padding: 28px 22px; } .browser-editor { min-height: 300px; padding: 24px 18px; } .browser-shortcut { right: 15px; bottom: 15px; } .browser-panel { padding: 26px 21px; } .browser-modes { padding-block: 20px 72px; } .browser-modes article { padding: 25px 21px; } .browser-support { padding: 27px 22px; gap: 30px; } }
+
+/* ---- Email reply landing pages ---- */
+.email-platform-logo { flex: 0 0 auto; object-fit: contain; }
+.email-platform-logos { display: inline-flex; align-items: center; justify-content: center; }
+.email-platform-logos img { margin-left: -7px; padding: 5px; background: var(--paper); border: 1px solid var(--border); border-radius: 11px; box-shadow: 0 5px 16px rgba(23,32,25,.08); }
+.email-platform-logos img:first-child { margin-left: 0; }
+.email-hero > .email-platform-logos { margin-bottom: 23px; }
+.email-platform-pill { width: max-content; margin: 0 auto 22px; padding: 7px 13px; display: flex; align-items: center; gap: 9px; background: rgba(255,255,255,.85); border: 1px solid var(--border); border-radius: 999px; color: var(--primary-dark); font-size: 11px; font-weight: 750; letter-spacing: .07em; }
+.email-platform-pill.gmail { border-color: rgba(234,67,53,.16); color: #a52d24; }
+.email-platform-pill.outlook { border-color: rgba(0,120,212,.18); color: #075f9f; }
+.email-demo { padding: 18px; display: grid; grid-template-columns: 1.08fr .92fr; gap: 18px; background: #e9f3eb; border: 1px solid var(--border); border-radius: 22px; box-shadow: 0 18px 50px -20px rgba(23,32,25,.16); }
+.email-message, .email-draft { background: var(--paper); border-radius: 15px; }
+.email-message { padding: 28px; }
+.email-message > header { display: flex; align-items: center; gap: 11px; }
+.email-avatar { width: 40px; height: 40px; display: grid; place-items: center; background: #dbe9ff; border-radius: 50%; color: #145ca8; font-weight: 750; }
+.email-message > header > div:not(.email-avatar) { display: flex; flex-direction: column; }
+.email-message > header span, .email-message time { color: var(--outline); font-size: 11px; }
+.email-message time { margin-left: auto; }
+.email-message > p { margin: 27px 0; font-size: 16px; }
+.email-reply-field { padding: 15px; display: flex; justify-content: space-between; gap: 15px; border: 1px solid var(--border); border-radius: 9px; color: var(--outline); }
+.email-reply-field small { color: var(--primary); font-weight: 650; }
+.email-draft { overflow: hidden; border: 1px solid rgba(15,110,86,.16); }
+.email-draft > header { padding: 16px 19px; display: flex; align-items: center; gap: 9px; border-bottom: 1px solid var(--border); }
+.email-draft > header span { margin-left: auto; color: var(--primary); font-size: 11px; font-weight: 700; }
+.email-draft > div { padding: 23px; }
+.email-draft small, .email-result small { color: var(--primary); font-size: 10px; font-weight: 750; letter-spacing: .08em; }
+.email-draft p, .email-draft blockquote { margin: 7px 0 19px; padding: 14px; background: var(--low); border-radius: 9px; }
+.email-draft blockquote { background: #f8fbf9; border-left: 3px solid var(--primary); font-size: 15px; font-weight: 620; }
+.email-draft button { width: 100%; padding: 11px; border: 0; border-radius: 8px; background: var(--primary); color: white; font-weight: 700; }
+.email-platforms { padding-block: 30px 110px; }
+.email-platforms > div:last-child { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.email-platforms article { padding: 32px; background: var(--paper); border: 1px solid var(--border); border-radius: 16px; }
+.email-platforms article > span { display: block; margin-top: 17px; color: var(--outline); font-size: 10px; font-weight: 750; letter-spacing: .06em; }
+.email-platforms h3 { margin: 8px 0 10px; font: 700 23px/1.25 var(--display); }
+.email-platforms p { color: var(--muted); }
+.email-platforms a { color: var(--primary); font-weight: 700; }
+.gmail-demo, .outlook-demo { padding: 18px; display: grid; grid-template-columns: 1.18fr .82fr; gap: 18px; background: #e9f3eb; border: 1px solid var(--border); border-radius: 22px; box-shadow: 0 18px 50px -20px rgba(23,32,25,.16); }
+.gmail-window, .outlook-window, .gmail-demo > aside, .outlook-demo > aside { background: var(--paper); border-radius: 15px; }
+.gmail-window > header, .outlook-window > header { padding: 14px 19px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border); }
+.gmail-window > header span, .outlook-window > header span { margin-left: auto; width: 45%; padding: 7px 12px; background: var(--low); border-radius: 8px; color: var(--outline); font-size: 11px; }
+.gmail-message { padding: 29px; }
+.gmail-message > div:first-child { display: flex; align-items: center; gap: 8px; }
+.gmail-message h2, .outlook-layout h2 { margin: 16px 0 12px; font: 700 23px/1.25 var(--display); }
+.gmail-message > p, .outlook-layout article > p { color: var(--muted); font-size: 15px; }
+.gmail-compose, .outlook-compose { margin-top: 27px; padding: 15px; border: 1px solid var(--border); border-radius: 9px; color: var(--outline); }
+.gmail-compose > div, .outlook-compose > div { margin-top: 20px; padding-top: 12px; display: flex; align-items: center; gap: 8px; border-top: 1px solid var(--border); color: var(--ink); }
+.gmail-compose small, .outlook-compose small { margin-left: auto; color: var(--primary); }
+.gmail-demo > aside, .outlook-demo > aside { padding: 32px; }
+.gmail-demo > aside h2, .outlook-demo > aside h2 { margin: 7px 0 12px; font: 700 29px/1.18 var(--display); }
+.gmail-demo > aside > p:not(.eyebrow), .outlook-demo > aside > p:not(.eyebrow) { color: var(--muted); }
+.email-result { margin-top: 25px; padding: 18px; background: var(--low); border-radius: 11px; }
+.email-result blockquote { margin: 8px 0 0; font-weight: 650; }
+.outlook-layout { min-height: 360px; display: grid; grid-template-columns: 130px 1fr; }
+.outlook-layout nav { padding: 24px 17px; display: flex; flex-direction: column; gap: 13px; background: #f5f8fb; color: var(--outline); font-size: 12px; }
+.outlook-layout nav b { color: #075f9f; }
+.outlook-layout article { padding: 27px; }
+.email-privacy { padding: 40px 44px; display: grid; grid-template-columns: auto 1fr; gap: 27px; align-items: center; background: linear-gradient(135deg,#fff7f5,#fff); border: 1px solid rgba(234,67,53,.13); border-radius: 18px; }
+.email-privacy.outlook { background: linear-gradient(135deg,#eff8ff,#fff); border-color: rgba(0,120,212,.14); }
+.email-privacy h2 { margin: 5px 0 9px; font: 700 28px/1.2 var(--display); }
+.email-privacy p { margin: 0; color: var(--muted); }
+@media (max-width: 850px) { .email-demo, .gmail-demo, .outlook-demo { grid-template-columns: 1fr; } }
+@media (max-width: 680px) { .email-demo, .gmail-demo, .outlook-demo { width: min(100% - 30px,1180px); padding: 10px; } .email-message, .gmail-message, .gmail-demo > aside, .outlook-demo > aside { padding: 22px 18px; } .email-reply-field { flex-direction: column; } .email-platforms { padding-block: 20px 72px; } .email-platforms > div:last-child { grid-template-columns: 1fr; } .email-platforms article { padding: 25px 21px; } .outlook-layout { grid-template-columns: 1fr; } .outlook-layout nav { display: none; } .outlook-layout article { padding: 22px 18px; } .gmail-window > header span, .outlook-window > header span { display: none; } .email-privacy { grid-template-columns: 1fr; padding: 28px 22px; } }
