@@ -26,6 +26,7 @@ describe("API fetch handler", () => {
       method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(validRequest)
     }));
     expect(response.status).toBe(200);
+    expect(response.headers.get("server-timing")).toMatch(/model;dur=/);
     expect(await response.json()).toMatchObject({ requestId: validRequest.requestId, draft: validRequest.intent.text, modelRoute: "baseline" });
   });
 

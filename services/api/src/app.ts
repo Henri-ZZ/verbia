@@ -4,7 +4,7 @@ import { billingConfigured, createCheckout, hasActiveProSubscription, verifyBill
 
 export type ApiEnv = Record<string, string | undefined>;
 const maxBodyBytes = 48_000;
-const responseHeaders = { "access-control-allow-origin": "*", "access-control-allow-headers": "content-type, authorization", "access-control-allow-methods": "POST,GET,OPTIONS", "cache-control": "no-store", "x-content-type-options": "nosniff" };
+const responseHeaders = { "access-control-allow-origin": "*", "access-control-allow-headers": "content-type, authorization", "access-control-allow-methods": "POST,GET,OPTIONS", "access-control-expose-headers": "server-timing", "cache-control": "no-store", "x-content-type-options": "nosniff" };
 
 export function createApiHandler(env: ApiEnv) {
   let providerInstance: ReplyProvider | undefined;
@@ -22,17 +22,19 @@ export function createApiHandler(env: ApiEnv) {
       }
     }
     if (request.method === "GET" && path === "/v1/account/usage") {
-      const auth = await verifyBearer(request.headers.get("authorization"), env);
+      const timings: TimingMetric[] = [];
+      const auth = await measure("auth", timings, () => verifyBearer(request.headers.get("authorization"), env));
       if (auth.status !== "ok") return apiError(401, "account-usage", "UNAUTHENTICATED", false, "Sign in from Verbia settings to view usage.");
       try {
-        return json(200, await readAccountUsage(auth, env));
+        return withServerTiming(json(200, await readAccountUsage(auth, env, timings)), timings);
       } catch (error) {
         console.error("[verbia-api] account usage failed:", error);
         return apiError(502, "account-usage", "PROVIDER_ERROR", true, "Account usage is temporarily unavailable.");
       }
     }
     if (request.method === "POST" && path === "/v1/billing/checkout") {
-      const auth = await verifyBearer(request.headers.get("authorization"), env);
+      const timings: TimingMetric[] = [];
+      const auth = await measure("auth", timings, () => verifyBearer(request.headers.get("authorization"), env));
       if (auth.status !== "ok") return apiError(401, "billing-checkout", "UNAUTHENTICATED", false, "Sign in before choosing Verbia Premium.");
       if (!billingConfigured(env)) return apiError(503, "billing-checkout", "NOT_CONFIGURED", false, "Billing is temporarily unavailable.");
       try {
@@ -57,17 +59,18 @@ export function createApiHandler(env: ApiEnv) {
     }
     if (request.method !== "POST" || path !== "/v1/replies:generate") return json(404, { error: "Not found" });
     let requestId = "unknown";
+    const timings: TimingMetric[] = [];
     try {
       const body = await readJson(request, maxBodyBytes);
       const parsed = generateReplyRequestSchema.safeParse(body);
       if (!parsed.success) return apiError(400, requestId, "INVALID_REQUEST", false, "Check the intent and generation settings.");
       requestId = parsed.data.requestId;
-      const auth = await verifyBearer(request.headers.get("authorization"), env);
+      const auth = await measure("auth", timings, () => verifyBearer(request.headers.get("authorization"), env));
       if (auth.status === "invalid") return apiError(401, requestId, "UNAUTHENTICATED", false, "Sign-in expired. Sign in again from Verbia settings.");
       if (auth.status === "none" && env.AUTH_REQUIRED === "1") return apiError(401, requestId, "UNAUTHENTICATED", false, "Sign in from Verbia settings to generate a reply.");
       if (auth.status === "ok") {
-        const plan = await readAccountPlan(auth, env);
-        const quota = await consumeQuota(auth.token, plan, env);
+        const plan = await measure("plan", timings, () => readAccountPlan(auth, env));
+        const quota = await measure("quota", timings, () => consumeQuota(auth.token, plan, env));
         if (quota === "exceeded") return apiError(429, requestId, "QUOTA_EXCEEDED", false, "You have used your daily replies. Try again tomorrow.");
         console.log(`[verbia-api] request ${requestId} user ${auth.userId}${auth.email ? ` (${auth.email})` : ""}`);
       }
@@ -75,10 +78,10 @@ export function createApiHandler(env: ApiEnv) {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), numberEnv(env, "LLM_TOTAL_TIMEOUT_MS", numberEnv(env, "LLM_TIMEOUT_MS", 25_000)));
       try {
-        const result = await getProvider().generate(parsed.data, controller.signal);
+        const result = await measure("model", timings, () => getProvider().generate(parsed.data, controller.signal));
         const warnings = [parsed.data.context.confidence === "low" && "low_context_confidence", parsed.data.context.truncated && "context_truncated"].filter(Boolean) as Array<"low_context_confidence" | "context_truncated">;
         const value = generateReplyResponseSchema.parse({ requestId, draft: cleanDraft(result.draft), warnings, modelRoute: result.modelRoute ?? "baseline", usage: result.inputTokens || result.outputTokens ? { inputTokens: result.inputTokens, outputTokens: result.outputTokens } : undefined, latencyMs: Math.round(performance.now() - started) });
-        return json(200, value);
+        return withServerTiming(json(200, value), timings);
       } finally { clearTimeout(timer); }
     } catch (error) {
       const err = error as { code?: string; status?: number; detail?: string; name?: string; message?: string };
@@ -139,17 +142,29 @@ function numberEnv(env: ApiEnv, name: string, fallback: number) { const value = 
 type BearerResult = { status: "none" | "invalid" } | { status: "ok"; userId: string; email?: string; token: string };
 type AuthenticatedBearer = Extract<BearerResult, { status: "ok" }>;
 type AccountPlan = AccountUsage["plan"];
+const authCache = new Map<string, { result: BearerResult; expiresAt: number }>();
 async function verifyBearer(header: string | null, env: ApiEnv): Promise<BearerResult> {
   if (!header?.startsWith("Bearer ")) return { status: "none" };
   const token = header.slice("Bearer ".length).trim();
   if (!token) return { status: "none" };
+  const cached = authCache.get(token);
+  if (cached && cached.expiresAt > Date.now()) return cached.result;
   const supabaseUrl = (env.SUPABASE_URL ?? "").replace(/\/+$/, "");
   const publishableKey = env.SUPABASE_PUBLISHABLE_KEY ?? env.SUPABASE_ANON_KEY ?? "";
   if (!supabaseUrl || !publishableKey) { console.warn("[verbia-api] Authorization header sent but Supabase auth is not configured — ignoring"); return { status: "none" }; }
   try {
     const response = await fetch(`${supabaseUrl}/auth/v1/user`, { headers: { apikey: publishableKey, authorization: `Bearer ${token}` } });
-    if (response.status === 200) { const user = await response.json() as { id?: string; email?: string }; return user.id ? { status: "ok", userId: user.id, email: user.email, token } : { status: "invalid" }; }
-    if (response.status === 401 || response.status === 403) return { status: "invalid" };
+    if (response.status === 200) {
+      const user = await response.json() as { id?: string; email?: string };
+      const result: BearerResult = user.id ? { status: "ok", userId: user.id, email: user.email, token } : { status: "invalid" };
+      authCache.set(token, { result, expiresAt: Date.now() + numberEnv(env, "AUTH_CACHE_TTL_MS", 60_000) });
+      return result;
+    }
+    if (response.status === 401 || response.status === 403) {
+      const result: BearerResult = { status: "invalid" };
+      authCache.set(token, { result, expiresAt: Date.now() + 5_000 });
+      return result;
+    }
     console.warn(`[verbia-api] token verification returned ${response.status}`); return { status: "none" };
   } catch (error) { console.warn("[verbia-api] token verification failed", error); return { status: "none" }; }
 }
@@ -167,11 +182,11 @@ async function readAccountPlan(auth: AuthenticatedBearer, env: ApiEnv): Promise<
   }
 }
 
-async function readAccountUsage(auth: AuthenticatedBearer, env: ApiEnv): Promise<AccountUsage> {
+async function readAccountUsage(auth: AuthenticatedBearer, env: ApiEnv, timings: TimingMetric[] = []): Promise<AccountUsage> {
   const period = new Date().toISOString().slice(0, 10);
   const [plan, quotaRows] = await Promise.all([
-    readAccountPlan(auth, env),
-    supabaseRows<{ count?: number }>("quota_usage", { select: "count", user_id: `eq.${auth.userId}`, period: `eq.${period}`, limit: "1" }, auth.token, env)
+    measure("plan", timings, () => readAccountPlan(auth, env)),
+    measure("quota", timings, () => supabaseRows<{ count?: number }>("quota_usage", { select: "count", user_id: `eq.${auth.userId}`, period: `eq.${period}`, limit: "1" }, auth.token, env))
   ]);
   const nextReset = new Date(`${period}T00:00:00.000Z`);
   nextReset.setUTCDate(nextReset.getUTCDate() + 1);
@@ -208,4 +223,15 @@ async function consumeQuota(token: string, plan: AccountPlan, env: ApiEnv): Prom
     if (body?.message?.includes("QUOTA_EXCEEDED")) return "exceeded";
     console.warn(`[verbia-api] consume_quota failed (${response.status})`, body?.message ?? ""); return "ok";
   } catch (error) { console.warn("[verbia-api] consume_quota request failed", error); return "ok"; }
+}
+
+type TimingMetric = { name: string; duration: number };
+async function measure<T>(name: string, timings: TimingMetric[], operation: () => Promise<T>): Promise<T> {
+  const started = performance.now();
+  try { return await operation(); }
+  finally { timings.push({ name, duration: performance.now() - started }); }
+}
+function withServerTiming(response: Response, timings: TimingMetric[]): Response {
+  response.headers.set("server-timing", timings.map(({ name, duration }) => `${name};dur=${duration.toFixed(1)}`).join(", "));
+  return response;
 }

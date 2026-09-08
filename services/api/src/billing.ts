@@ -4,16 +4,21 @@ import type { ApiEnv } from "./app";
 type BillingUser = { userId: string; email?: string };
 type BillingCycle = "monthly" | "annual";
 const planCache = new Map<string, { pro: boolean; expiresAt: number }>();
+const clientCache = new WeakMap<ApiEnv, WaffoPancake>();
 
 function isTestEnvironment(env: ApiEnv): boolean {
   return env.WAFFO_ENVIRONMENT === "test";
 }
 
 function clientFor(env: ApiEnv) {
+  const cached = clientCache.get(env);
+  if (cached) return cached;
   const merchantId = env.WAFFO_MERCHANT_ID;
   const privateKey = env.WAFFO_PRIVATE_KEY;
   if (!merchantId || !privateKey) throw new Error("NOT_CONFIGURED: Waffo billing credentials are missing");
-  return new WaffoPancake({ merchantId, privateKey, environment: isTestEnvironment(env) ? "test" : "prod" });
+  const client = new WaffoPancake({ merchantId, privateKey, environment: isTestEnvironment(env) ? "test" : "prod" });
+  clientCache.set(env, client);
+  return client;
 }
 
 export function billingConfigured(env: ApiEnv): boolean {
@@ -57,7 +62,10 @@ export async function hasActiveProSubscription(user: BillingUser, env: ApiEnv): 
   if (result.errors?.length) throw new Error(result.errors[0]?.message ?? "Waffo subscription lookup failed");
   const products = new Set([env.WAFFO_MONTHLY_PRODUCT_ID, env.WAFFO_ANNUAL_PRODUCT_ID]);
   const pro = (result.data?.subscriptionOrders ?? []).some(order => order.testMode === isTestEnvironment(env) && ["active", "canceling"].includes(order.status) && products.has(order.subscriptionProduct?.id));
-  planCache.set(user.userId, { pro, expiresAt: Date.now() + (pro ? 120_000 : 5_000) });
+  const defaultTtl = pro ? 300_000 : 60_000;
+  const configuredTtl = Number(pro ? env.PREMIUM_PLAN_CACHE_TTL_MS : env.FREE_PLAN_CACHE_TTL_MS);
+  const ttl = Number.isFinite(configuredTtl) && configuredTtl >= 0 ? configuredTtl : defaultTtl;
+  planCache.set(user.userId, { pro, expiresAt: Date.now() + ttl });
   return pro;
 }
 
