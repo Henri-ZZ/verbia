@@ -12,7 +12,7 @@
 | 健康检查 | `GET /health` |
 | 生成接口 | `POST /v1/replies:generate` |
 | 登录策略 | 必须携带有效的 Supabase Bearer Token |
-| 免费额度 | 每位登录用户每天 30 次 |
+| 免费额度 | 每位登录用户每天 10 次 |
 | 模型路由 | Gemini、Mistral、Cloudflare Workers AI、Groq 自动均衡与故障切换 |
 
 主要文件：
@@ -20,6 +20,7 @@
 - `services/api/src/app.ts`：HTTP 路由、鉴权、额度和错误处理。
 - `services/api/src/provider.ts`：模型适配、均衡选择、超时、冷却和故障切换。
 - `services/api/src/worker.ts`：Cloudflare Worker 入口。
+- `services/api/src/monitoring.ts`：Sentry 错误上报入口与事件标签。
 - `services/api/src/server.ts`：本地 Node.js 开发入口。
 - `wrangler.jsonc`：生产域名、模型名、超时、权重和其他非敏感配置。
 - `.env.local`：本地开发凭据，不提交 Git。
@@ -110,6 +111,24 @@ pnpm exec wrangler tail --cwd /tmp --config "$PWD/wrangler.jsonc"
 ```
 
 结束观察时按 `Ctrl+C`。
+
+## Sentry 错误监控
+
+Worker 使用 `@sentry/cloudflare` 捕获程序异常、全部模型失败、Supabase 鉴权/配额故障、Waffo 套餐查询故障和结账故障。用户输入错误、额度耗尽、无效 Webhook，以及单个模型失败后成功切换不会触发 Sentry 错误事件。
+
+创建 Sentry Cloudflare 项目后，将 DSN 保存为 Worker Secret：
+
+```bash
+pnpm exec wrangler secret put SENTRY_DSN --cwd /tmp --config "$PWD/wrangler.jsonc"
+```
+
+非敏感配置位于 `wrangler.jsonc`：
+
+- `SENTRY_ENVIRONMENT`：部署环境，生产环境为 `production`。
+- `SENTRY_TRACES_SAMPLE_RATE`：性能追踪采样率，当前为 `0.1`。
+- `SENTRY_RELEASE`：可选发布版本，建议在自动部署流程中注入。
+
+Sentry 上报前会移除用户信息、请求头、请求体、查询参数和网络请求 Breadcrumb 数据，不发送 Authorization Token、邮箱、上下文、意图或草稿。
 
 ## 修改普通配置
 

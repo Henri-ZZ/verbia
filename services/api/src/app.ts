@@ -1,6 +1,7 @@
 import { generateReplyRequestSchema, generateReplyResponseSchema, type AccountUsage, type ApiError } from "@verbia/shared";
 import { BalancedProvider, GeminiProvider, MockProvider, OpenAiCompatibleProvider, type ReplyProvider } from "./provider";
 import { billingConfigured, createCheckout, hasActiveProSubscription, verifyBillingWebhook, type BillingCycle } from "./billing";
+import { reportError } from "./monitoring";
 
 export type ApiEnv = Record<string, string | undefined>;
 const maxBodyBytes = 48_000;
@@ -11,6 +12,13 @@ export function createApiHandler(env: ApiEnv) {
   const getProvider = () => providerInstance ??= createProvider(env);
   return async (request: Request): Promise<Response> => {
     const path = new URL(request.url).pathname;
+    const requestStarted = performance.now();
+    let logRequestId: string | undefined;
+    let logProvider: string | undefined;
+    let logModelRoute: string | undefined;
+    let response: Response | undefined;
+    try {
+      response = await (async (): Promise<Response> => {
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: responseHeaders });
     if (request.method === "GET" && path === "/health") {
       try {
@@ -18,6 +26,7 @@ export function createApiHandler(env: ApiEnv) {
         return json(200, { ok: true, provider: provider.id, routes: provider instanceof BalancedProvider ? provider.snapshot() : [{ provider: provider.id }] });
       } catch (error) {
         console.error("[verbia-api] health check failed:", error);
+        reportError(error, "health");
         return json(503, { ok: false, error: "Generation service is not configured" });
       }
     }
@@ -29,6 +38,7 @@ export function createApiHandler(env: ApiEnv) {
         return withServerTiming(json(200, await readAccountUsage(auth, env, timings)), timings);
       } catch (error) {
         console.error("[verbia-api] account usage failed:", error);
+        reportError(error, "account_usage");
         return apiError(502, "account-usage", "PROVIDER_ERROR", true, "Account usage is temporarily unavailable.");
       }
     }
@@ -43,6 +53,7 @@ export function createApiHandler(env: ApiEnv) {
         return json(200, await createCheckout(auth, cycle, body.locale ?? "en", env));
       } catch (error) {
         console.error("[verbia-api] checkout creation failed", error);
+        reportError(error, "billing_checkout");
         return apiError(502, "billing-checkout", "PROVIDER_ERROR", true, "Checkout is temporarily unavailable. Try again.");
       }
     }
@@ -65,6 +76,7 @@ export function createApiHandler(env: ApiEnv) {
       const parsed = generateReplyRequestSchema.safeParse(body);
       if (!parsed.success) return apiError(400, requestId, "INVALID_REQUEST", false, "Check the intent and generation settings.");
       requestId = parsed.data.requestId;
+      logRequestId = requestId;
       const auth = await measure("auth", timings, () => verifyBearer(request.headers.get("authorization"), env));
       if (auth.status === "invalid") return apiError(401, requestId, "UNAUTHENTICATED", false, "Sign-in expired. Sign in again from Verbia settings.");
       if (auth.status === "none" && env.AUTH_REQUIRED === "1") return apiError(401, requestId, "UNAUTHENTICATED", false, "Sign in from Verbia settings to generate a reply.");
@@ -72,13 +84,14 @@ export function createApiHandler(env: ApiEnv) {
         const plan = await measure("plan", timings, () => readAccountPlan(auth, env));
         const quota = await measure("quota", timings, () => consumeQuota(auth.token, plan, env));
         if (quota === "exceeded") return apiError(429, requestId, "QUOTA_EXCEEDED", false, "You have used your daily replies. Try again tomorrow.");
-        console.log(`[verbia-api] request ${requestId} user ${auth.userId}${auth.email ? ` (${auth.email})` : ""}`);
       }
       const started = performance.now();
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), numberEnv(env, "LLM_TOTAL_TIMEOUT_MS", numberEnv(env, "LLM_TIMEOUT_MS", 25_000)));
       try {
         const result = await measure("model", timings, () => getProvider().generate(parsed.data, controller.signal));
+        logProvider = result.provider;
+        logModelRoute = result.modelRoute ?? "baseline";
         const warnings = [parsed.data.context.confidence === "low" && "low_context_confidence", parsed.data.context.truncated && "context_truncated"].filter(Boolean) as Array<"low_context_confidence" | "context_truncated">;
         const value = generateReplyResponseSchema.parse({ requestId, draft: cleanDraft(result.draft), warnings, modelRoute: result.modelRoute ?? "baseline", usage: result.inputTokens || result.outputTokens ? { inputTokens: result.inputTokens, outputTokens: result.outputTokens } : undefined, latencyMs: Math.round(performance.now() - started) });
         return withServerTiming(json(200, value), timings);
@@ -90,8 +103,14 @@ export function createApiHandler(env: ApiEnv) {
       if (err instanceof SyntaxError) return apiError(400, requestId, "INVALID_REQUEST", false, "Check the intent and generation settings.");
       if (err.name === "AbortError") return apiError(504, requestId, "TIMEOUT", true, "Generation timed out. Try again.");
       if (err.status === 429) return apiError(429, requestId, "RATE_LIMITED", true, "The model is busy or quota-limited. Try again shortly.", err.detail);
+      reportError(error, "reply_generation", { requestId });
       const notConfigured = err.message?.startsWith("NOT_CONFIGURED");
       return apiError(notConfigured ? 503 : 502, requestId, notConfigured ? "NOT_CONFIGURED" : "PROVIDER_ERROR", !notConfigured, notConfigured ? "Generation service is not configured." : "The model service returned an invalid response. Try again.", notConfigured ? undefined : (err.detail ?? err.message));
+    }
+      })();
+      return response;
+    } finally {
+      logRequest(request, path, response, requestStarted, logRequestId, logProvider, logModelRoute);
     }
   };
 }
@@ -166,7 +185,7 @@ async function verifyBearer(header: string | null, env: ApiEnv): Promise<BearerR
       return result;
     }
     console.warn(`[verbia-api] token verification returned ${response.status}`); return { status: "none" };
-  } catch (error) { console.warn("[verbia-api] token verification failed", error); return { status: "none" }; }
+  } catch (error) { console.warn("[verbia-api] token verification failed", error); reportError(error, "auth_verification"); return { status: "none" }; }
 }
 function quotaLimitForPlan(plan: AccountPlan, env: ApiEnv): number | null {
   const configured = plan === "premium" ? numberEnv(env, "PREMIUM_DAILY_QUOTA", 0) : numberEnv(env, "FREE_DAILY_QUOTA", 10);
@@ -178,6 +197,7 @@ async function readAccountPlan(auth: AuthenticatedBearer, env: ApiEnv): Promise<
     return await hasActiveProSubscription(auth, env) ? "premium" : "free";
   } catch (error) {
     console.warn("[verbia-api] subscription lookup failed; applying free plan", error);
+    reportError(error, "subscription_lookup");
     return "free";
   }
 }
@@ -221,8 +241,10 @@ async function consumeQuota(token: string, plan: AccountPlan, env: ApiEnv): Prom
     if (response.ok) return "ok";
     const body = await response.json().catch(() => null) as { message?: string } | null;
     if (body?.message?.includes("QUOTA_EXCEEDED")) return "exceeded";
-    console.warn(`[verbia-api] consume_quota failed (${response.status})`, body?.message ?? ""); return "ok";
-  } catch (error) { console.warn("[verbia-api] consume_quota request failed", error); return "ok"; }
+    console.warn(`[verbia-api] consume_quota failed (${response.status})`, body?.message ?? "");
+    reportError(new Error(`Supabase consume_quota returned ${response.status}`), "quota_write", { upstreamStatus: String(response.status) });
+    return "ok";
+  } catch (error) { console.warn("[verbia-api] consume_quota request failed", error); reportError(error, "quota_write"); return "ok"; }
 }
 
 type TimingMetric = { name: string; duration: number };
@@ -234,4 +256,25 @@ async function measure<T>(name: string, timings: TimingMetric[], operation: () =
 function withServerTiming(response: Response, timings: TimingMetric[]): Response {
   response.headers.set("server-timing", timings.map(({ name, duration }) => `${name};dur=${duration.toFixed(1)}`).join(", "));
   return response;
+}
+
+function logRequest(request: Request, path: string, response: Response | undefined, started: number, requestId?: string, provider?: string, modelRoute?: string) {
+  const cf = (request as Request & { cf?: { colo?: string; country?: string } }).cf;
+  const timing = Object.fromEntries((response?.headers.get("server-timing") ?? "").split(",").map(value => {
+    const [name, duration] = value.trim().split(";dur=");
+    return name && duration ? [name, Number(duration)] : [];
+  }).filter(entry => entry.length === 2));
+  console.log(JSON.stringify({
+    event: "api_request",
+    method: request.method,
+    path,
+    status: response?.status ?? 500,
+    durationMs: Math.round(performance.now() - started),
+    ...(requestId ? { requestId } : {}),
+    ...(provider ? { provider } : {}),
+    ...(modelRoute ? { modelRoute } : {}),
+    ...(Object.keys(timing).length ? { timing } : {}),
+    ...(cf?.colo ? { colo: cf.colo } : {}),
+    ...(cf?.country ? { country: cf.country } : {})
+  }));
 }
