@@ -5,7 +5,7 @@ import { msgColor, msgIcon, type MsgKind } from "../../ui/message";
 
 const styles = `
 :host{all:initial;display:block;inline-size:100%;color-scheme:light;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#172019}
-*,*::before,*::after{box-sizing:border-box}button,textarea,select,input{font:inherit}button{cursor:pointer}.panel :focus-visible{outline:1.5px solid #9FE1CB;outline-offset:1px}:host(.is-dragging){cursor:grabbing}:host(.is-dragging) .head{cursor:grabbing}
+*,*::before,*::after{box-sizing:border-box}button,textarea,select,input{font:inherit}button{cursor:pointer}.panel :focus-visible{outline:1.5px solid #9FE1CB;outline-offset:1px}:host(.is-dragging){cursor:grabbing}:host(.is-dragging) .head{cursor:grabbing}:host(.floating) .inline-shell{margin-block-start:0}
 .inline-shell{display:block;inline-size:100%;margin-block-start:10px;container-type:inline-size;contain:layout style paint}.panel{inline-size:100%;overflow:auto;background:#fbfcf7;border:1px solid #dfe7dd;border-radius:12px;box-shadow:0 1px 2px #1720190a,0 6px 18px #17201912;padding:14px}.head{display:flex;align-items:center;justify-content:space-between;cursor:grab;touch-action:none}.brand{font:800 18px/1 Georgia,serif;color:#0F6E56;margin:0}.brand .wordmark{display:block;height:30px;width:auto}.slogan{font-size:.75rem;color:#33604E;margin:4px 0 0;font-weight:700}.icon{display:grid;place-items:center;min-inline-size:30px;min-block-size:30px;border:0;border-radius:8px;background:transparent;color:#526057;padding:0;transition:background .15s ease}.icon:hover{background:#e8efe9}.icon svg{inline-size:16px;block-size:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .18s ease}.panel.collapsed .icon svg{transform:rotate(180deg)}.panel.collapsed{padding-block:6px}.panel.collapsed .panel-body{display:none}.panel.collapsed .slogan{display:none}.chip{display:inline-flex;margin:12px 0 8px;padding:6px 9px;border-radius:999px;background:#E1F5EE;color:#0F6E56;font-size:.75rem;font-weight:700}.warning{background:#fff2cf;color:#6f4b00;padding:8px 10px;border-radius:9px;font-size:.75rem;margin:6px 0}.context{border:1px solid #dfe7dd;border-radius:10px;margin:0 0 12px}.context summary{padding:9px 11px;cursor:pointer;font-size:.8rem;font-weight:700}.context-body{padding:0 11px 9px;white-space:pre-wrap;max-block-size:150px;overflow:auto;font-size:.75rem;color:#526057}.remove-context{margin:0 11px 9px;border:0;background:transparent;color:#9c3c34;padding:0;text-decoration:underline;font-size:.75rem}
 label{display:block;font-size:.75rem;font-weight:750;color:#39483e;margin:10px 0 5px}.intent,.draft{inline-size:100%;resize:vertical;min-block-size:84px;border:1px solid #cad6cc;background:white;border-radius:10px;padding:9px 10px;line-height:1.45}.draft{min-block-size:100px}select{inline-size:100%;min-block-size:32px;appearance:none;-webkit-appearance:none;border:1px solid #cad6cc;border-radius:9px;background-color:#fff;padding:6px 27px 6px 9px;font-size:.78rem;font-weight:600;color:#1b2a20;cursor:pointer;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23526d5c' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M4 6.5L8 10.5L12 6.5'/></svg>");background-repeat:no-repeat;background-position:right 8px center;background-size:14px 14px;transition:border-color .15s ease,box-shadow .15s ease}
 select:hover{border-color:#8fae9b}
@@ -135,6 +135,7 @@ export class VerbiaPanel {
     this.floating = true;
     this.floatAnchor = anchor ?? null;
     this.followAnchor = true;
+    this.host.classList.add("floating");
     Object.assign(this.host.style, {
       position: "fixed",
       top: "0px",
@@ -249,7 +250,7 @@ export class VerbiaPanel {
   }
 
   private contextLabel() {
-    const source = this.adapter.id === "reddit" ? "Reddit" : this.adapter.id === "gmail" ? this.t("context.gmail") : this.t("context.universal");
+    const source = this.adapter.id === "reddit" ? "Reddit" : this.adapter.id === "gmail" ? this.t("context.gmail") : this.adapter.id === "outlook" ? this.t("context.outlook") : this.t("context.universal");
     const relation = this.t(`context.rel.${this.context.relation}`);
     return `${source} · ${relation}`;
   }
@@ -259,7 +260,15 @@ export class VerbiaPanel {
     if (this.context.post?.title) parts.push(`${this.t("context.postTitle")}\n${this.context.post.title}`);
     if (this.context.post?.body) parts.push(`${this.t("context.post")}\n${this.context.post.body}`);
     for (const item of this.context.ancestors ?? []) parts.push(`${this.t("context.parentComment")}\n${item.body}`);
-    if (this.context.target?.body) parts.push(`${this.t("context.targetComment")}\n${this.context.target.body}`);
+    if (this.context.target?.body) {
+      // `target` holds different things across sites: Reddit uses it for the
+      // comment being replied to; mail sites (Gmail, Outlook) for the
+      // original message body. Label by relation so the heading matches the
+      // site rather than showing a Reddit-flavoured "Target comment" in mail.
+      const isMailReply = this.context.relation === "reply_to_email";
+      const label = isMailReply ? this.t("context.originalMessage") : this.t("context.targetComment");
+      parts.push(`${label}\n${this.context.target.body}`);
+    }
     if (this.context.selectedText) parts.push(`${this.t("context.selectedText")}\n${this.context.selectedText}`);
     return parts.join("\n\n") || this.t("context.noText");
   }
@@ -339,7 +348,7 @@ export class VerbiaPanel {
     this.setBusy(true);
     this.status(this.t("panel.status.writing"));
     const request: GenerateReplyRequest = {
-      requestId: this.requestId, schemaVersion: "1", platform: this.adapter.id === "reddit" ? "reddit" : this.adapter.id === "gmail" ? "gmail" : "universal",
+      requestId: this.requestId, schemaVersion: "1", platform: this.adapter.id === "reddit" || this.adapter.id === "gmail" || this.adapter.id === "outlook" ? this.adapter.id : "universal",
       page: { urlOrigin: location.origin, locale: document.documentElement.lang || undefined }, context: this.context,
       intent: { text: intent, source: this.voiceTranscript ? "voice_transcript" : "typed" },
       output: { language: this.value("language", this.settings.outputLanguage), tone: this.value("tone", this.settings.defaultTone) as GenerateReplyRequest["output"]["tone"], length: this.value("length", this.settings.defaultLength) as GenerateReplyRequest["output"]["length"] },
@@ -360,6 +369,10 @@ export class VerbiaPanel {
       this.el("draft-area")?.classList.remove("hidden");
       this.phase = "draft_ready";
       this.status(result.warnings.length ? this.t("panel.status.draftReadyWarning") : this.t("panel.status.draftReady"), result.warnings.length ? "warning" : "success");
+      // Regenerate after an earlier insert produced a fresh draft: re-enable
+      // the Insert button that insert() had disabled and labelled "Inserted".
+      const insert = this.action("insert");
+      if (insert) { insert.disabled = false; insert.textContent = this.t("panel.insert"); }
     } catch (error) {
       this.phase = "error";
       const err = error as { message?: string; detail?: string };
@@ -604,6 +617,7 @@ export class VerbiaPanel {
     }
     this.floating = false;
     this.floatAnchor = null;
+    this.host.classList.remove("floating");
     chrome.storage.onChanged.removeListener(this.onSettingsChanged);
     this.host.remove();
     this.onRemove();

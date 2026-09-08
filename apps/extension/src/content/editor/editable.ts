@@ -34,7 +34,7 @@ export function readEditable(element: HTMLElement): string {
   return element.innerText;
 }
 
-export async function insertText(target: EditableTarget, text: string, mode: "replace" | "append"): Promise<InsertResult> {
+export async function insertText(target: EditableTarget, text: string, mode: "replace" | "append", newlines: "text" | "html" = "text"): Promise<InsertResult> {
   const element = target.element;
   if (!isSafeEditable(element)) return { ok: false, reason: "The original editor is no longer available." };
   const current = readEditable(element);
@@ -65,13 +65,14 @@ export async function insertText(target: EditableTarget, text: string, mode: "re
   selection?.addRange(range);
   if (mode === "append") range.collapse(false);
 
-  // `execCommand("insertText", ...)` treats the argument as plain text: Gmail's
-  // contenteditable drops embedded "\n" so multi-line drafts collapse onto a
-  // single line. Gmail happily accepts `insertHTML` with `<br>` separators, so
-  // on mail.google.com we route through that path; other editors (Reddit,
-  // universal) keep the plain-text command so we don't fight their handlers.
+  // `execCommand("insertText", ...)` treats the argument as plain text and
+  // some contenteditables (Gmail, Outlook web) drop embedded "\n", collapsing
+  // multi-line drafts onto one line. Those editors accept `insertHTML` with
+  // `<br>` separators instead. Which one to use is a property of the *site*,
+  // so each adapter passes it in ("html" for Gmail/Outlook) rather than the
+  // shared layer sniffing hostnames — adding a site never edits this file.
   const payload = mode === "append" && current ? `\n${text}` : text;
-  if (/(^|\.)mail\.google\.com$/.test(location.hostname)) {
+  if (newlines === "html") {
     document.execCommand("insertHTML", false, escapeHtml(payload).replace(/\n/g, "<br>"));
   } else {
     document.execCommand("insertText", false, payload);

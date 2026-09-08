@@ -177,5 +177,5 @@ export class GmailAdapter implements SiteAdapter {
     };
   }
 
-  insertDraft(target: EditableTarget, text: string, mode: "replace" | "append") { return insertText(target, text, mode); }
+  insertDraft(target: EditableTarget, text: string, mode: "replace" | "append") { return insertText(target, text, mode, "html"); }
 }

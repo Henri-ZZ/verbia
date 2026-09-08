@@ -19,6 +19,10 @@
     "https://www.reddit.com/*",
     "https://old.reddit.com/*",
     "https://mail.google.com/*",
+    "https://outlook.live.com/*",
+    "https://outlook.office.com/*",
+    "https://outlook.com/*",
+    "https://www.outlook.com/*",
     "https://pthfyoejvlcwxboskrjr.supabase.co/*"
   ],
   "background": { "service_worker": "background.js", "type": "module" },
@@ -50,6 +54,11 @@
       "run_at": "document_idle",
       "all_frames": true,
       "match_about_blank": true
+    },
+    {
+      "matches": ["https://outlook.live.com/*", "https://outlook.office.com/*", "https://outlook.com/*", "https://www.outlook.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
     }
   ],
   "commands": {

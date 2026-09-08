@@ -121,8 +121,10 @@ const EN: Strings = {
   // context preview
   "context.universal": "Universal",
   "context.gmail": "Gmail",
+  "context.outlook": "Outlook",
   "context.noText": "No page text will be sent.",
   "context.postTitle": "Post title",
+  "context.originalMessage": "Original message",
   "context.post": "Post",
   "context.parentComment": "Parent comment",
   "context.targetComment": "Target comment",
@@ -149,6 +151,7 @@ const EN: Strings = {
   // content toast
   "content.toastFocusEditor": "Focus a text editor, then use the Verbia shortcut again.",
   "content.contextStaged": "Added to Verbia context.",
+  "content.dismissHint": "Panel closed. Press the Verbia shortcut to reopen it here.",
 
   // right-click menu
   "menu.addToContext": "Add to Verbia context",
@@ -288,8 +291,10 @@ const ZH_CN: Strings = {
   // context preview
   "context.universal": "通用",
   "context.gmail": "Gmail",
+  "context.outlook": "Outlook",
   "context.noText": "不会发送任何页面文本。",
   "context.postTitle": "帖子标题",
+  "context.originalMessage": "原邮件",
   "context.post": "帖子",
   "context.parentComment": "上级评论",
   "context.targetComment": "目标评论",
@@ -316,6 +321,7 @@ const ZH_CN: Strings = {
   // content toast
   "content.toastFocusEditor": "请先聚焦一个文本编辑器，再按一次 Verbia 快捷键。",
   "content.contextStaged": "已加入 Verbia 上下文。",
+  "content.dismissHint": "面板已关闭，按 Verbia 快捷键可在此重新唤起。",
 
   // right-click menu
   "menu.addToContext": "加入 Verbia 上下文",

@@ -1,6 +1,7 @@
 import { GmailAdapter } from "./adapters/gmail";
 import { RedditAdapter } from "./adapters/reddit";
 import { UniversalAdapter } from "./adapters/universal";
+import { OutlookAdapter } from "./adapters/outlook";
 import { isSafeEditable, toTarget } from "./editor/editable";
 import { VerbiaPanel } from "./ui/panel";
 import { msgIcon, type MsgKind } from "../ui/message";
@@ -13,6 +14,7 @@ if (!window.__verbiaLoaded) {
   const reddit = new RedditAdapter();
   const gmail = new GmailAdapter();
   const universal = new UniversalAdapter();
+  const outlook = new OutlookAdapter();
   const url = new URL(location.href);
 
   // Gmail injects the content script into every frame of mail.google.com
@@ -25,6 +27,7 @@ if (!window.__verbiaLoaded) {
   // frames from ever showing a panel.
   const onGmailHost = /(^|\.)mail\.google\.com$/.test(url.hostname) ||
     (url.protocol === "about:" && (() => { try { return window.parent !== window && /(^|\.)mail\.google\.com$/.test(window.parent.location.hostname); } catch { return false; } })());
+  const onOutlookHost = outlook.matches(url);
   const isTopFrame = window === window.top;
   const startDormant = onGmailHost && !isTopFrame;
 
@@ -32,24 +35,28 @@ if (!window.__verbiaLoaded) {
   else bootActive();
 
   function bootActive() {
-    const site: SiteAdapter = onGmailHost ? gmail : reddit.matches(url) ? reddit : universal;
-    const autoAdapter = site === reddit || site === gmail ? site : null;
+    const site: SiteAdapter = onOutlookHost ? outlook : onGmailHost ? gmail : reddit.matches(url) ? reddit : universal;
+    const autoAdapter = site === reddit || site === gmail || site === outlook ? site : null;
 
     let lastEditable: HTMLElement | null = isSafeEditable(document.activeElement) ? document.activeElement : null;
     let panel: VerbiaPanel | undefined;
     let currentRef = "";
+    // Manual-dismissal marker. When the user closes the panel we record which
+    // editor it was attached to and stop auto-opening for that editor — the
+    // user closing it is an explicit "stop asking me here". The marker is only
+    // lifted by an explicit summon (shortcut/action); focusing elsewhere does
+    // not clear it, so returning to that editor stays silent too.
     let dismissedRef = "";
-    let ignoreNextFocusRef = "";
+    let dismissHintShown = false;
     let scanFrame = 0;
 
     document.addEventListener("focusin", event => {
       if (!isSafeEditable(event.target)) return;
       lastEditable = event.target;
       const focusedRef = toTarget(event.target).ref;
-      // destroy() restores focus to the editor. Ignore that synthetic return
-      // once so removing the panel does not immediately recreate it.
-      if (focusedRef === ignoreNextFocusRef) { ignoreNextFocusRef = ""; return; }
-      dismissedRef = "";
+      // A manually-dismissed editor stays silent: keep the marker and skip
+      // auto-open until the user summons Verbia again.
+      if (focusedRef === dismissedRef) return;
       if (autoAdapter && autoAdapter.findComposers().some(target => target.element === event.target)) {
         void showFor(event.target, autoAdapter, false);
       }
@@ -70,17 +77,18 @@ if (!window.__verbiaLoaded) {
         panel.update(target, context);
       } else {
         panel = new VerbiaPanel(adapter, target, context, () => {
+          // User closed the panel: remember this editor so auto-open leaves it
+          // alone until they explicitly summon Verbia again.
           dismissedRef = currentRef;
-          ignoreNextFocusRef = currentRef;
           currentRef = "";
           panel = undefined;
+          void notifyDismissedOnce();
         });
-        if (adapter === gmail) {
-          // Gmail renders the composer inline in the host page (or in a
-          // compose sub-frame on older layouts); float the panel so it
-          // never becomes part of the outgoing email. Park it next to the
-          // editor so the user's eye doesn't have to jump to the opposite
-          // corner of the page.
+        if (adapter === gmail || adapter === outlook) {
+          // Mail sites render the composer inline in the host page; float the
+          // panel so it never becomes part of the outgoing message. Park it
+          // next to the editor so the eye doesn't have to jump to the
+          // opposite corner of the page.
           panel.mountFloating(element);
         } else {
           panel.mountAfter(findReplyAnchor(element));
@@ -108,6 +116,9 @@ if (!window.__verbiaLoaded) {
         return false;
       }
       await showFor(chosen, site, true, stagedSelection);
+      // An explicit summon (shortcut / action) lifts the manual dismissal so
+      // auto-open for this editor behaves normally from now on.
+      dismissedRef = "";
       return true;
     }
 
@@ -123,6 +134,14 @@ if (!window.__verbiaLoaded) {
       const stored = (settings ?? DEFAULT_SETTINGS) as typeof DEFAULT_SETTINGS;
       const lang = resolveUiLang(stored.uiLanguage, chrome.i18n.getUILanguage());
       showToast(UI_STRINGS[lang][key] ?? UI_STRINGS.en[key] ?? fallback, kind);
+    }
+
+    // Closing the panel explicitly means "stop showing Verbia on this editor".
+    // Tell the user once per page session how to summon it back.
+    function notifyDismissedOnce() {
+      if (dismissHintShown) return;
+      dismissHintShown = true;
+      void showToastFor("content.dismissHint", "Panel closed. Press the Verbia shortcut to reopen.", "info");
     }
 
     // Auto-open on a focused/visible composer for adapters that support it
@@ -141,7 +160,7 @@ if (!window.__verbiaLoaded) {
 
     if (autoAdapter) {
       scanComposer();
-      const observerRoot = (autoAdapter === gmail ? document.body : document.querySelector("shreddit-app, main, [role='main']")) ?? document.body;
+      const observerRoot = (autoAdapter === reddit ? document.querySelector("shreddit-app, main, [role='main']") : document.body) ?? document.body;
       const observer = new MutationObserver(() => {
         if (scanFrame) return;
         scanFrame = requestAnimationFrame(scanComposer);

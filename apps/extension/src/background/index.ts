@@ -196,7 +196,7 @@ async function activate(tab: chrome.tabs.Tab) {
 
 function hintForUrl(url: string | undefined): string {
   if (!url) return "Verbia could not open on this page.";
-  if (/^https:\/\/mail\.google\.com\//.test(url)) {
+  if (/^https:\/\/mail\.google\.com\//.test(url) || /^https:\/\/(www\.)?outlook\.(com|live\.com|office\.com)\//.test(url)) {
     return "Open a reply or new email window, then try again.";
   }
   if (/^https:\/\/(www\.)?reddit\.com\//.test(url)) {

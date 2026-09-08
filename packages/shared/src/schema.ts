@@ -20,7 +20,7 @@ export const contextEnvelopeSchema = z.object({
 export const generateReplyRequestSchema = z.object({
   requestId: z.string().uuid(),
   schemaVersion: z.literal("1"),
-  platform: z.enum(["reddit", "gmail", "universal"]),
+  platform: z.enum(["reddit", "gmail", "outlook", "universal"]),
   page: z.object({ urlOrigin: z.string().url().max(300), locale: z.string().max(30).optional() }),
   context: contextEnvelopeSchema,
   intent: z.object({
