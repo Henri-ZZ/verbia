@@ -104,3 +104,64 @@ $$;
 -- Only signed-in users may consume quota; anon/global execution is denied.
 revoke execute on function public.consume_quota(integer) from public, anon;
 grant execute on function public.consume_quota(integer) to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- 3. contact feedback
+-- ---------------------------------------------------------------------------
+create table if not exists public.feedback (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users (id) on delete set null,
+  submitter_hash text not null,
+  source text not null check (source in ('website', 'popup', 'settings', 'uninstall')),
+  category text not null check (category in ('bug', 'suggestion', 'experience', 'uninstall', 'other')),
+  reason text,
+  message text not null default '' check (char_length(message) <= 2000),
+  contact_email text,
+  allow_contact boolean not null default false,
+  locale text not null default 'en' check (locale in ('en', 'zh')),
+  extension_version text,
+  browser text,
+  status text not null default 'new' check (status in ('new', 'reviewing', 'resolved', 'archived')),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists feedback_created_at_idx on public.feedback (created_at desc);
+create index if not exists feedback_submitter_rate_idx on public.feedback (submitter_hash, created_at desc);
+alter table public.feedback enable row level security;
+
+-- Feedback is written only by the API's service role. No client can read,
+-- insert, update, or delete rows through the public Data API.
+revoke all on table public.feedback from anon, authenticated;
+
+create or replace function public.submit_feedback(
+  p_user_id uuid,
+  p_submitter_hash text,
+  p_source text,
+  p_category text,
+  p_reason text,
+  p_message text,
+  p_contact_email text,
+  p_allow_contact boolean,
+  p_locale text,
+  p_extension_version text,
+  p_browser text
+) returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_id uuid;
+begin
+  if (select count(*) from public.feedback where submitter_hash = p_submitter_hash and created_at > now() - interval '1 hour') >= 5 then
+    raise exception 'FEEDBACK_RATE_LIMITED' using errcode = 'P0001';
+  end if;
+  insert into public.feedback (user_id, submitter_hash, source, category, reason, message, contact_email, allow_contact, locale, extension_version, browser)
+  values (p_user_id, p_submitter_hash, p_source, p_category, nullif(p_reason, ''), p_message, case when p_allow_contact then nullif(p_contact_email, '') end, p_allow_contact, p_locale, nullif(p_extension_version, ''), nullif(p_browser, ''))
+  returning id into v_id;
+  return v_id;
+end;
+$$;
+
+revoke execute on function public.submit_feedback(uuid,text,text,text,text,text,text,boolean,text,text,text) from public, anon, authenticated;
+grant execute on function public.submit_feedback(uuid,text,text,text,text,text,text,boolean,text,text,text) to service_role;

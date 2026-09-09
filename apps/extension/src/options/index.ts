@@ -65,6 +65,8 @@ function applyLanguage() {
   if (sectionHeadings[1]) sectionHeadings[1].textContent = strings["settings.interfacePrivacy"] ?? "Interface & privacy";
   if (sectionDescriptions[1]) sectionDescriptions[1].textContent = strings["settings.interfacePrivacyDesc"] ?? "";
   renderOptions(strings);
+  const contact = document.querySelector<HTMLAnchorElement>("#contact-feedback");
+  if (contact) contact.href = `https://verbia.henriz.dev/${lang === "zh-CN" ? "zh/" : ""}contact?source=settings&version=${encodeURIComponent(chrome.runtime.getManifest().version)}`;
 }
 
 async function load() {

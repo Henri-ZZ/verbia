@@ -59,6 +59,41 @@ describe("API fetch handler", () => {
     expect(response.status).toBe(401);
   });
 
+  it("validates feedback and reports missing storage configuration", async () => {
+    const empty = await handler(new Request("https://api.verbia.henriz.dev/v1/feedback", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ source: "website", category: "suggestion", message: "", locale: "en" })
+    }));
+    expect(empty.status).toBe(400);
+
+    const unconfigured = await handler(new Request("https://api.verbia.henriz.dev/v1/feedback", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ source: "website", category: "suggestion", message: "Add Firefox support", locale: "en" })
+    }));
+    expect(unconfigured.status).toBe(503);
+  });
+
+  it("stores feedback without an unapproved contact email", async () => {
+    const request = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(new Response(null, { status: 204 }));
+    const feedbackHandler = createApiHandler({
+      LLM_PROVIDER: "mock",
+      SUPABASE_URL: "https://project.supabase.co",
+      SUPABASE_SERVICE_ROLE_KEY: "service-key",
+      FEEDBACK_HASH_SALT: "test-only-salt"
+    });
+    const response = await feedbackHandler(new Request("https://api.verbia.henriz.dev/v1/feedback", {
+      method: "POST",
+      headers: { "content-type": "application/json", "cf-connecting-ip": "203.0.113.10" },
+      body: JSON.stringify({ source: "uninstall", category: "uninstall", reason: "not_working", message: "The panel did not open", contactEmail: "person@example.com", allowContact: false, locale: "en", extensionVersion: "0.1.0" })
+    }));
+    expect(response.status).toBe(201);
+    const call = request.mock.calls[0];
+    expect(call).toBeDefined();
+    const [input, init] = call!;
+    expect(String(input)).toContain("/rest/v1/rpc/submit_feedback");
+    expect(JSON.parse(String(init?.body))).toMatchObject({ p_contact_email: null, p_allow_contact: false, p_reason: "not_working" });
+  });
+
   it("does not trust a client-editable profile plan", async () => {
     vi.spyOn(globalThis, "fetch").mockImplementation(async input => {
       const url = String(input);

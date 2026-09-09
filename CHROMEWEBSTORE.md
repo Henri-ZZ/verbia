@@ -47,7 +47,7 @@ Verbia 只在你主动唤起后才读取页面内容，访问范围限定于你�
 
 | Asset | Dimensions | Status | Filename |
 |---|---:|---|---|
-| Store Icon | 128×128 PNG | ✅ Created | `brand/icons/icon128.png` |
+| Store Icon | 128×128 PNG | ✅ Created and uploaded | `apps/extension/icons/icon128.png` |
 | Screenshot 1 | 1280×800 or 640×400 | ⬜ Not created | |
 | Screenshot 2 | 1280×800 or 640×400 | ⬜ Not created | |
 | Small Promo Tile | 440×280 | ⬜ Not created | |
@@ -78,6 +78,7 @@ Screenshot 1 should show reviewed Reddit context and the intent controls. Screen
 | Website content | Yes | Yes | Provide minimum conversation context | Model processor only |
 | User activity | Limited metadata, opt-in | If enabled | Reliability diagnostics | No sale/advertising |
 | Authentication info | Yes | Yes | Sign in, maintain the account session, and attribute usage quota | Supabase authentication processor |
+| Feedback | Optional | When submitted | Receive problem reports, suggestions, uninstall reasons, and reply when requested | Supabase storage processor |
 | Financial, health, location, web history | No | No | — | No |
 
 - [x] Data is NOT sold to third parties
@@ -86,7 +87,7 @@ Screenshot 1 should show reviewed Reddit context and the intent controls. Screen
 
 ## Privacy Policy
 
-**Privacy Policy URL:** [REQUIRED before submission — host `PRIVACY.md` publicly]
+**Privacy Policy URL:** https://verbia.henriz.dev/privacy
 
 ## Distribution
 
@@ -97,14 +98,16 @@ Screenshot 1 should show reviewed Reddit context and the intent controls. Screen
 
 **Homepage URL:** https://verbia.henriz.dev/  
 **Publisher Name:** [REQUIRED]  
-**Contact Email:** [REQUIRED]  
-**Support URL / Email:** [REQUIRED]
+**Contact Email:** henri@henriz.dev
+**Support URL / Email:** https://verbia.henriz.dev/contact / henri@henriz.dev
 
 ## Version History
 
 | Version | Date | Changes | Status |
 |---|---|---|---|
 | 0.1.0 | 2026-09-06 | Reddit inline reply assistant, removable reply panels with clean-session reopening, Universal reply drafting, dashboard access from the popup, Google profile identity, and visible daily free-usage allowance | Draft |
+
+The next release adds Contact/Feedback links in the popup and Dashboard and an optional uninstall survey. A submission may contain the category or uninstall reason, the user's message, an optional contact email, language, extension version, and limited browser information. It never automatically includes page text, private messages, intent, or generated drafts.
 
 ## Review Notes
 

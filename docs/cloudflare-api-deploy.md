@@ -11,6 +11,7 @@
 | 生产域名 | `https://api.verbia.henriz.dev` |
 | 健康检查 | `GET /health` |
 | 生成接口 | `POST /v1/replies:generate` |
+| 反馈接口 | `POST /v1/feedback` |
 | 登录策略 | 必须携带有效的 Supabase Bearer Token |
 | 免费额度 | 每位登录用户每天 10 次 |
 | 模型路由 | Gemini、Mistral、Cloudflare Workers AI、Groq 自动均衡与故障切换 |
@@ -169,6 +170,19 @@ pnpm exec wrangler secret list --cwd /tmp --config "$PWD/wrangler.jsonc"
 ```
 
 该命令只显示名称，不显示密钥值。
+
+## 联系与反馈配置
+
+网站、扩展设置页和卸载问卷统一提交到 `POST /v1/feedback`，Worker 再通过受限 RPC 写入 Supabase 的 `public.feedback` 表。上线前先执行 `docs/supabase-schema.sql` 中的 contact feedback 部分，然后添加两个 Worker Secret：
+
+```bash
+pnpm exec wrangler secret put SUPABASE_SERVICE_ROLE_KEY --cwd /tmp --config "$PWD/wrangler.jsonc"
+pnpm exec wrangler secret put FEEDBACK_HASH_SALT --cwd /tmp --config "$PWD/wrangler.jsonc"
+```
+
+`SUPABASE_SERVICE_ROLE_KEY` 只能保存在 Worker Secret 和本地 `.env.local`，不能出现在网站、扩展、普通 Worker 变量或 Git 中。`FEEDBACK_HASH_SALT` 使用随机生成的长字符串，用于把用户 ID 或 IP 转换为不可直接识别的限流标识。表默认不允许 `anon` 或 `authenticated` 角色直接读写；只有 Worker 的 `service_role` 可以调用写入 RPC。
+
+接口允许未登录用户提交，每个假名化提交者每小时最多 5 条。邮箱仅在用户勾选“允许联系”时保存，反馈不会自动包含网页内容、私人消息、意图或生成草稿。
 
 ## 数据库变更
 

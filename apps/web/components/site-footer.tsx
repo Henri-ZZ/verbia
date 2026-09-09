@@ -38,7 +38,7 @@ export function SiteFooter({ locale = "en" }: { locale?: SiteLocale }) {
         </nav>
         <nav aria-label={zh ? "支持" : "Support"}>
           <h2>{zh ? "支持" : "Support"}</h2>
-          <a href="mailto:henri@henriz.dev">{zh ? "联系我们" : "Contact"}</a>
+          <Link href={`${prefix}/contact`}>{zh ? "联系与反馈" : "Contact/Feedback"}</Link>
           <Link href={`${prefix}/terms`}>{zh ? "条款" : "Terms"}</Link>
           <Link href={`${prefix}/privacy`}>{zh ? "隐私" : "Privacy"}</Link>
           <Link href={`${prefix}/refund`}>{zh ? "退款" : "Refunds"}</Link>

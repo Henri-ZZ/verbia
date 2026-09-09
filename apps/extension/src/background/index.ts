@@ -27,7 +27,7 @@ chrome.runtime.onInstalled.addListener(async details => {
     await chrome.tabs.create({ url: "https://verbia.henriz.dev/getting-started?installed=1" });
   }
   // Uninstall “farewell” page, refreshed on every install/update.
-  chrome.runtime.setUninstallURL("https://verbia.henriz.dev/goodbye");
+  await refreshUninstallUrl();
   await ensureContextMenu();
 });
 
@@ -89,7 +89,15 @@ chrome.storage.onChanged.addListener((changes, area) => {
   const next = changes.settings.newValue as UserSettings | undefined;
   if (!next || prev?.uiLanguage === next.uiLanguage) return;
   void refreshContextMenuTitle();
+  void refreshUninstallUrl();
 });
+
+async function refreshUninstallUrl() {
+  const language = await resolvedUiLang();
+  const path = language === "zh-CN" ? "/zh/goodbye" : "/goodbye";
+  const version = encodeURIComponent(chrome.runtime.getManifest().version);
+  await chrome.runtime.setUninstallURL(`https://verbia.henriz.dev${path}?source=uninstall&version=${version}`);
+}
 
 chrome.commands.onCommand.addListener(async command => {
   if (command !== "open-verbia") return;

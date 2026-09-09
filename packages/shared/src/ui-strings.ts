@@ -22,6 +22,7 @@ const EN: Strings = {
   // common
   "common.autoOption": "Auto (follow browser)",
   "common.or": "OR",
+  "common.contactFeedback": "Contact/Feedback",
 
   // options page
   "settings.title": "Dashboard",
@@ -192,6 +193,7 @@ const ZH_CN: Strings = {
   // common
   "common.autoOption": "自动（跟随浏览器）",
   "common.or": "或",
+  "common.contactFeedback": "联系与反馈",
 
   // options page
   "settings.title": "控制面板",

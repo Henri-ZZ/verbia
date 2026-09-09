@@ -5,6 +5,8 @@ async function applyLanguage() {
   const value = (settings ?? DEFAULT_SETTINGS) as typeof DEFAULT_SETTINGS;
   const lang = resolveUiLang(value.uiLanguage, chrome.i18n.getUILanguage());
   const strings = UI_STRINGS[lang];
+  const contact = document.querySelector<HTMLAnchorElement>("#contact-feedback");
+  if (contact) contact.href = `https://verbia.henriz.dev/${lang === "zh-CN" ? "zh/" : ""}contact?source=popup&version=${encodeURIComponent(chrome.runtime.getManifest().version)}`;
   document.documentElement.lang = lang;
   for (const el of document.querySelectorAll<HTMLElement>("[data-i18n]")) {
     const text = strings[el.dataset.i18n ?? ""];

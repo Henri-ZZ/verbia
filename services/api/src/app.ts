@@ -2,6 +2,7 @@ import { generateReplyRequestSchema, generateReplyResponseSchema, type AccountUs
 import { BalancedProvider, GeminiProvider, MockProvider, OpenAiCompatibleProvider, type ReplyProvider } from "./provider";
 import { billingConfigured, createCheckout, hasActiveProSubscription, verifyBillingWebhook, type BillingCycle } from "./billing";
 import { reportError } from "./monitoring";
+import { z } from "zod";
 
 export type ApiEnv = Record<string, string | undefined>;
 const maxBodyBytes = 48_000;
@@ -68,6 +69,25 @@ export function createApiHandler(env: ApiEnv) {
         return new Response("Invalid signature", { status: 401, headers: responseHeaders });
       }
     }
+    if (request.method === "POST" && path === "/v1/feedback") {
+      try {
+        const parsed = feedbackSchema.safeParse(await readJson(request, 8_000));
+        if (!parsed.success) return json(400, { error: "Check the feedback form and try again." });
+        // Honeypot submissions receive a normal response so automated senders
+        // cannot use the endpoint response to tune their payloads.
+        if (parsed.data.company) return json(202, { ok: true });
+        const auth = await verifyBearer(request.headers.get("authorization"), env);
+        await submitFeedback(request, parsed.data, auth.status === "ok" ? auth.userId : undefined, env);
+        return json(201, { ok: true });
+      } catch (error) {
+        const code = (error as { code?: string }).code;
+        if (code === "FEEDBACK_RATE_LIMITED") return json(429, { error: "Too many submissions. Please try again later." });
+        if (code === "FEEDBACK_NOT_CONFIGURED") return json(503, { error: "Feedback is temporarily unavailable." });
+        console.error("[verbia-api] feedback submission failed", error);
+        reportError(error, "feedback_submission");
+        return json(502, { error: "Feedback is temporarily unavailable." });
+      }
+    }
     if (request.method !== "POST" || path !== "/v1/replies:generate") return json(404, { error: "Not found" });
     let requestId = "unknown";
     const timings: TimingMetric[] = [];
@@ -113,6 +133,55 @@ export function createApiHandler(env: ApiEnv) {
       logRequest(request, path, response, requestStarted, logRequestId, logProvider, logModelRoute);
     }
   };
+}
+
+const feedbackSchema = z.object({
+  source: z.enum(["website", "popup", "settings", "uninstall"]),
+  category: z.enum(["bug", "suggestion", "experience", "uninstall", "other"]),
+  reason: z.string().trim().max(80).optional(),
+  message: z.string().trim().max(2_000).default(""),
+  contactEmail: z.string().trim().email().max(320).optional().or(z.literal("")),
+  allowContact: z.boolean().default(false),
+  locale: z.enum(["en", "zh"]).default("en"),
+  extensionVersion: z.string().trim().max(40).optional(),
+  browser: z.string().trim().max(180).optional(),
+  company: z.string().max(200).optional()
+}).refine(value => Boolean(value.reason || value.message), { message: "Feedback is empty" });
+type FeedbackInput = z.infer<typeof feedbackSchema>;
+
+async function submitFeedback(request: Request, input: FeedbackInput, userId: string | undefined, env: ApiEnv): Promise<void> {
+  const supabaseUrl = (env.SUPABASE_URL ?? "").replace(/\/+$/, "");
+  const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+  const salt = env.FEEDBACK_HASH_SALT ?? "";
+  if (!supabaseUrl || !serviceRoleKey || !salt) throw Object.assign(new Error("Feedback storage is not configured"), { code: "FEEDBACK_NOT_CONFIGURED" });
+  const address = request.headers.get("cf-connecting-ip") ?? request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  const submitterHash = await sha256(`${salt}:${userId ?? address}`);
+  const response = await fetch(`${supabaseUrl}/rest/v1/rpc/submit_feedback`, {
+    method: "POST",
+    headers: { apikey: serviceRoleKey, authorization: `Bearer ${serviceRoleKey}`, "content-type": "application/json" },
+    body: JSON.stringify({
+      p_user_id: userId ?? null,
+      p_submitter_hash: submitterHash,
+      p_source: input.source,
+      p_category: input.category,
+      p_reason: input.reason || null,
+      p_message: input.message,
+      p_contact_email: input.allowContact && input.contactEmail ? input.contactEmail : null,
+      p_allow_contact: input.allowContact,
+      p_locale: input.locale,
+      p_extension_version: input.extensionVersion || null,
+      p_browser: input.browser || null
+    })
+  });
+  if (response.ok) return;
+  const body = await response.text();
+  if (body.includes("FEEDBACK_RATE_LIMITED")) throw Object.assign(new Error("Feedback rate limited"), { code: "FEEDBACK_RATE_LIMITED" });
+  throw new Error(`Supabase feedback insert returned ${response.status}`);
+}
+
+async function sha256(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, "0")).join("");
 }
 
 export function createProvider(env: ApiEnv): ReplyProvider {
