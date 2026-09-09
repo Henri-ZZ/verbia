@@ -15,12 +15,16 @@ export const authEnabled = Boolean(SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY);
 export const AUTH_STORAGE_KEY = "verbia-auth-token";
 
 // Landing target for every OAuth / email round-trip (Google OAuth and Magic
-// Link). It is the Supabase project root — a normal https URL — because
-// Chrome blocks server-side 302 navigations into chrome-extension:// pages
-// (ERR_BLOCKED_BY_CLIENT). The background service worker watches for ?code=
-// landings on this root and exchanges them into a session (see
-// background/index.ts); nothing ever needs to render this URL.
-export const SUPABASE_SIGNIN_REDIRECT = `${SUPABASE_URL}/`;
+// Link). It is a real page on the Verbia website (/auth-complete) rather than
+// the Supabase project root, because Chrome blocks server-side 302
+// navigations into chrome-extension:// pages (ERR_BLOCKED_BY_CLIENT) and the
+// Supabase root renders no HTML. The page is a friendly "Signing in…" screen:
+// the background service worker exchanges the ?code= landing (the PKCE
+// verifier lives in the shared extension storage) and hands the finished
+// session to a bridge content script, which writes it into the website's own
+// localStorage — so signing into the extension signs into the website too.
+export const WEB_AUTH_ORIGIN = (process.env.VERBIA_WEB_ORIGIN ?? "https://verbia.henriz.dev").replace(/\/+$/, "");
+export const SUPABASE_SIGNIN_REDIRECT = `${WEB_AUTH_ORIGIN}/auth-complete`;
 
 let clientInstance: SupabaseClient | undefined;
 

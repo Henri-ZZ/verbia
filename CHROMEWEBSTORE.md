@@ -95,6 +95,7 @@ Screenshot 1 should show reviewed Reddit context and the intent controls. Screen
 
 ## Developer Info
 
+**Homepage URL:** https://verbia.henriz.dev/  
 **Publisher Name:** [REQUIRED]  
 **Contact Email:** [REQUIRED]  
 **Support URL / Email:** [REQUIRED]

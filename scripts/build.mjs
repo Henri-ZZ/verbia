@@ -52,7 +52,8 @@ const sharedOptions = {
     "process.env.SUPABASE_PUBLISHABLE_KEY": JSON.stringify(supabasePublishableKey),
     "process.env.SUPABASE_ANON_KEY": JSON.stringify(supabasePublishableKey),
     "process.env.VERBIA_RELEASE": release ? "1" : "0",
-    "process.env.VERBIA_BACKEND_URL": JSON.stringify(VERBIA_BACKEND_URL)
+    "process.env.VERBIA_BACKEND_URL": JSON.stringify(VERBIA_BACKEND_URL),
+    "process.env.VERBIA_WEB_ORIGIN": JSON.stringify(localEnv.VERBIA_WEB_ORIGIN ?? "https://verbia.henriz.dev")
   },
   alias: { "@verbia/shared": path.join(root, "packages/shared/src/index.ts") }
 };
@@ -98,7 +99,7 @@ await Promise.all([
 
 const builds = [
   { ...sharedOptions, entryPoints: { background: "apps/extension/src/background/index.ts" }, format: "esm" },
-  { ...sharedOptions, entryPoints: { content: "apps/extension/src/content/index.ts", options: "apps/extension/src/options/index.ts", popup: "apps/extension/src/popup/index.ts" }, format: "iife" }
+  { ...sharedOptions, entryPoints: { content: "apps/extension/src/content/index.ts", bridge: "apps/extension/src/bridge.ts", options: "apps/extension/src/options/index.ts", popup: "apps/extension/src/popup/index.ts" }, format: "iife" }
 ];
 
 if (process.argv.includes("--watch")) {

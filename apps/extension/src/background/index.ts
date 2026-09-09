@@ -1,5 +1,5 @@
 import { DEFAULT_SETTINGS, UI_STRINGS, generateReplyRequestSchema, generateReplyResponseSchema, resolveUiLang, type AccountUsage, type AuthState, type ExtensionRequest, type ExtensionResponse, type StagedContext, type StagedSelection, type UiLang, type UserSettings } from "@verbia/shared";
-import { SUPABASE_URL, authBearer, authEnabled, authSnapshot, clearSession, getSupabase, refreshStoredSession, signOut } from "../auth/supabase";
+import { SUPABASE_URL, WEB_AUTH_ORIGIN, authBearer, authEnabled, authSnapshot, clearSession, getSupabase, refreshStoredSession, signOut } from "../auth/supabase";
 
 const ADD_CONTEXT_MENU_ID = "verbia-add-context";
 const MAX_SELECTION_LENGTH = 8_000;
@@ -33,33 +33,48 @@ chrome.runtime.onInstalled.addListener(async details => {
 
 chrome.runtime.onStartup.addListener(() => { void ensureContextMenu(); });
 
-// Captures PKCE code landings on the Supabase project root for both Google
-// OAuth (tab opened by signInWithGoogle) and Magic Link emails (tab the user
-// clicked from the email). The landing is a plain https navigation, so Chrome
-// never blocks it the way it blocks 302s into chrome-extension:// pages. The
-// PKCE verifier written when the flow was started lives in the shared
-// storage, so exchangeCodeForSession can finish the login here even when no
-// options page is open. Sign-in success closes the landing tab.
+// Captures PKCE code landings for both Google OAuth (tab opened by
+// signInWithGoogle) and Magic Link emails (tab the user clicked from the
+// email). The landing is a plain https navigation, so Chrome never blocks it
+// the way it blocks 302s into chrome-extension:// pages. The PKCE verifier
+// written when the flow was started lives in the shared storage, so
+// exchangeCodeForSession can finish the login here even when no options page
+// is open.
+//
+// New landings go to https://verbia.henriz.dev/auth-complete — a real page
+// that doubles as a single-sign-on handoff: after the exchange succeeds the
+// finished session is pushed to the page's bridge content script, which
+// writes it into the website's localStorage, so the website is signed in
+// too. (A legacy landing on the Supabase project root is exchanged and then
+// closed, for links emailed before this redirect was introduced.)
 chrome.tabs.onUpdated.addListener((tabId, info) => {
   const url = info.url;
-  if (!url || !url.startsWith(SUPABASE_URL)) return;
+  if (!url) return;
   let parsed: URL;
   try { parsed = new URL(url); } catch { return; }
-  // Only the final landing on the project root carries the PKCE code. The
-  // GoTrue /auth/v1/callback and /auth/v1/verify hops also sit on
-  // SUPABASE_URL, but their parameters are not ours to exchange.
-  if (parsed.pathname !== "/") return;
   const code = parsed.searchParams.get("code");
   if (!code) return;
-  void captureSignInCode(tabId, code);
+  const onWebComplete = parsed.origin === WEB_AUTH_ORIGIN && parsed.pathname === "/auth-complete";
+  const onLegacyRoot = parsed.origin === SUPABASE_URL && parsed.pathname === "/";
+  if (onWebComplete || onLegacyRoot) void captureSignInCode(tabId, code, onWebComplete);
 });
 
-async function captureSignInCode(tabId: number, code: string): Promise<void> {
+async function captureSignInCode(tabId: number, code: string, keepTab: boolean): Promise<void> {
   if (!authEnabled) return;
   try {
-    const { error } = await getSupabase().auth.exchangeCodeForSession(code);
+    const client = getSupabase();
+    const { error, data } = await client.auth.exchangeCodeForSession(code);
     if (error) return; // stale link / verifier mismatch — leave the tab alone
-    await chrome.tabs.remove(tabId).catch(() => undefined);
+    if (!keepTab) {
+      // Legacy Supabase-root landing: nothing to render; close it.
+      await chrome.tabs.remove(tabId).catch(() => undefined);
+      return;
+    }
+    // Landing on the website: hand the session to the page so /auth-complete
+    // stores it and redirects to the account area (website now signed in too).
+    if (data.session) {
+      await chrome.tabs.sendMessage(tabId, { type: "VERBIA_STORE_WEB_SESSION", session: data.session }).catch(() => undefined);
+    }
   } catch {
     // exchange threw (e.g. no verifier stored for this code) — ignore; the
     // user can re-request the magic link and start a fresh flow.
