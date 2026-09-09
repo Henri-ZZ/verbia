@@ -78,7 +78,7 @@ describe("API fetch handler", () => {
     const feedbackHandler = createApiHandler({
       LLM_PROVIDER: "mock",
       SUPABASE_URL: "https://project.supabase.co",
-      SUPABASE_SERVICE_ROLE_KEY: "service-key",
+      SUPABASE_SERVICE_ROLE_KEY: "sb_secret_test-key",
       FEEDBACK_HASH_SALT: "test-only-salt"
     });
     const response = await feedbackHandler(new Request("https://api.verbia.henriz.dev/v1/feedback", {
@@ -92,6 +92,8 @@ describe("API fetch handler", () => {
     const [input, init] = call!;
     expect(String(input)).toContain("/rest/v1/rpc/submit_feedback");
     expect(JSON.parse(String(init?.body))).toMatchObject({ p_contact_email: null, p_allow_contact: false, p_reason: "not_working" });
+    expect(new Headers(init?.headers).get("apikey")).toBe("sb_secret_test-key");
+    expect(new Headers(init?.headers).has("authorization")).toBe(false);
   });
 
   it("does not trust a client-editable profile plan", async () => {

@@ -158,7 +158,13 @@ async function submitFeedback(request: Request, input: FeedbackInput, userId: st
   const submitterHash = await sha256(`${salt}:${userId ?? address}`);
   const response = await fetch(`${supabaseUrl}/rest/v1/rpc/submit_feedback`, {
     method: "POST",
-    headers: { apikey: serviceRoleKey, authorization: `Bearer ${serviceRoleKey}`, "content-type": "application/json" },
+    // New sb_secret_* keys are opaque API keys and must not be sent as Bearer
+    // JWTs. Legacy service_role JWTs still require the Authorization header.
+    headers: {
+      apikey: serviceRoleKey,
+      ...(!serviceRoleKey.startsWith("sb_secret_") ? { authorization: `Bearer ${serviceRoleKey}` } : {}),
+      "content-type": "application/json"
+    },
     body: JSON.stringify({
       p_user_id: userId ?? null,
       p_submitter_hash: submitterHash,

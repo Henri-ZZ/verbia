@@ -2,6 +2,8 @@
 
 本文记录 `verbia-api` 的日常修改、测试、上线、验证和回滚流程。
 
+所有环境变量的用途、默认值和存放位置见 `services/docs/ENVIRONMENT-VARIABLES.md`。
+
 ## 当前生产环境
 
 | 项目 | 当前值 |
