@@ -35,6 +35,7 @@ const T = {
     usedOf: (used: number, limit: number) => `${used} of ${limit}`,
     resets: (at: string) => `Resets ${new Date(at).toLocaleString()}`,
     usageUnavailable: "Usage is temporarily unavailable.",
+    loading: "Loading…",
     signOut: "Sign out",
     upgradeTitle: "Upgrade to Verbia Premium",
     upgradeBody: "Get 100 context-aware replies per day.",
@@ -65,6 +66,7 @@ const T = {
     usedOf: (used: number, limit: number) => `${used} / ${limit}`,
     resets: (at: string) => `${new Date(at).toLocaleString()} 重置`,
     usageUnavailable: "用量暂时不可用。",
+    loading: "加载中…",
     signOut: "退出登录",
     upgradeTitle: "升级到 Premium",
     upgradeBody: "每天可使用 100 次上下文回复。",
@@ -79,6 +81,7 @@ export default function AccountPage() {
   const [state, setState] = useState<"checking" | "signed_out" | "signed_in">("checking");
   const [user, setUser] = useState<User | null>(null);
   const [usage, setUsage] = useState<Usage>(null);
+  const [usageStatus, setUsageStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [email, setEmail] = useState("");
   const [sending, setSending] = useState(false);
   const [notice, setNotice] = useState<string>("");
@@ -135,28 +138,33 @@ export default function AccountPage() {
   }, [state, user]);
 
   async function loadUsage(current: User) {
+    // Background polls after a checkout refresh keep showing the last value;
+    // only first load (or a retry from an error) surfaces the spinner.
+    setUsageStatus(prev => (prev === "ready" ? "ready" : "loading"));
     try {
       const client = await getClient();
       const { data } = await client.auth.getSession();
       const token = data.session?.access_token;
-      if (!token) return;
+      if (!token) { setUsage(null); setUsageStatus("error"); return; }
       const response = await fetch(`${API_BASE}/v1/account/usage`, { headers: { authorization: `Bearer ${token}` } });
       if (response.status === 401 || response.status === 403) {
         // The server rejected the token (e.g. revoked by a global sign-out on
         // another surface). Sign out locally so we never linger signed-in with
         // unusable usage.
         await signOut();
-        setUser(null); setUsage(null); setState("signed_out");
+        setUser(null); setUsage(null); setUsageStatus("idle"); setState("signed_out");
         return;
       }
-      if (!response.ok) return;
+      if (!response.ok) { setUsage(null); setUsageStatus("error"); return; }
       const body = await response.json() as { plan?: string; used?: number; limit?: number | null; resetsAt?: string };
       const plan = body.plan === "premium" ? "premium" : "free";
       const used = typeof body.used === "number" ? body.used : 0;
       const limit = typeof body.limit === "number" ? body.limit : null;
       setUsage({ plan, used, limit, resetsAt: body.resetsAt });
+      setUsageStatus("ready");
     } catch {
       setUsage(null);
+      setUsageStatus("error");
     }
   }
 
@@ -181,7 +189,7 @@ export default function AccountPage() {
     if (!confirmed) return;
     setError(""); setNotice("");
     await signOut();
-    setUser(null); setUsage(null); setState("signed_out");
+    setUser(null); setUsage(null); setUsageStatus("idle"); setState("signed_out");
   }
 
   const provider = user ? providerOf(user) : undefined;
@@ -209,7 +217,12 @@ export default function AccountPage() {
         </div>
         <p className="account-eyebrow">{t.eyebrow}</p>
 
-        {state === "checking" && <h1 className="account-h1">…</h1>}
+        {state === "checking" && (
+          <div className="account-loading" role="status">
+            <img className="spinner" src="/loading.png" alt="" />
+            {t.loading}
+          </div>
+        )}
 
         {state === "signed_out" && (
           <>
@@ -242,14 +255,20 @@ export default function AccountPage() {
               </div>
             </div>
 
-            <div className="account-usage">
-              <span>{t.usageLabel}</span>
-              {usage === null ? <em>{t.usageUnavailable}</em>
-                : <strong>{usage.limit === null ? t.unlimited : t.usedOf(usage.used, usage.limit)}</strong>}
-              {usage?.resetsAt && <small>{t.resets(usage.resetsAt)}</small>}
-            </div>
+            {usageStatus === "loading" ? (
+              <div className="account-usage" role="status">
+                <span className="account-loading"><img className="spinner" src="/loading.png" alt="" />{t.loading}</span>
+              </div>
+            ) : (
+              <div className="account-usage">
+                <span>{t.usageLabel}</span>
+                {usage === null ? <em>{t.usageUnavailable}</em>
+                  : <strong>{usage.limit === null ? t.unlimited : t.usedOf(usage.used, usage.limit)}</strong>}
+                {usage?.resetsAt && <small>{t.resets(usage.resetsAt)}</small>}
+              </div>
+            )}
 
-            {usage?.plan !== "premium" && <div className="account-upgrade"><strong>{t.upgradeTitle}<img className="premium-mark" src="/premium.png" alt="" width="14" height="14"/></strong><p>{t.upgradeBody}</p><ProCheckout locale={locale} compact/></div>}
+            {usageStatus === "ready" && usage?.plan !== "premium" && <div className="account-upgrade"><strong>{t.upgradeTitle}<img className="premium-mark" src="/premium.png" alt="" width="14" height="14"/></strong><p>{t.upgradeBody}</p><ProCheckout locale={locale} compact/></div>}
 
             <p className="account-note muted">{t.accountNote}</p>
             <button className="button secondary" type="button" onClick={() => void onSignOut()}>{t.signOut}</button>

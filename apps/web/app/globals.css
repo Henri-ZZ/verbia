@@ -1446,6 +1446,24 @@ button:focus-visible {
   flex-basis: 100%;
   color: var(--outline);
 }
+.account-loading {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 650;
+}
+.account-loading .spinner {
+  display: block;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  animation: verbia-spin 1s linear infinite;
+}
+@keyframes verbia-spin {
+  to { transform: rotate(360deg); }
+}
 .account-note {
   margin: 16px 0 20px;
   font-size: 12.5px;
