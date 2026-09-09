@@ -114,3 +114,5 @@ The next release adds Contact/Feedback links in the popup and Dashboard and an o
 Known release blockers: store assets, public privacy-policy URL, publisher identity, support contact, final model benchmark, and current Reddit manual validation.
 
 Authentication completion now remains on the Verbia success page instead of redirecting users to the homepage. Users can explicitly return to the extension Dashboard or open the website homepage.
+
+The next release also synchronizes a newly completed sign-in between the extension and verbia.henriz.dev. Each surface receives its own Supabase session, so signing out of the extension does not sign out the website, and signing out of the website does not sign out the extension.

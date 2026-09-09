@@ -52,6 +52,7 @@
 
 - **一个账号，多端共享身份**：扩展与官网使用**同一个 Supabase 项目**，因此你在官网登录的账号与插件登录的是同一个账号（同一份 `profiles`、同一份每日用量）。
 - **登录方式**：Google 或邮箱 Magic Link（免密），无密码。
+- **登录会自动同步**：在插件完成一次新登录时，官网也会建立自己的登录状态；在官网完成一次新登录时，同一浏览器中已安装的插件也会建立自己的登录状态。
 - **登录状态彼此独立**：网站存 localStorage、扩展存 `chrome.storage`；一端退出不会退出另一端（两端登出都使用 `scope: "local"`）。
 - **线上生成需要登录**：网关配置 `AUTH_REQUIRED=1`，未登录不能起草。
 - 任何一端 401/token 失效会自动变成“已退出”，不会出现“仍显示登录但用量不可用”。
@@ -236,7 +237,8 @@
 ### 后端网关（`services/api/`）
 | 路径 | 职责 |
 |---|---|
-| `src/app.ts` | HTTP 路由：`/health`、`/v1/account/usage`、`/v1/billing/checkout`、`/v1/billing/webhook`、`/v1/replies:generate`；Bearer 校验与配额 gate；CORS |
+| `src/app.ts` | HTTP 路由：`/health`、`/v1/account/usage`、`/v1/billing/checkout`、`/v1/billing/webhook`、`/v1/replies:generate`；配额 gate；CORS |
+| `src/auth.ts` | 使用 Supabase ES256 JWKS 本地验证 Bearer JWT |
 | `src/billing.ts` | Waffo Pancake 集成：创建结账会话（当前锁 USD）、订阅状态查询、Webhook 验签 |
 | `src/worker.ts` | Cloudflare Worker 入口（`wrangler.jsonc` 部署） |
 

@@ -41,7 +41,7 @@ Authorization: Bearer <来源端 Access Token>
 
 Worker 的处理顺序：
 
-1. 使用 Supabase `/auth/v1/user` 验证 Access Token。
+1. 使用 Supabase 项目的 ES256 JWKS 在 Worker 内验证 Access Token 的签名、签发方、受众和有效期。
 2. 只采用验证结果中的用户 ID 和邮箱，不接受客户端指定目标邮箱或用户 ID。
 3. 使用 `SUPABASE_SERVICE_ROLE_KEY` 调用 Supabase Admin `generateLink`，生成 Magic Link 类型的一次性 Token。
 4. 确认生成结果的用户 ID 与来源 Token 的用户 ID 完全一致。
@@ -106,7 +106,7 @@ supabase.auth.signOut({ scope: "local" })
 
 - bridge 的 Manifest 匹配范围只包含 `https://verbia.henriz.dev/*`。
 - 官网发来的消息视为不可信输入；扩展后台检查发送标签的 Origin 和回调路径。
-- Worker 必须在线验证来源 Access Token，不能相信 localStorage 或扩展消息里声明的用户资料。
+- Worker 必须以项目 JWKS 对来源 Access Token 完整验签，不能相信 localStorage 或扩展消息里声明的用户资料。
 - 一次性交接 Token 不写入 URL、localStorage、日志、Sentry 或数据库业务表。
 - `SUPABASE_SERVICE_ROLE_KEY` 只存在于 Worker Secret，不进入官网或扩展包。
 - 交接接口返回 `Cache-Control: no-store`。

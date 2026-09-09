@@ -61,30 +61,27 @@
 | 变量 | 敏感 | 必需性 | 作用及缺失时表现 |
 |---|---|---|---|
 | `SUPABASE_URL` | 否 | 登录、额度、反馈必需 | Supabase 项目 URL。API、扩展使用同一个项目。 |
-| `SUPABASE_PUBLISHABLE_KEY` | 否 | 登录和额度必需 | Supabase 可公开密钥。API 用它验证用户 Bearer Token，扩展构建时也会注入。它受 RLS 约束，不是管理员密钥。 |
+| `SUPABASE_PUBLISHABLE_KEY` | 否 | 扩展、Supabase Data API 和额度必需 | Supabase 可公开密钥。扩展构建时会注入，Worker 调用受 RLS 保护的 Data API 时使用。Worker 验证用户 JWT 使用项目 JWKS，不依赖该密钥。 |
 | `SUPABASE_ANON_KEY` | 否 | 旧版兼容 | `SUPABASE_PUBLISHABLE_KEY` 的旧名称。只有未设置 publishable key 时才回退使用。新配置优先使用 publishable key。 |
-| `SUPABASE_SERVICE_ROLE_KEY` | **是，高权限** | 反馈和双向登录必需 | Worker 调用受限的 `submit_feedback` RPC，并生成登录交接用的一次性 Token。可以填写新版 `sb_secret_...` Secret Key 或旧版 `service_role` JWT；Supabase 会赋予 `service_role` 权限并绕过 RLS。缺失时反馈及登录交接接口返回 503。只能放在 Worker Secret 或本地 `.env.local`。变量名为兼容现有配置而保留。 |
+| `SUPABASE_SERVICE_ROLE_KEY` | **是，高权限** | 反馈、账单同步和双向登录必需 | Worker 调用受限的 `submit_feedback`、`apply_billing_event` RPC，并生成登录交接用的一次性 Token。可以填写新版 `sb_secret_...` Secret Key 或旧版 `service_role` JWT；Supabase 会赋予 `service_role` 权限并绕过 RLS。缺失时相应接口失败。只能放在 Worker Secret 或本地 `.env.local`。变量名为兼容现有配置而保留。 |
 | `FEEDBACK_HASH_SALT` | **是** | 反馈功能必需 | 与用户 ID 或 IP 一起生成假名化限流哈希，避免保存原始 IP。缺失时反馈接口返回 503。上线后应保持稳定。 |
 | `AUTH_REQUIRED` | 否 | 可选 | 设为 `1` 时，生成接口要求有效登录；其他值允许匿名生成。生产当前为 `1`。 |
-| `AUTH_CACHE_TTL_MS` | 否 | 可选，默认 `60000` | 有效 Supabase Token 在 Worker 内存中的验证缓存时间，减少每次请求的登录验证延迟。无效 Token 固定短暂缓存约 5 秒。 |
 | `ENFORCE_QUOTA` | 否 | 可选 | 设为 `1` 时，为已登录用户调用 Supabase RPC 扣减每日额度；未登录请求是否允许仍由 `AUTH_REQUIRED` 决定。 |
 | `FREE_DAILY_QUOTA` | 否 | 可选，默认 `10` | 免费用户每日生成次数。`0` 或负数表示不限量。 |
 | `PREMIUM_DAILY_QUOTA` | 否 | 可选，默认 `0` | Premium 用户每日生成次数。`0` 或负数表示不限量；当前生产配置为 `100`。 |
 
 ## Waffo Pancake 订阅
 
-以下变量共同决定付款功能是否可用。除 `WAFFO_ENVIRONMENT` 外，任一必要项缺失都会让创建结账接口返回“付款暂不可用”，套餐查询则按免费用户处理。
+以下变量共同决定 Waffo 结账和 Webhook 验证是否可用。生成与用量接口不查询 Waffo，套餐状态由签名 Webhook 写入 Supabase。
 
 | 变量 | 敏感 | 作用 |
 |---|---|---|
 | `WAFFO_MERCHANT_ID` | 通常可公开，但按服务端配置管理 | Waffo 商户 ID，用于初始化 SDK。 |
-| `WAFFO_STORE_ID` | 通常可公开，但按服务端配置管理 | Verbia 商店 ID；查询订阅和校验 Webhook 时用于防止跨商店事件。 |
-| `WAFFO_ENVIRONMENT` | 否 | `test` 使用测试环境；其他值均按 `prod` 处理。查询套餐时只认可与当前环境一致的订单。 |
+| `WAFFO_STORE_ID` | 通常可公开，但按服务端配置管理 | Verbia 商店 ID；校验 Webhook 时用于防止跨商店事件。 |
+| `WAFFO_ENVIRONMENT` | 否 | `test` 使用测试环境；其他值均按 `prod` 处理。Webhook 只接受与配置一致的环境。 |
 | `WAFFO_MONTHLY_PRODUCT_ID` | 通常可公开 | Verbia Pro 月付商品 ID。 |
 | `WAFFO_ANNUAL_PRODUCT_ID` | 通常可公开 | Verbia Pro 年付商品 ID。 |
-| `WAFFO_PRIVATE_KEY` | **是，高权限** | Waffo SDK 签名、创建结账、查询订阅和验证 Webhook。只能放在 Worker Secret 或本地 `.env.local`。 |
-| `FREE_PLAN_CACHE_TTL_MS` | 否 | 查询结果为免费套餐时的内存缓存时间，默认 `60000`。较短可让新付款更快生效，但会增加 Waffo 查询。 |
-| `PREMIUM_PLAN_CACHE_TTL_MS` | 否 | 查询结果为 Premium 时的内存缓存时间，默认 `300000`。有效 Webhook 会清除此用户的缓存。 |
+| `WAFFO_PRIVATE_KEY` | **是，高权限** | Waffo SDK 签名、创建结账和验证 Webhook。只能放在 Worker Secret 或本地 `.env.local`。 |
 
 测试环境与生产环境的密钥、Store 和 Product ID 必须属于同一个 Waffo 环境。仅修改 `WAFFO_ENVIRONMENT` 不会把测试商品自动转换为生产商品。
 

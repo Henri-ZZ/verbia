@@ -13,6 +13,7 @@
 | 生产域名 | `https://api.verbia.henriz.dev` |
 | 健康检查 | `GET /health` |
 | 生成接口 | `POST /v1/replies:generate` |
+| 账单 Webhook | `POST /v1/billing/webhook`，验证后同步套餐到 Supabase |
 | 反馈接口 | `POST /v1/feedback` |
 | 登录交接接口 | `POST /v1/auth/session-handoff` |
 | 登录策略 | 必须携带有效的 Supabase Bearer Token |
@@ -67,6 +68,7 @@ git diff
 - `wrangler.jsonc` 只包含可以公开的配置。
 - API 请求和响应结构变化时，扩展与 `packages/shared` 已同步修改。
 - 数据库结构变化时，先准备向后兼容的 SQL，再发布依赖它的 API。
+- 账单结构或状态映射变化时，按 `docs/billing-entitlements.md` 检查迁移和历史事件重放。
 
 ### 3. 正式发布
 

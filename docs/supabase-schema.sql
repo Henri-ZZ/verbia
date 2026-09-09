@@ -1,7 +1,6 @@
 -- Verbia — Supabase schema (run once in the Supabase SQL editor)
 -- Creates the identity-facing tables used by the gateway and the extension:
---   profiles      -> one row per auth user; plan/customer_id are reserved for
---                    future paid tiers.
+--   profiles      -> one row per auth user; the API owns billing/plan fields.
 --   quota_usage   -> per-user daily counts consumed via the consume_quota RPC
 --                    (only enforced when the gateway runs with ENFORCE_QUOTA=1).
 
@@ -16,6 +15,15 @@ create table if not exists public.profiles (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+-- Safe to run on projects that already have the original profiles table.
+alter table public.profiles add column if not exists billing_provider text;
+alter table public.profiles add column if not exists billing_environment text;
+alter table public.profiles add column if not exists billing_customer_id text;
+alter table public.profiles add column if not exists billing_subscription_id text;
+alter table public.profiles add column if not exists subscription_status text;
+alter table public.profiles add column if not exists current_period_end timestamptz;
+alter table public.profiles add column if not exists billing_event_at timestamptz;
 
 alter table public.profiles enable row level security;
 
@@ -106,7 +114,127 @@ revoke execute on function public.consume_quota(integer) from public, anon;
 grant execute on function public.consume_quota(integer) to authenticated;
 
 -- ---------------------------------------------------------------------------
--- 3. contact feedback
+-- 3. provider-neutral billing state + idempotent webhook application
+-- ---------------------------------------------------------------------------
+create table if not exists public.billing_subscriptions (
+  provider text not null,
+  environment text not null,
+  subscription_id text not null,
+  user_id uuid not null references auth.users (id) on delete cascade,
+  customer_id text,
+  status text not null,
+  current_period_end timestamptz,
+  event_at timestamptz not null,
+  updated_at timestamptz not null default now(),
+  primary key (provider, environment, subscription_id)
+);
+
+create index if not exists billing_subscriptions_user_idx
+  on public.billing_subscriptions (user_id, status);
+alter table public.billing_subscriptions enable row level security;
+revoke all on table public.billing_subscriptions from anon, authenticated;
+
+create table if not exists public.billing_events (
+  provider text not null,
+  delivery_id text not null,
+  event_id text not null,
+  event_type text not null,
+  environment text not null,
+  user_id uuid not null references auth.users (id) on delete cascade,
+  event_at timestamptz not null,
+  received_at timestamptz not null default now(),
+  primary key (provider, delivery_id)
+);
+
+create index if not exists billing_events_user_received_idx
+  on public.billing_events (user_id, received_at desc);
+alter table public.billing_events enable row level security;
+revoke all on table public.billing_events from anon, authenticated;
+
+create or replace function public.apply_billing_event(
+  p_provider text,
+  p_environment text,
+  p_delivery_id text,
+  p_event_id text,
+  p_event_type text,
+  p_event_at timestamptz,
+  p_user_id uuid,
+  p_customer_id text,
+  p_subscription_id text,
+  p_plan text,
+  p_status text,
+  p_current_period_end timestamptz
+) returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_inserted integer;
+begin
+  if p_plan is not null and p_plan not in ('free', 'premium') then
+    raise exception 'INVALID_PLAN' using errcode = '22023';
+  end if;
+
+  insert into public.billing_events (provider, delivery_id, event_id, event_type, environment, user_id, event_at)
+  values (p_provider, p_delivery_id, p_event_id, p_event_type, p_environment, p_user_id, p_event_at)
+  on conflict (provider, delivery_id) do nothing;
+  get diagnostics v_inserted = row_count;
+  if v_inserted = 0 then return false; end if;
+
+  -- Refund notifications are retained for audit but do not implicitly cancel
+  -- a subscription. Only subscription lifecycle events change entitlement.
+  if p_plan is not null and p_status is not null then
+    insert into public.billing_subscriptions (
+      provider, environment, subscription_id, user_id, customer_id,
+      status, current_period_end, event_at
+    ) values (
+      p_provider, p_environment, p_subscription_id, p_user_id, p_customer_id,
+      p_status, p_current_period_end, p_event_at
+    )
+    on conflict (provider, environment, subscription_id) do update
+    set user_id = excluded.user_id,
+        customer_id = excluded.customer_id,
+        status = excluded.status,
+        current_period_end = excluded.current_period_end,
+        event_at = excluded.event_at,
+        updated_at = now()
+    where excluded.event_at >= public.billing_subscriptions.event_at;
+
+    update public.profiles
+    set billing_provider = p_provider,
+        billing_environment = p_environment,
+        billing_customer_id = p_customer_id,
+        customer_id = coalesce(customer_id, p_customer_id),
+        billing_subscription_id = p_subscription_id,
+        subscription_status = p_status,
+        current_period_end = p_current_period_end,
+        billing_event_at = p_event_at,
+        updated_at = now()
+    where id = p_user_id
+      and (billing_event_at is null or p_event_at >= billing_event_at);
+
+    update public.profiles
+    set plan = case when exists (
+          select 1 from public.billing_subscriptions s
+          where s.user_id = p_user_id
+            and (
+              s.status = 'active'
+              or (s.status = 'canceling' and (s.current_period_end is null or s.current_period_end > now()))
+            )
+        ) then 'premium' else 'free' end,
+        updated_at = now()
+    where id = p_user_id;
+  end if;
+  return true;
+end;
+$$;
+
+revoke execute on function public.apply_billing_event(text,text,text,text,text,timestamptz,uuid,text,text,text,text,timestamptz) from public, anon, authenticated;
+grant execute on function public.apply_billing_event(text,text,text,text,text,timestamptz,uuid,text,text,text,text,timestamptz) to service_role;
+
+-- ---------------------------------------------------------------------------
+-- 4. contact feedback
 -- ---------------------------------------------------------------------------
 create table if not exists public.feedback (
   id uuid primary key default gen_random_uuid(),

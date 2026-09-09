@@ -78,8 +78,8 @@ pnpm api            # 网关 127.0.0.1:8787（tsx --env-file=.env.local）
 - Google 登录：点按钮打开普通标签页 → Google 授权 → 后台截获 code → 登录完成页显示成功；
   Magic Link：点「Email me a sign-in link」收邮件 → 点邮件链接 → 同样在登录完成页显示成功。页面提供“回到 Dashboard”和“回到首页”两个按钮，“回到 Dashboard”会打开扩展设置页并关闭登录标签
   （两种链路都要求在同一浏览器内发起，PKCE verifier 存在本地）。
-- 已登录后生成请求自动带 `Authorization: Bearer <access_token>`；网关用
-  `/auth/v1/user` 校验并把请求归属到账号（日志可见 `user <uuid>`）。
+- 已登录后生成请求自动带 `Authorization: Bearer <access_token>`；网关通过 Supabase
+  项目的 ES256 JWKS 在本地验签并把请求归属到账号，不再为每次鉴权访问 `/auth/v1/user`。
 - popup 底部显示登录态（邮箱 + 退出）。
 
 ## 四、额度开关（默认关闭，不改变现状）

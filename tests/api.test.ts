@@ -1,5 +1,30 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { exportJWK, generateKeyPair, SignJWT, type JWK } from "jose";
 import { createApiHandler } from "../services/api/src/app";
+
+let privateKey: CryptoKey;
+let publicJwk: JWK;
+
+beforeAll(async () => {
+  const pair = await generateKeyPair("ES256");
+  privateKey = pair.privateKey;
+  publicJwk = { ...(await exportJWK(pair.publicKey)), alg: "ES256", kid: "test-key", use: "sig" };
+});
+
+afterAll(() => vi.restoreAllMocks());
+
+async function userToken(projectUrl: string, userId: string, email: string) {
+  return new SignJWT({ email, role: "authenticated" })
+    .setProtectedHeader({ alg: "ES256", kid: "test-key" })
+    .setSubject(userId)
+    .setIssuer(`${projectUrl}/auth/v1`)
+    .setAudience("authenticated")
+    .setIssuedAt()
+    .setExpirationTime("1h")
+    .sign(privateKey);
+}
+
+function jwksResponse() { return Response.json({ keys: [publicJwk] }); }
 
 const handler = createApiHandler({ LLM_PROVIDER: "mock" });
 const validRequest = {
@@ -46,33 +71,37 @@ describe("API fetch handler", () => {
     const unauthenticated = await handler(new Request("https://api.verbia.henriz.dev/v1/auth/session-handoff", { method: "POST" }));
     expect(unauthenticated.status).toBe(401);
 
-    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(Response.json({ id: "user-1", email: "user@example.com" }));
+    const projectUrl = "https://handoff-unconfigured.supabase.co";
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(jwksResponse());
     const handoffHandler = createApiHandler({
       LLM_PROVIDER: "mock",
-      SUPABASE_URL: "https://project.supabase.co",
+      SUPABASE_URL: projectUrl,
       SUPABASE_PUBLISHABLE_KEY: "public-key"
     });
+    const token = await userToken(projectUrl, "11111111-1111-4111-8111-111111111111", "user@example.com");
     const unconfigured = await handoffHandler(new Request("https://api.verbia.henriz.dev/v1/auth/session-handoff", {
-      method: "POST", headers: { authorization: "Bearer website-token" }
+      method: "POST", headers: { authorization: `Bearer ${token}` }
     }));
     expect(unconfigured.status).toBe(503);
   });
 
   it("creates a one-time handoff token for the verified user", async () => {
+    const projectUrl = "https://handoff-success.supabase.co";
     const upstream = vi.spyOn(globalThis, "fetch").mockImplementation(async input => {
       const url = String(input);
-      if (url.includes("/auth/v1/user")) return Response.json({ id: "user-2", email: "verified@example.com" });
+      if (url.includes("/.well-known/jwks.json")) return jwksResponse();
       if (url.includes("/auth/v1/admin/generate_link")) return Response.json({ id: "user-2", email: "verified@example.com", hashed_token: "one-time-token", action_link: "", email_otp: "", redirect_to: "", verification_type: "magiclink" });
       return new Response(null, { status: 404 });
     });
     const handoffHandler = createApiHandler({
       LLM_PROVIDER: "mock",
-      SUPABASE_URL: "https://project.supabase.co",
+      SUPABASE_URL: projectUrl,
       SUPABASE_PUBLISHABLE_KEY: "public-key",
       SUPABASE_SERVICE_ROLE_KEY: "sb_secret_server-key"
     });
+    const token = await userToken(projectUrl, "user-2", "verified@example.com");
     const response = await handoffHandler(new Request("https://api.verbia.henriz.dev/v1/auth/session-handoff", {
-      method: "POST", headers: { authorization: "Bearer second-website-token" }
+      method: "POST", headers: { authorization: `Bearer ${token}` }
     }));
     expect(response.status).toBe(201);
     expect(await response.json()).toEqual({ tokenHash: "one-time-token" });
@@ -84,12 +113,14 @@ describe("API fetch handler", () => {
   it("requires authentication and server configuration for checkout", async () => {
     const unauthenticated = await handler(new Request("https://api.verbia.henriz.dev/v1/billing/checkout", { method: "POST", body: "{}" }));
     expect(unauthenticated.status).toBe(401);
-    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(Response.json({ id: "user-1", email: "user@example.com" }));
+    const projectUrl = "https://checkout.supabase.co";
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(jwksResponse());
+    const token = await userToken(projectUrl, "11111111-1111-4111-8111-111111111111", "user@example.com");
     const unconfigured = await createApiHandler({
       LLM_PROVIDER: "mock",
-      SUPABASE_URL: "https://project.supabase.co",
+      SUPABASE_URL: projectUrl,
       SUPABASE_PUBLISHABLE_KEY: "public-key"
-    })(new Request("https://api.verbia.henriz.dev/v1/billing/checkout", { method: "POST", headers: { authorization: "Bearer valid-token" }, body: "{}" }));
+    })(new Request("https://api.verbia.henriz.dev/v1/billing/checkout", { method: "POST", headers: { authorization: `Bearer ${token}` }, body: "{}" }));
     expect(unconfigured.status).toBe(503);
   });
 
@@ -135,25 +166,27 @@ describe("API fetch handler", () => {
     expect(new Headers(init?.headers).has("authorization")).toBe(false);
   });
 
-  it("does not trust a client-editable profile plan", async () => {
+  it("reads the server-managed profile plan without querying Waffo", async () => {
+    const projectUrl = "https://account-usage.supabase.co";
     vi.spyOn(globalThis, "fetch").mockImplementation(async input => {
       const url = String(input);
-      if (url.includes("/auth/v1/user")) return Response.json({ id: "user-1", email: "user@example.com" });
+      if (url.includes("/.well-known/jwks.json")) return jwksResponse();
       if (url.includes("/rest/v1/profiles")) return Response.json([{ plan: "premium" }]);
       if (url.includes("/rest/v1/quota_usage")) return Response.json([{ count: 4 }]);
       return new Response(null, { status: 404 });
     });
     const accountHandler = createApiHandler({
       LLM_PROVIDER: "mock",
-      SUPABASE_URL: "https://project.supabase.co",
+      SUPABASE_URL: projectUrl,
       SUPABASE_PUBLISHABLE_KEY: "public-key",
       FREE_DAILY_QUOTA: "10",
       PREMIUM_DAILY_QUOTA: "100"
     });
+    const token = await userToken(projectUrl, "user-1", "user@example.com");
     const response = await accountHandler(new Request("https://api.verbia.henriz.dev/v1/account/usage", {
-      headers: { authorization: "Bearer valid-token" }
+      headers: { authorization: `Bearer ${token}` }
     }));
     expect(response.status).toBe(200);
-    expect(await response.json()).toMatchObject({ plan: "free", used: 4, limit: 10 });
+    expect(await response.json()).toMatchObject({ plan: "premium", used: 4, limit: 100 });
   });
 });

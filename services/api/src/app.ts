@@ -1,7 +1,8 @@
 import { generateReplyRequestSchema, generateReplyResponseSchema, type AccountUsage, type ApiError } from "@verbia/shared";
 import { BalancedProvider, GeminiProvider, MockProvider, OpenAiCompatibleProvider, type ReplyProvider } from "./provider";
-import { billingConfigured, createCheckout, hasActiveProSubscription, verifyBillingWebhook, type BillingCycle } from "./billing";
+import { billingConfigured, createCheckout, persistBillingWebhook, verifyBillingWebhook, type BillingCycle } from "./billing";
 import { reportError } from "./monitoring";
+import { verifyBearer, type AuthenticatedBearer } from "./auth";
 import { z } from "zod";
 import { createClient } from "@supabase/supabase-js";
 
@@ -60,14 +61,24 @@ export function createApiHandler(env: ApiEnv) {
       }
     }
     if (request.method === "POST" && path === "/v1/billing/webhook") {
+      const rawBody = await request.text();
+      let event: ReturnType<typeof verifyBillingWebhook>;
       try {
-        const rawBody = await request.text();
-        const event = verifyBillingWebhook(rawBody, request.headers.get("x-waffo-signature"), env);
-        console.log(`[verbia-api] verified Waffo webhook ${event.id} ${event.eventType}`);
-        return new Response("OK", { status: 200, headers: responseHeaders });
+        event = verifyBillingWebhook(rawBody, request.headers.get("x-waffo-signature"), env);
       } catch (error) {
         console.warn("[verbia-api] rejected Waffo webhook", error);
         return new Response("Invalid signature", { status: 401, headers: responseHeaders });
+      }
+      try {
+        await persistBillingWebhook(event, env);
+        console.log(`[verbia-api] persisted Waffo webhook ${event.id} ${event.eventType}`);
+        return new Response("OK", { status: 200, headers: responseHeaders });
+      } catch (error) {
+        console.error("[verbia-api] Waffo webhook persistence failed", error);
+        reportError(error, "billing_webhook_persistence", { eventType: event.eventType });
+        // A non-2xx response asks Waffo to retry. Never acknowledge an event
+        // until the entitlement transaction has committed in Supabase.
+        return new Response("Storage unavailable", { status: 503, headers: responseHeaders });
       }
     }
     if (request.method === "POST" && path === "/v1/feedback") {
@@ -273,35 +284,7 @@ function json(status: number, body: unknown) { return Response.json(body, { stat
 function apiError(status: number, requestId: string, code: ApiError["code"], retryable: boolean, userMessage: string, detail?: string) { return json(status, { requestId, code, retryable, userMessage, detail } satisfies ApiError); }
 function numberEnv(env: ApiEnv, name: string, fallback: number) { const value = Number(env[name]); return Number.isFinite(value) ? value : fallback; }
 
-type BearerResult = { status: "none" | "invalid" } | { status: "ok"; userId: string; email?: string; token: string };
-type AuthenticatedBearer = Extract<BearerResult, { status: "ok" }>;
 type AccountPlan = AccountUsage["plan"];
-const authCache = new Map<string, { result: BearerResult; expiresAt: number }>();
-async function verifyBearer(header: string | null, env: ApiEnv): Promise<BearerResult> {
-  if (!header?.startsWith("Bearer ")) return { status: "none" };
-  const token = header.slice("Bearer ".length).trim();
-  if (!token) return { status: "none" };
-  const cached = authCache.get(token);
-  if (cached && cached.expiresAt > Date.now()) return cached.result;
-  const supabaseUrl = (env.SUPABASE_URL ?? "").replace(/\/+$/, "");
-  const publishableKey = env.SUPABASE_PUBLISHABLE_KEY ?? env.SUPABASE_ANON_KEY ?? "";
-  if (!supabaseUrl || !publishableKey) { console.warn("[verbia-api] Authorization header sent but Supabase auth is not configured — ignoring"); return { status: "none" }; }
-  try {
-    const response = await fetch(`${supabaseUrl}/auth/v1/user`, { headers: { apikey: publishableKey, authorization: `Bearer ${token}` } });
-    if (response.status === 200) {
-      const user = await response.json() as { id?: string; email?: string };
-      const result: BearerResult = user.id ? { status: "ok", userId: user.id, email: user.email, token } : { status: "invalid" };
-      authCache.set(token, { result, expiresAt: Date.now() + numberEnv(env, "AUTH_CACHE_TTL_MS", 60_000) });
-      return result;
-    }
-    if (response.status === 401 || response.status === 403) {
-      const result: BearerResult = { status: "invalid" };
-      authCache.set(token, { result, expiresAt: Date.now() + 5_000 });
-      return result;
-    }
-    console.warn(`[verbia-api] token verification returned ${response.status}`); return { status: "none" };
-  } catch (error) { console.warn("[verbia-api] token verification failed", error); reportError(error, "auth_verification"); return { status: "none" }; }
-}
 function quotaLimitForPlan(plan: AccountPlan, env: ApiEnv): number | null {
   const configured = plan === "premium" ? numberEnv(env, "PREMIUM_DAILY_QUOTA", 0) : numberEnv(env, "FREE_DAILY_QUOTA", 10);
   return configured > 0 ? configured : null;
@@ -309,10 +292,19 @@ function quotaLimitForPlan(plan: AccountPlan, env: ApiEnv): number | null {
 
 async function readAccountPlan(auth: AuthenticatedBearer, env: ApiEnv): Promise<AccountPlan> {
   try {
-    return await hasActiveProSubscription(auth, env) ? "premium" : "free";
+    const rows = await supabaseRows<{ plan?: string; subscription_status?: string; current_period_end?: string }>("profiles", { select: "plan,subscription_status,current_period_end", id: `eq.${auth.userId}`, limit: "1" }, auth.token, env);
+    const profile = rows[0];
+    if (profile?.plan !== "premium") return "free";
+    // A canceling subscription remains Premium through its paid period even
+    // if the final cancellation webhook is delayed.
+    if (profile.subscription_status === "canceling" && profile.current_period_end) {
+      const end = Date.parse(profile.current_period_end);
+      if (Number.isFinite(end) && end <= Date.now()) return "free";
+    }
+    return "premium";
   } catch (error) {
-    console.warn("[verbia-api] subscription lookup failed; applying free plan", error);
-    reportError(error, "subscription_lookup");
+    console.warn("[verbia-api] profile plan lookup failed; applying free plan", error);
+    reportError(error, "plan_lookup");
     return "free";
   }
 }

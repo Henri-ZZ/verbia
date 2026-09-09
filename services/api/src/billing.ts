@@ -1,9 +1,8 @@
-import { WaffoPancake, type WebhookEventData } from "@waffo/pancake-ts";
+import { WaffoPancake, type WebhookEvent, type WebhookEventData } from "@waffo/pancake-ts";
 import type { ApiEnv } from "./app";
 
 type BillingUser = { userId: string; email?: string };
 type BillingCycle = "monthly" | "annual";
-const planCache = new Map<string, { pro: boolean; expiresAt: number }>();
 const clientCache = new WeakMap<ApiEnv, WaffoPancake>();
 
 function isTestEnvironment(env: ApiEnv): boolean {
@@ -45,37 +44,56 @@ export async function createCheckout(user: BillingUser, cycle: BillingCycle, loc
   return { checkoutUrl: result.checkoutUrl, expiresAt: result.expiresAt };
 }
 
-export async function hasActiveProSubscription(user: BillingUser, env: ApiEnv): Promise<boolean> {
-  if (!billingConfigured(env)) return false;
-  const cached = planCache.get(user.userId);
-  if (cached && cached.expiresAt > Date.now()) return cached.pro;
-  const result = await clientFor(env).graphql.query<{
-    subscriptionOrders: Array<{ status: string; testMode: boolean; merchantProvidedBuyerIdentity?: string; subscriptionProduct?: { id: string } }>;
-  }>({
-    query: `query ($storeId: String!, $userId: String!) {
-      subscriptionOrders(storeId: $storeId, filter: { merchantProvidedBuyerIdentity: { eq: $userId } }) {
-        status testMode merchantProvidedBuyerIdentity subscriptionProduct { id }
-      }
-    }`,
-    variables: { storeId: env.WAFFO_STORE_ID, userId: user.userId },
-  });
-  if (result.errors?.length) throw new Error(result.errors[0]?.message ?? "Waffo subscription lookup failed");
-  const products = new Set([env.WAFFO_MONTHLY_PRODUCT_ID, env.WAFFO_ANNUAL_PRODUCT_ID]);
-  const pro = (result.data?.subscriptionOrders ?? []).some(order => order.testMode === isTestEnvironment(env) && ["active", "canceling"].includes(order.status) && products.has(order.subscriptionProduct?.id));
-  const defaultTtl = pro ? 300_000 : 60_000;
-  const configuredTtl = Number(pro ? env.PREMIUM_PLAN_CACHE_TTL_MS : env.FREE_PLAN_CACHE_TTL_MS);
-  const ttl = Number.isFinite(configuredTtl) && configuredTtl >= 0 ? configuredTtl : defaultTtl;
-  planCache.set(user.userId, { pro, expiresAt: Date.now() + ttl });
-  return pro;
-}
-
 export function verifyBillingWebhook(rawBody: string, signature: string | null, env: ApiEnv) {
   const environment = isTestEnvironment(env) ? "test" : "prod";
   const event = clientFor(env).webhooks.verify<WebhookEventData>(rawBody, signature, { environment });
   if (event.storeId !== env.WAFFO_STORE_ID || event.mode !== environment) throw new Error("Webhook store or environment mismatch");
-  const userId = event.data.merchantProvidedBuyerIdentity;
-  if (userId) planCache.delete(userId);
   return event;
+}
+
+type BillingState = { plan: "free" | "premium"; status: string };
+
+export function billingStateForWaffoEvent(eventType: string): BillingState | null {
+  if (["subscription.activated", "subscription.payment_succeeded", "subscription.uncanceled", "subscription.updated"].includes(eventType)) {
+    return { plan: "premium", status: "active" };
+  }
+  if (eventType === "subscription.canceling") return { plan: "premium", status: "canceling" };
+  if (eventType === "subscription.canceled") return { plan: "free", status: "canceled" };
+  if (eventType === "subscription.past_due") return { plan: "free", status: "past_due" };
+  return null;
+}
+
+export async function persistBillingWebhook(event: WebhookEvent<WebhookEventData>, env: ApiEnv): Promise<void> {
+  const userId = event.data.merchantProvidedBuyerIdentity;
+  if (!userId) throw new Error("Waffo webhook is missing merchantProvidedBuyerIdentity");
+  const supabaseUrl = (env.SUPABASE_URL ?? "").replace(/\/+$/, "");
+  const secretKey = env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+  if (!supabaseUrl || !secretKey) throw new Error("NOT_CONFIGURED: Supabase billing storage is missing");
+  const state = billingStateForWaffoEvent(event.eventType);
+  const response = await fetch(`${supabaseUrl}/rest/v1/rpc/apply_billing_event`, {
+    method: "POST",
+    headers: { apikey: secretKey, "content-type": "application/json" },
+    body: JSON.stringify({
+      p_provider: "waffo",
+      p_environment: event.mode,
+      p_delivery_id: event.id,
+      p_event_id: event.eventId,
+      p_event_type: event.eventType,
+      p_event_at: event.timestamp,
+      p_user_id: userId,
+      // Waffo exposes the billing email but no durable customer ID in this
+      // webhook shape. Do not use mutable personal data as an identifier.
+      p_customer_id: null,
+      p_subscription_id: event.data.orderId,
+      p_plan: state?.plan ?? null,
+      p_status: state?.status ?? null,
+      p_current_period_end: event.data.currentPeriodEnd ?? null
+    })
+  });
+  if (!response.ok) {
+    const detail = await response.text().catch(() => "");
+    throw new Error(`Supabase billing event write returned ${response.status}${detail ? `: ${detail.slice(0, 300)}` : ""}`);
+  }
 }
 
 export type { BillingCycle };
