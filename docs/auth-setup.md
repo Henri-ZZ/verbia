@@ -4,6 +4,8 @@ Verbia 的账号体系：Google 第三方登录 + 邮箱 Magic Link（免密）�
 扩展在本地通过 PKCE 完成登录；`services/api` 网关校验 Bearer token，把用量归属到账号。
 **未登录完全不影响现有功能**（匿名照常起草），登录只提供云端身份，为额度与付费预留。
 
+官网与扩展的双向登录、独立 Session 和局部退出机制详见 `docs/auth-session-sync.md`。
+
 ## 一、已落地的代码侧配置
 
 | 项 | 值 |
@@ -11,7 +13,7 @@ Verbia 的账号体系：Google 第三方登录 + 邮箱 Magic Link（免密）�
 | Supabase 项目 ref | `pthfyoejvlcwxboskrjr` |
 | API URL | `https://pthfyoejvlcwxboskrjr.supabase.co` |
 | 扩展固定 ID（manifest `key` 派生） | `ndkpnijcnjkkgoehfdcpfleoipfhfdnp` |
-| 登录回跳落地页（Google + Magic Link 统一） | `https://pthfyoejvlcwxboskrjr.supabase.co/`（项目根，加载瞬间即被扩展后台截获） |
+| 登录回跳落地页（Google + Magic Link 统一） | `https://verbia.henriz.dev/auth-complete`（官网登录完成页，由扩展后台截获 code） |
 | Google OAuth Client（**Web application 类型**）Client ID | `524647893236-uoo6f3bb0abl36cae9rq8le2gfs3bpcv.apps.googleusercontent.com` |
 | 同上 Client Secret | 在 Google Cloud Console 该 client 里查看（机密，不写进仓库/文档） |
 
@@ -30,21 +32,13 @@ Verbia 的账号体系：Google 第三方登录 + 邮箱 Magic Link（免密）�
    PKCE 流程中扩展端不会接触它。Google 侧 Authorized redirect URIs 填
    `https://pthfyoejvlcwxboskrjr.supabase.co/auth/v1/callback`（不是 chrome-extension 地址）。
 3. **Auth → URL Configuration**：
-   - **Site URL** 填 `https://pthfyoejvlcwxboskrjr.supabase.co/`（同落地页），
+   - **Site URL** 填 `https://verbia.henriz.dev/`，
      否则未匹配的回跳会回落到 Supabase 默认的 `http://localhost:3000`；
    - **Redirect URLs** 添加：
    ```
-   https://pthfyoejvlcwxboskrjr.supabase.co/
+   https://verbia.henriz.dev/auth-complete
    ```
-   这条项目根地址服务 **Google 登录与 Magic Link 两条链路**，必须在 Supabase 放行，
-   否则登录失败。背景：Chrome 不允许服务端 302 跳进 `chrome-extension://` 页面
-   （会报 `ERR_BLOCKED_BY_CLIENT`），而 `chrome.identity.launchWebAuthFlow` 在本机不可用
-   （弹窗无法建立）。因此所有回跳统一落到**项目根**（普通 https，永不拦截），由扩展
-   **后台的常驻监听**（`background` 的 `tabs.onUpdated`）在标签落地瞬间截获 `?code=`、
-   换 session 并自动关闭该标签——Google 打开的是扩展自己的授权标签，Magic Link 则是
-   用户从邮件点开的标签（浏览器必须先装着扩展且由它发起的链接，verifier 才在本地）。
-   （早期加过 `chrome-extension://…/**`、`https://…chromiumapp.org/**` 的现已不需要，
-   可删可留。）
+   该地址服务扩展发起的 **Google 登录与 Magic Link 两条链路**，必须在 Supabase 放行。Chrome 不允许服务端 302 跳进 `chrome-extension://` 页面，因此回跳先落到普通 HTTPS 页面；扩展后台截获 `?code=`、建立扩展 Session，再通过 Worker 的一次性交接 Token 让官网建立独立 Session。页面确认成功后停留在当前页，由用户选择“回到 Dashboard”或“回到首页”。官网登录还需要放行 `https://verbia.henriz.dev/account/callback`。
 4. **Auth → Providers → Email**：开启 Email 并**只保留 Magic Link**（关闭 password
    登录——产品决策：账号只允许 Google 或邮箱免密链接，不设密码）。
 5. **邮件发送：配 Resend 自定义 SMTP（上线必需）**。Supabase 默认代发仅限
@@ -81,8 +75,8 @@ pnpm api            # 网关 127.0.0.1:8787（tsx --env-file=.env.local）
 ```
 
 - `chrome://extensions` 重新加载扩展 → 设置页出现 **Account** 卡片。
-- Google 登录：点按钮闪开一个普通标签页 → Google 授权 → 后台截获 code、登录成功、标签自动关闭；
-  Magic Link：点「Email me a sign-in link」收邮件 → 点邮件链接 → 同样自动完成登录并关闭该标签
+- Google 登录：点按钮打开普通标签页 → Google 授权 → 后台截获 code → 登录完成页显示成功；
+  Magic Link：点「Email me a sign-in link」收邮件 → 点邮件链接 → 同样在登录完成页显示成功。页面提供“回到 Dashboard”和“回到首页”两个按钮，“回到 Dashboard”会打开扩展设置页并关闭登录标签
   （两种链路都要求在同一浏览器内发起，PKCE verifier 存在本地）。
 - 已登录后生成请求自动带 `Authorization: Bearer <access_token>`；网关用
   `/auth/v1/user` 校验并把请求归属到账号（日志可见 `user <uuid>`）。

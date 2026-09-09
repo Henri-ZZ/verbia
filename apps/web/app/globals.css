@@ -1822,6 +1822,22 @@ button:focus-visible {
 .feedback-form > .button:disabled { cursor: wait; opacity: .65; }
 .feedback-status { min-height: 22px; margin: 13px 0 0; color: var(--muted); font-size: 13px; }
 .feedback-status.success { color: var(--primary); font-weight: 650; }
+
+.auth-complete-page { min-height: 100svh; display: grid; place-items: center; padding: 40px 20px; background: radial-gradient(circle at 50% 10%, #e4faeb 0, transparent 42%), var(--surface); }
+.auth-complete-card { width: min(100%, 560px); padding: clamp(32px, 6vw, 58px); border: 1px solid var(--line); border-radius: 28px; background: #fff; box-shadow: 0 24px 70px rgba(20, 65, 42, .1); text-align: center; }
+.auth-complete-brand { display: inline-flex; margin-bottom: 34px; }
+.auth-complete-brand img { display: block; width: 132px; height: auto; }
+.auth-complete-mark { display: grid; place-items: center; width: 64px; height: 64px; margin: 0 auto 24px; border-radius: 50%; font-size: 30px; font-weight: 850; }
+.auth-complete-mark.success { color: #fff; background: var(--primary); box-shadow: 0 12px 30px rgba(15, 110, 86, .22); }
+.auth-complete-mark.error { color: #9c3c34; background: #fff0ed; }
+.auth-complete-mark.waiting { background: #eaf5ed; }
+.auth-complete-mark.waiting span { width: 24px; height: 24px; border: 3px solid #b8d8c3; border-top-color: var(--primary); border-radius: 50%; animation: auth-spin .8s linear infinite; }
+.auth-complete-card .eyebrow { margin-bottom: 10px; }
+.auth-complete-card h1 { margin: 0; font: 750 clamp(32px, 6vw, 48px)/1.08 var(--font-display); letter-spacing: -.04em; }
+.auth-complete-card > p:not(.eyebrow) { max-width: 430px; margin: 18px auto 0; color: var(--muted); line-height: 1.7; }
+.auth-complete-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 12px; margin-top: 30px; }
+@keyframes auth-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .auth-complete-mark.waiting span { animation: none; } }
 .feedback-status.error { color: var(--error); }
 .contact-layout aside { position: sticky; top: 108px; padding: 26px; background: linear-gradient(145deg, #eef9f1, var(--paper)); }
 .contact-layout aside h2 { margin: 0 0 10px; font: 700 23px var(--display); }

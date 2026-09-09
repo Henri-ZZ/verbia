@@ -20,9 +20,8 @@ export const AUTH_STORAGE_KEY = "verbia-auth-token";
 // navigations into chrome-extension:// pages (ERR_BLOCKED_BY_CLIENT) and the
 // Supabase root renders no HTML. The page is a friendly "Signing in…" screen:
 // the background service worker exchanges the ?code= landing (the PKCE
-// verifier lives in the shared extension storage) and hands the finished
-// session to a bridge content script, which writes it into the website's own
-// localStorage — so signing into the extension signs into the website too.
+// verifier lives in extension storage), requests a one-time handoff token,
+// and lets the website redeem it into an independent session.
 export const WEB_AUTH_ORIGIN = (process.env.VERBIA_WEB_ORIGIN ?? "https://verbia.henriz.dev").replace(/\/+$/, "");
 export const SUPABASE_SIGNIN_REDIRECT = `${WEB_AUTH_ORIGIN}/auth-complete`;
 
@@ -186,6 +185,12 @@ export async function signOut(): Promise<void> {
     // Sign-out still must clear local state even if the remote call fails.
   }
   await clearSession();
+}
+
+export async function establishSessionFromTokenHash(tokenHash: string): Promise<boolean> {
+  if (!authEnabled || !tokenHash) return false;
+  const { data, error } = await getSupabase().auth.verifyOtp({ token_hash: tokenHash, type: "email" });
+  return !error && Boolean(data.session?.access_token);
 }
 
 // Google OAuth cannot land on a real chrome-extension:// page — Chrome blocks

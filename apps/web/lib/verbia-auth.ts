@@ -5,7 +5,9 @@
 // Chrome extension uses. Both surfaces point at the SAME Supabase project, so
 // a website account and an extension account are one identity (same auth user,
 // same profiles / quota_usage rows). Sessions stay separate on purpose: the
-// web keeps its session in localStorage, the extension in chrome.storage.
+// web keeps its session in localStorage, the extension in chrome.storage. A
+// fresh login can create a separate session on the other surface through the
+// extension bridge and the API handoff endpoint.
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
 
 export const AUTH_CONFIGURED = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
@@ -99,6 +101,35 @@ export async function exchangeSignInCode(): Promise<{ ok: boolean; message?: str
   } catch (error) {
     return { ok: false, message: error instanceof Error ? error.message : "Could not finish sign-in." };
   }
+}
+
+export async function syncSignedInSessionToExtension(): Promise<"synced" | "unavailable" | "failed"> {
+  const bridgeReady = () => document.documentElement.dataset.verbiaExtension === "connected";
+  if (!bridgeReady()) {
+    await new Promise<void>(resolve => {
+      const done = () => { window.clearTimeout(timer); resolve(); };
+      const timer = window.setTimeout(done, 350);
+      window.addEventListener("verbia:bridge-ready", done, { once: true });
+    });
+  }
+  if (!bridgeReady()) return "unavailable";
+  return new Promise(resolve => {
+    let settled = false;
+    const done = (result: "synced" | "failed") => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timer);
+      window.removeEventListener("verbia:extension-session-ready", ready);
+      window.removeEventListener("verbia:extension-session-failed", failed);
+      resolve(result);
+    };
+    const ready = () => done("synced");
+    const failed = () => done("failed");
+    const timer = window.setTimeout(failed, 10_000);
+    window.addEventListener("verbia:extension-session-ready", ready, { once: true });
+    window.addEventListener("verbia:extension-session-failed", failed, { once: true });
+    window.dispatchEvent(new CustomEvent("verbia:sync-extension-session"));
+  });
 }
 
 export async function signOut(): Promise<void> {

@@ -14,6 +14,7 @@
 | 健康检查 | `GET /health` |
 | 生成接口 | `POST /v1/replies:generate` |
 | 反馈接口 | `POST /v1/feedback` |
+| 登录交接接口 | `POST /v1/auth/session-handoff` |
 | 登录策略 | 必须携带有效的 Supabase Bearer Token |
 | 免费额度 | 每位登录用户每天 10 次 |
 | 模型路由 | Gemini、Mistral、Cloudflare Workers AI、Groq 自动均衡与故障切换 |

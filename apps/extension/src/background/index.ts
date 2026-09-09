@@ -1,5 +1,5 @@
 import { DEFAULT_SETTINGS, UI_STRINGS, generateReplyRequestSchema, generateReplyResponseSchema, resolveUiLang, type AccountUsage, type AuthState, type ExtensionRequest, type ExtensionResponse, type StagedContext, type StagedSelection, type UiLang, type UserSettings } from "@verbia/shared";
-import { SUPABASE_URL, WEB_AUTH_ORIGIN, authBearer, authEnabled, authSnapshot, clearSession, getSupabase, refreshStoredSession, signOut } from "../auth/supabase";
+import { SUPABASE_URL, WEB_AUTH_ORIGIN, authBearer, authEnabled, authSnapshot, clearSession, establishSessionFromTokenHash, getSupabase, refreshStoredSession, signOut } from "../auth/supabase";
 
 const ADD_CONTEXT_MENU_ID = "verbia-add-context";
 const MAX_SELECTION_LENGTH = 8_000;
@@ -71,9 +71,10 @@ async function captureSignInCode(tabId: number, code: string, keepTab: boolean):
       return;
     }
     // Landing on the website: hand the session to the page so /auth-complete
-    // stores it and redirects to the account area (website now signed in too).
+    // stores it and shows the completed state (website now signed in too).
     if (data.session) {
-      await chrome.tabs.sendMessage(tabId, { type: "VERBIA_STORE_WEB_SESSION", session: data.session }).catch(() => undefined);
+      const tokenHash = await requestSessionHandoff(data.session.access_token);
+      await chrome.tabs.sendMessage(tabId, { type: "VERBIA_CREATE_WEB_SESSION", tokenHash }).catch(() => undefined);
     }
   } catch {
     // exchange threw (e.g. no verifier stored for this code) — ignore; the
@@ -243,7 +244,18 @@ async function clearActionError() {
   await chrome.action.setTitle({ title: UI_STRINGS[lang]["popup.dashboard"] ?? "Dashboard" });
 }
 
-chrome.runtime.onMessage.addListener((message: ExtensionRequest, _sender, sendResponse: (response: ExtensionResponse) => void) => {
+chrome.runtime.onMessage.addListener((message: ExtensionRequest, sender, sendResponse: (response: ExtensionResponse) => void) => {
+  if (message.type === "OPEN_DASHBOARD") {
+    void chrome.runtime.openOptionsPage().then(async () => {
+      if (sender.tab?.id) await chrome.tabs.remove(sender.tab.id).catch(() => undefined);
+      sendResponse({ ok: true });
+    }).catch(error => sendResponse(failure(error)));
+    return true;
+  }
+  if (message.type === "SYNC_WEB_SIGN_IN") {
+    void syncWebsiteSignIn(message.accessToken, sender).then(() => sendResponse({ ok: true })).catch(error => sendResponse(failure(error)));
+    return true;
+  }
   if (message.type === "GET_SETTINGS") {
     void getSettings().then(data => sendResponse({ ok: true, data })).catch(error => sendResponse(failure(error)));
     return true;
@@ -273,6 +285,26 @@ chrome.runtime.onMessage.addListener((message: ExtensionRequest, _sender, sendRe
     return true;
   }
 });
+
+async function requestSessionHandoff(accessToken: string): Promise<string> {
+  const settings = await getSettings();
+  const response = await fetch(`${apiBaseUrl(settings)}/v1/auth/session-handoff`, {
+    method: "POST",
+    headers: { authorization: `Bearer ${accessToken}` }
+  });
+  if (!response.ok) throw new Error(`Session handoff returned ${response.status}`);
+  const body = await response.json() as { tokenHash?: string };
+  if (!body.tokenHash) throw new Error("Session handoff returned no token");
+  return body.tokenHash;
+}
+
+async function syncWebsiteSignIn(accessToken: string, sender: chrome.runtime.MessageSender): Promise<void> {
+  if (!sender.tab?.url) throw new Error("Website sign-in sync requires a tab");
+  const url = new URL(sender.tab.url);
+  if (url.origin !== WEB_AUTH_ORIGIN || url.pathname !== "/account/callback") throw new Error("Website sign-in sync source is not allowed");
+  const tokenHash = await requestSessionHandoff(accessToken);
+  if (!await establishSessionFromTokenHash(tokenHash)) throw new Error("Could not establish the extension session");
+}
 
 async function getSettings(): Promise<UserSettings> {
   const { settings } = await chrome.storage.local.get("settings");

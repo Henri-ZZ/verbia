@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { exchangeSignInCode } from "../../../lib/verbia-auth";
+import { exchangeSignInCode, syncSignedInSessionToExtension } from "../../../lib/verbia-auth";
 
 export default function AuthCallbackPage() {
   const [message, setMessage] = useState<string>("");
@@ -13,10 +13,12 @@ export default function AuthCallbackPage() {
     if (exchanged.current) return;
     exchanged.current = true;
     let cancelled = false;
-    void exchangeSignInCode().then(result => {
+    void exchangeSignInCode().then(async result => {
       if (cancelled) return;
       if (result.ok) {
         setState("done");
+        await syncSignedInSessionToExtension();
+        if (cancelled) return;
         window.location.replace("/account");
       } else {
         setState("error");

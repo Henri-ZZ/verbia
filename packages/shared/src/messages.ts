@@ -29,6 +29,8 @@ export type ExtensionRequest =
   | { type: "GET_SETTINGS" }
   | { type: "SAVE_SETTINGS"; settings: UserSettings }
   | { type: "RESET_SETTINGS" }
+  | { type: "OPEN_DASHBOARD" }
+  | { type: "SYNC_WEB_SIGN_IN"; accessToken: string }
   | { type: "OPEN_VERBIA"; source: "action" | "shortcut"; stagedSelection?: StagedSelection }
   // Sent from the background to the page that owns a right-click selection.
   // The content script merges it into an open panel, or replies merged:false

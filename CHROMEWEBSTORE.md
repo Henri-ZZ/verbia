@@ -112,3 +112,5 @@ The next release adds Contact/Feedback links in the popup and Dashboard and an o
 ## Review Notes
 
 Known release blockers: store assets, public privacy-policy URL, publisher identity, support contact, final model benchmark, and current Reddit manual validation.
+
+Authentication completion now remains on the Verbia success page instead of redirecting users to the homepage. Users can explicitly return to the extension Dashboard or open the website homepage.

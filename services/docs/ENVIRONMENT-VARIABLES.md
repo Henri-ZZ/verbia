@@ -30,6 +30,7 @@
 | `LLM_PROVIDER_ORDER` | `auto` 模式可选 | `gemini,mistral,cloudflare,groq` | 自动路由的提供商顺序，也作为同等条件下的稳定顺序。未完整配置的提供商会自动排除。 |
 | `LLM_PROVIDER_WEIGHTS` | `auto` 模式可选 | 各提供商权重 `1` | 请求分配权重，例如 `gemini:2,mistral:1` 表示 Gemini 约承担两份流量。它是单个 Worker 实例内的统计均衡。 |
 | `LLM_TOTAL_TIMEOUT_MS` | 可选 | `25000` | 一次生成请求允许使用的总时间，包含模型切换。超时后向客户端返回 504。 |
+| `LLM_TIMEOUT_MS` | 旧版兼容 | `25000` | 旧的总超时变量。仅在未设置 `LLM_TOTAL_TIMEOUT_MS` 时回退使用；新配置应使用后者。 |
 | `LLM_ATTEMPT_TIMEOUT_MS` | 可选 | `9000` | 每个模型单次尝试的最长时间。超时后自动尝试下一个可用模型。 |
 | `LLM_COOLDOWN_MS` | 可选 | `30000` | 模型请求失败后进入冷却的时间。冷却期间优先使用其他模型。 |
 | `LLM_MAX_OUTPUT_TOKENS` | 可选 | `384` | Gemini、Mistral 和 Groq 的通用最大输出 Token 数。 |
@@ -62,7 +63,7 @@
 | `SUPABASE_URL` | 否 | 登录、额度、反馈必需 | Supabase 项目 URL。API、扩展使用同一个项目。 |
 | `SUPABASE_PUBLISHABLE_KEY` | 否 | 登录和额度必需 | Supabase 可公开密钥。API 用它验证用户 Bearer Token，扩展构建时也会注入。它受 RLS 约束，不是管理员密钥。 |
 | `SUPABASE_ANON_KEY` | 否 | 旧版兼容 | `SUPABASE_PUBLISHABLE_KEY` 的旧名称。只有未设置 publishable key 时才回退使用。新配置优先使用 publishable key。 |
-| `SUPABASE_SERVICE_ROLE_KEY` | **是，高权限** | 反馈功能必需 | Worker 调用受限的 `submit_feedback` RPC。可以填写新版 `sb_secret_...` Secret Key 或旧版 `service_role` JWT；Supabase 会赋予 `service_role` 权限并绕过 RLS。缺失时反馈接口返回 503。只能放在 Worker Secret 或本地 `.env.local`。变量名为兼容现有配置而保留。 |
+| `SUPABASE_SERVICE_ROLE_KEY` | **是，高权限** | 反馈和双向登录必需 | Worker 调用受限的 `submit_feedback` RPC，并生成登录交接用的一次性 Token。可以填写新版 `sb_secret_...` Secret Key 或旧版 `service_role` JWT；Supabase 会赋予 `service_role` 权限并绕过 RLS。缺失时反馈及登录交接接口返回 503。只能放在 Worker Secret 或本地 `.env.local`。变量名为兼容现有配置而保留。 |
 | `FEEDBACK_HASH_SALT` | **是** | 反馈功能必需 | 与用户 ID 或 IP 一起生成假名化限流哈希，避免保存原始 IP。缺失时反馈接口返回 503。上线后应保持稳定。 |
 | `AUTH_REQUIRED` | 否 | 可选 | 设为 `1` 时，生成接口要求有效登录；其他值允许匿名生成。生产当前为 `1`。 |
 | `AUTH_CACHE_TTL_MS` | 否 | 可选，默认 `60000` | 有效 Supabase Token 在 Worker 内存中的验证缓存时间，减少每次请求的登录验证延迟。无效 Token 固定短暂缓存约 5 秒。 |

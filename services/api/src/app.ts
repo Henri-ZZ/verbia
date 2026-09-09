@@ -3,6 +3,7 @@ import { BalancedProvider, GeminiProvider, MockProvider, OpenAiCompatibleProvide
 import { billingConfigured, createCheckout, hasActiveProSubscription, verifyBillingWebhook, type BillingCycle } from "./billing";
 import { reportError } from "./monitoring";
 import { z } from "zod";
+import { createClient } from "@supabase/supabase-js";
 
 export type ApiEnv = Record<string, string | undefined>;
 const maxBodyBytes = 48_000;
@@ -88,6 +89,20 @@ export function createApiHandler(env: ApiEnv) {
         return json(502, { error: "Feedback is temporarily unavailable." });
       }
     }
+    if (request.method === "POST" && path === "/v1/auth/session-handoff") {
+      const auth = await verifyBearer(request.headers.get("authorization"), env);
+      if (auth.status !== "ok" || !auth.email) return json(401, { error: "A valid signed-in account is required." });
+      try {
+        return json(201, await createSessionHandoff(auth, env));
+      } catch (error) {
+        const code = (error as { code?: string }).code;
+        if (code === "HANDOFF_RATE_LIMITED") return json(429, { error: "Too many sign-in sync attempts. Try again shortly." });
+        if (code === "HANDOFF_NOT_CONFIGURED") return json(503, { error: "Sign-in sync is temporarily unavailable." });
+        console.error("[verbia-api] session handoff failed", error);
+        reportError(error, "session_handoff");
+        return json(502, { error: "Sign-in sync is temporarily unavailable." });
+      }
+    }
     if (request.method !== "POST" || path !== "/v1/replies:generate") return json(404, { error: "Not found" });
     let requestId = "unknown";
     const timings: TimingMetric[] = [];
@@ -148,6 +163,31 @@ const feedbackSchema = z.object({
   company: z.string().max(200).optional()
 }).refine(value => Boolean(value.reason || value.message), { message: "Feedback is empty" });
 type FeedbackInput = z.infer<typeof feedbackSchema>;
+
+const handoffAttempts = new Map<string, { count: number; resetAt: number }>();
+
+async function createSessionHandoff(auth: AuthenticatedBearer, env: ApiEnv): Promise<{ tokenHash: string }> {
+  const supabaseUrl = (env.SUPABASE_URL ?? "").replace(/\/+$/, "");
+  const secretKey = env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+  if (!supabaseUrl || !secretKey) throw Object.assign(new Error("Session handoff is not configured"), { code: "HANDOFF_NOT_CONFIGURED" });
+  const email = auth.email;
+  if (!email) throw new Error("Session handoff user has no email");
+  const now = Date.now();
+  if (handoffAttempts.size > 1_000) {
+    for (const [userId, value] of handoffAttempts) if (value.resetAt <= now) handoffAttempts.delete(userId);
+  }
+  const attempt = handoffAttempts.get(auth.userId);
+  if (attempt && attempt.resetAt > now && attempt.count >= 5) throw Object.assign(new Error("Session handoff rate limited"), { code: "HANDOFF_RATE_LIMITED" });
+  handoffAttempts.set(auth.userId, attempt && attempt.resetAt > now ? { ...attempt, count: attempt.count + 1 } : { count: 1, resetAt: now + 60_000 });
+
+  const admin = createClient(supabaseUrl, secretKey, { auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false } });
+  const { data, error } = await admin.auth.admin.generateLink({ type: "magiclink", email });
+  if (error) throw error;
+  if (data.user.id !== auth.userId) throw new Error("Session handoff user mismatch");
+  const tokenHash = data.properties.hashed_token;
+  if (!tokenHash) throw new Error("Session handoff token is missing");
+  return { tokenHash };
+}
 
 async function submitFeedback(request: Request, input: FeedbackInput, userId: string | undefined, env: ApiEnv): Promise<void> {
   const supabaseUrl = (env.SUPABASE_URL ?? "").replace(/\/+$/, "");
