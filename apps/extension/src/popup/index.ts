@@ -109,6 +109,14 @@ async function renderAuth() {
       plan.append(mark);
     }
     plan.append(document.createTextNode(state.plan === "premium" ? (strings["account.planPremium"] ?? "Premium") : (strings["account.planFree"] ?? "Free")));
+    // Premium that lapses on a known date: append it right after the plan name.
+    // The server already formatted the date in UTC, so no client-timezone drift.
+    if (state.plan === "premium" && state.usage?.premiumUntil) {
+      const until = document.createElement("span");
+      until.className = "plan-until";
+      until.textContent = (strings["account.premiumUntil"] ?? "until {date}").replace("{date}", state.usage.premiumUntil);
+      plan.append(until);
+    }
     copy.append(email, plan);
     const button = document.createElement("button");
     button.type = "button";

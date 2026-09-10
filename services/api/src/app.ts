@@ -290,37 +290,42 @@ function quotaLimitForPlan(plan: AccountPlan, env: ApiEnv): number | null {
   return configured > 0 ? configured : null;
 }
 
-async function readAccountPlan(auth: AuthenticatedBearer, env: ApiEnv): Promise<AccountPlan> {
+type AccountEntitlement = { plan: AccountPlan; premiumUntil?: string };
+
+async function readAccountEntitlement(auth: AuthenticatedBearer, env: ApiEnv): Promise<AccountEntitlement> {
   try {
     const rows = await supabaseRows<{ plan?: string; subscription_status?: string; current_period_end?: string }>("profiles", { select: "plan,subscription_status,current_period_end", id: `eq.${auth.userId}`, limit: "1" }, auth.token, env);
     const profile = rows[0];
-    if (profile?.plan !== "premium") return "free";
+    if (profile?.plan !== "premium") return { plan: "free" };
+    const periodEnd = profile.current_period_end ? Date.parse(profile.current_period_end) : Number.NaN;
     // A canceling subscription remains Premium through its paid period even
     // if the final cancellation webhook is delayed.
-    if (profile.subscription_status === "canceling" && profile.current_period_end) {
-      const end = Date.parse(profile.current_period_end);
-      if (Number.isFinite(end) && end <= Date.now()) return "free";
-    }
-    return "premium";
+    if (profile.subscription_status === "canceling" && Number.isFinite(periodEnd) && periodEnd <= Date.now()) return { plan: "free" };
+    // Report the lapse date in UTC at day precision so both the extension and
+    // the website can render "Premium until <date>". Omitted when the record
+    // carries no end date (open-ended manual grant).
+    const premiumUntil = Number.isFinite(periodEnd) ? new Date(periodEnd).toISOString().slice(0, 10) : undefined;
+    return { plan: "premium", premiumUntil };
   } catch (error) {
     console.warn("[verbia-api] profile plan lookup failed; applying free plan", error);
     reportError(error, "plan_lookup");
-    return "free";
+    return { plan: "free" };
   }
 }
 
 async function readAccountUsage(auth: AuthenticatedBearer, env: ApiEnv, timings: TimingMetric[] = []): Promise<AccountUsage> {
   const period = new Date().toISOString().slice(0, 10);
-  const [plan, quotaRows] = await Promise.all([
-    measure("plan", timings, () => readAccountPlan(auth, env)),
+  const [entitlement, quotaRows] = await Promise.all([
+    measure("plan", timings, () => readAccountEntitlement(auth, env)),
     measure("quota", timings, () => supabaseRows<{ count?: number }>("quota_usage", { select: "count", user_id: `eq.${auth.userId}`, period: `eq.${period}`, limit: "1" }, auth.token, env))
   ]);
   const nextReset = new Date(`${period}T00:00:00.000Z`);
   nextReset.setUTCDate(nextReset.getUTCDate() + 1);
   return {
-    plan,
+    plan: entitlement.plan,
+    premiumUntil: entitlement.premiumUntil,
     used: Math.max(0, Number(quotaRows[0]?.count) || 0),
-    limit: quotaLimitForPlan(plan, env),
+    limit: quotaLimitForPlan(entitlement.plan, env),
     resetsAt: nextReset.toISOString()
   };
 }

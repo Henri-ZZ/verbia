@@ -132,6 +132,13 @@
   height: 14px;
 }
 
+/* "until <date>" qualifier shown after a time-limited Premium plan name */
+.account-plan .plan-until {
+  color: #66736a;
+  font-size: 11px;
+  font-weight: 600;
+}
+
 /* Free-user upgrade nudge (tiered: quiet → amber near limit → red at limit) */
 .upgrade-cta {
   display: flex;

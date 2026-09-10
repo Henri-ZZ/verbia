@@ -12,6 +12,10 @@ export type AccountUsage = {
   used: number;
   limit: number | null;
   resetsAt: string;
+  // UTC calendar date (YYYY-MM-DD) the current Premium entitlement lapses, at
+  // day precision. Only present for Premium accounts whose server-side record
+  // carries an end date; free accounts and open-ended grants omit it.
+  premiumUntil?: string;
 };
 
 export type AuthState = {
@@ -20,7 +24,7 @@ export type AuthState = {
   provider?: "google" | "email";
   avatarUrl?: string;
   plan?: AccountUsage["plan"];
-  usage?: Pick<AccountUsage, "used" | "limit" | "resetsAt">;
+  usage?: Pick<AccountUsage, "used" | "limit" | "resetsAt" | "premiumUntil">;
 };
 
 export type ExtensionRequest =

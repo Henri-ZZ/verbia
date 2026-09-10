@@ -9,7 +9,7 @@ import {
 import { ProCheckout } from "../../components/pro-checkout";
 
 type Locale = "en" | "zh";
-type Usage = { plan: "free" | "premium"; used: number; limit: number | null; resetsAt?: string } | null;
+type Usage = { plan: "free" | "premium"; used: number; limit: number | null; resetsAt?: string; premiumUntil?: string } | null;
 
 const T = {
   en: {
@@ -28,6 +28,7 @@ const T = {
     emailLabel: "Email",
     planFree: "Free",
     planPremium: "Premium",
+    premiumUntil: "until {date}",
     providerGoogle: "Google",
     providerEmail: "Email link",
     usageLabel: "Today’s usage",
@@ -59,6 +60,7 @@ const T = {
     emailLabel: "邮箱",
     planFree: "免费版",
     planPremium: "高级版",
+    premiumUntil: "有效期至 {date}",
     providerGoogle: "Google",
     providerEmail: "邮箱链接",
     usageLabel: "今日用量",
@@ -156,11 +158,13 @@ export default function AccountPage() {
         return;
       }
       if (!response.ok) { setUsage(null); setUsageStatus("error"); return; }
-      const body = await response.json() as { plan?: string; used?: number; limit?: number | null; resetsAt?: string };
+      const body = await response.json() as { plan?: string; used?: number; limit?: number | null; resetsAt?: string; premiumUntil?: string };
       const plan = body.plan === "premium" ? "premium" : "free";
       const used = typeof body.used === "number" ? body.used : 0;
       const limit = typeof body.limit === "number" ? body.limit : null;
-      setUsage({ plan, used, limit, resetsAt: body.resetsAt });
+      // premiumUntil is already a UTC calendar date (YYYY-MM-DD) from the API,
+      // so it is rendered as-is and never shifts with the visitor's timezone.
+      setUsage({ plan, used, limit, resetsAt: body.resetsAt, premiumUntil: typeof body.premiumUntil === "string" ? body.premiumUntil : undefined });
       setUsageStatus("ready");
     } catch {
       setUsage(null);
@@ -251,7 +255,7 @@ export default function AccountPage() {
               <div className="account-identity-copy">
                 <span className="account-email-label">{t.emailLabel}</span>
                 <strong className="account-email">{user.email}</strong>
-                <span className="account-badges">{usage?.plan === "premium" ? <><span className="account-badge plan"><img className="premium-mark" src="/premium.png" alt="" width="14" height="14"/>{t.planPremium}</span></> : <span className="account-badge plan">{t.planFree}</span>}{provider && (provider === "google" ? <span className="account-badge provider"><img className="provider-mark" src="/google.svg" alt={t.providerGoogle} width="14" height="14"/></span> : <span className="account-badge provider">{t.providerEmail}</span>)}</span>
+                <span className="account-badges">{usage?.plan === "premium" ? <><span className="account-badge plan"><img className="premium-mark" src="/premium.png" alt="" width="14" height="14"/>{t.planPremium}</span>{usage.premiumUntil && <span className="badge-until">{t.premiumUntil.replace("{date}", usage.premiumUntil)}</span>}</> : <span className="account-badge plan">{t.planFree}</span>}{provider && (provider === "google" ? <span className="account-badge provider"><img className="provider-mark" src="/google.svg" alt={t.providerGoogle} width="14" height="14"/></span> : <span className="account-badge provider">{t.providerEmail}</span>)}</span>
               </div>
             </div>
 

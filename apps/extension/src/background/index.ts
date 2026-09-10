@@ -339,7 +339,7 @@ async function accountSnapshot(): Promise<AuthState> {
     if (!response.ok) return identity;
     const usage = await response.json() as AccountUsage;
     if ((usage.plan !== "free" && usage.plan !== "premium") || !Number.isFinite(usage.used) || (usage.limit !== null && !Number.isFinite(usage.limit))) return identity;
-    return { ...identity, plan: usage.plan, usage: { used: usage.used, limit: usage.limit, resetsAt: usage.resetsAt } };
+    return { ...identity, plan: usage.plan, usage: { used: usage.used, limit: usage.limit, resetsAt: usage.resetsAt, premiumUntil: usage.premiumUntil } };
   } catch {
     return identity;
   }

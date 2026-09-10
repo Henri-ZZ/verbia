@@ -334,6 +334,14 @@ function renderSignedIn(body: HTMLElement, state: AuthState) {
     plan.append(mark);
   }
   plan.append(document.createTextNode(state.plan === "premium" ? t("account.planPremium") : t("account.planFree")));
+  // Premium that lapses on a known date: append it right after the plan name.
+  // The server already formatted the date in UTC, so no client-timezone drift.
+  if (state.plan === "premium" && state.usage?.premiumUntil) {
+    const until = document.createElement("span");
+    until.className = "plan-until";
+    until.textContent = t("account.premiumUntil").replace("{date}", state.usage.premiumUntil);
+    plan.append(until);
+  }
   copy.append(email, plan); identity.append(avatar, copy);
 
   const usage = document.createElement("div");
