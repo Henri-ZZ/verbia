@@ -1,5 +1,6 @@
 import { DEFAULT_SETTINGS, UI_STRINGS, generateReplyRequestSchema, generateReplyResponseSchema, resolveUiLang, type AccountUsage, type AuthState, type ExtensionRequest, type ExtensionResponse, type StagedContext, type StagedSelection, type UiLang, type UserSettings } from "@verbia/shared";
 import { SUPABASE_URL, WEB_AUTH_ORIGIN, authBearer, authEnabled, authSnapshot, clearSession, establishSessionFromTokenHash, getSupabase, refreshStoredSession, signOut } from "../auth/supabase";
+import { migrateOpenTabs, reloadContentScript } from "./migrate";
 
 const ADD_CONTEXT_MENU_ID = "verbia-add-context";
 const MAX_SELECTION_LENGTH = 8_000;
@@ -25,6 +26,13 @@ chrome.runtime.onInstalled.addListener(async details => {
     }
     // Welcome page after first install.
     await chrome.tabs.create({ url: "https://verbia.henriz.dev/getting-started?installed=1" });
+  }
+  // An update orphans the content script already running in every open tab, so
+  // hand those tabs a fresh instance instead of leaving them broken until the
+  // user happens to reload the page (see background/migrate.ts).
+  if (details.reason === "update") {
+    const migrated = await migrateOpenTabs();
+    console.log(`[verbia] migrated ${migrated} open tab(s) to the new content script`);
   }
   // Uninstall “farewell” page, refreshed on every install/update.
   await refreshUninstallUrl();
@@ -206,7 +214,10 @@ async function activate(tab: chrome.tabs.Tab) {
     await clearActionError();
   } catch {
     try {
-      await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["content.js"] });
+      // The tab is not without a content script — it has a dead one. Chrome only
+      // cut its bindings, so its load marker is still on the page and would make
+      // a plain injection a no-op (see background/migrate.ts).
+      await reloadContentScript(tab.id, ["content.js"]);
       const response = await chrome.tabs.sendMessage(tab.id, message);
       if (response?.ok && response.opened) await clearStagedContext(tab.id);
       if (response?.opened) await clearActionError();

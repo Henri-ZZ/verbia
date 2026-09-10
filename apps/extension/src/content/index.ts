@@ -8,10 +8,25 @@ import { VerbiaPanel } from "./ui/panel";
 import { msgIcon, type MsgKind } from "../ui/message";
 import { DEFAULT_SETTINGS, UI_STRINGS, resolveUiLang, type ContextEnvelope, type SiteAdapter, type StagedSelection } from "@verbia/shared";
 
-declare global { interface Window { __verbiaLoaded?: boolean; } }
+declare global {
+  interface Window {
+    __verbiaLoaded?: boolean;
+    // Set by an instance that just booted, so an instance orphaned by an
+    // extension update knows it has been replaced and stays quiet.
+    __verbiaReplaced?: boolean;
+  }
+}
 
 if (!window.__verbiaLoaded) {
   window.__verbiaLoaded = true;
+  // An extension update orphans the instance already running in this page —
+  // Chrome cuts its bindings but cannot unload it — and the background re-injects
+  // this file into every open tab to recover. Take over cleanly: drop the panel
+  // shell a dead instance may have left behind (its shadow root is closed, so
+  // nothing else can reach it), and record that this instance is the current one
+  // so the dead one stops advising a refresh on a page where the panel now works.
+  document.querySelectorAll("[data-verbia-root='true']").forEach(node => node.remove());
+  window.__verbiaReplaced = true;
   const reddit = new RedditAdapter();
   const gmail = new GmailAdapter();
   const universal = new UniversalAdapter();
@@ -111,7 +126,10 @@ if (!window.__verbiaLoaded) {
       // nothing we mount could work. Only a page reload installs a live copy —
       // tell the user that instead of failing silently.
       if (!extensionAlive()) {
-        await showToastFor("content.needsReload", "Verbia was updated. Refresh this page to use it again.", "warning");
+        // …unless a newer instance already took over this page (the background
+        // re-injects on update), in which case the panel works and this advice
+        // would send the user to refresh a perfectly good tab.
+        if (!window.__verbiaReplaced) await showToastFor("content.needsReload", "Verbia was updated. Refresh this page to use it again.", "warning");
         return false;
       }
       const base = await adapter.extractContext(target);

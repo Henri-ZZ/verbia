@@ -219,7 +219,9 @@
 | `src/content/adapters/universal.ts` | 通用模式：编辑器定位与无站点适配 |
 | `src/content/editor/editable.ts` | 可编辑目标封装（textarea/input/contenteditable 插入、追加/替换） |
 | `src/content/ui/panel.ts` | 回复面板 UI 与交互（HTML 模板内联样式 + 渲染） |
-| `src/content/index.ts` | 内容脚本入口、消息桥接 |
+| `src/content/index.ts` | 内容脚本入口、消息桥接；被重新注入时清理旧实例遗留的面板并接管 |
+| `src/background/migrate.ts` | 扩展更新后为所有已打开标签页换上新内容脚本（Chrome 不会卸载旧实例，只会切断它的扩展绑定） |
+| `src/runtime.ts` | chrome.* 安全层：上下文失效时降级而不是抛出（内容脚本在扩展更新后会变成孤儿） |
 | `src/popup/` `src/options/` | popup 与设置页（Account/额度/升级/快捷键/加载态等） |
 | `src/ui/message.ts` | 面板系统消息（类型化图标/颜色） |
 | `src/auth/supabase.ts` | PKCE 客户端 + chrome.storage 会话适配器 + local-scope 登出 |
@@ -263,7 +265,7 @@
 
 ## 15. 常见问题（FAQ 速查）
 
-- **为什么没自动出现面板？** 确认已聚焦 Reddit 回复框、Gmail / Outlook 写信或回复编辑器，或其它网页中的可编辑框；检查快捷键绑定（见 9）。两种情况需要额外一步：① 面板曾在该输入框上被手动关闭——按快捷键重新唤起即可（自动弹出不会替你把关掉的面板叫回来）；② 刚在 `chrome://extensions` 重载或更新过扩展——已打开的页面里内容脚本会失效，此时会提示「Verbia 已更新，刷新本页面后可继续使用」，刷新页面即恢复。
+- **为什么没自动出现面板？** 确认已聚焦 Reddit 回复框、Gmail / Outlook 写信或回复编辑器，或其它网页中的可编辑框；检查快捷键绑定（见 9）。两种情况需要额外一步：① 面板曾在该输入框上被手动关闭——按快捷键重新唤起即可（自动弹出不会替你把关掉的面板叫回来）；② 刚更新（或在 `chrome://extensions` 重载）过扩展——已打开的页面里旧的内容脚本会失效。正常情况下扩展会在更新时**自动为这些页面换上新实例**，你不需要做任何事；只有极少数情况（更新时该页面无法被注入）才会看到「Verbia 已更新，刷新本页面后可继续使用」，此时刷新页面即恢复；按快捷键时若无法注入，只会在工具栏图标上出现一个红色 `!` 与提示文案。
 - **为什么要求登录？** 线上启用 `AUTH_REQUIRED`；登录用 Google/Magic Link（见 4）。
 - **额度今天用完怎么办？** 明天 UTC 0 点重置，或升级 Premium（见 10）。
 - **能翻译整页/长文吗？** 不能：Verbia 面向“正在回复的这一条”，上下文按字段边界截断，不做整页处理。
