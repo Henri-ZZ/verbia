@@ -19,6 +19,7 @@ export function createApiHandler(env: ApiEnv) {
     let logRequestId: string | undefined;
     let logProvider: string | undefined;
     let logModelRoute: string | undefined;
+    let logQuota: QuotaOutcome | undefined;
     let response: Response | undefined;
     try {
       response = await (async (): Promise<Response> => {
@@ -128,6 +129,7 @@ export function createApiHandler(env: ApiEnv) {
       if (auth.status === "none" && env.AUTH_REQUIRED === "1") return apiError(401, requestId, "UNAUTHENTICATED", false, "Sign in from Verbia settings to generate a reply.");
       if (auth.status === "ok") {
         const quota = await measure("quota", timings, () => consumeGenerationQuota(auth.token, env));
+        logQuota = quota;
         if (quota === "exceeded") return withServerTiming(apiError(429, requestId, "QUOTA_EXCEEDED", false, "You have used your daily replies. Try again tomorrow."), timings);
       }
       const started = performance.now();
@@ -156,7 +158,7 @@ export function createApiHandler(env: ApiEnv) {
       })();
       return response;
     } finally {
-      logRequest(request, path, response, requestStarted, logRequestId, logProvider, logModelRoute);
+      logRequest(request, path, response, requestStarted, { requestId: logRequestId, provider: logProvider, modelRoute: logModelRoute, quota: logQuota });
     }
   };
 }
@@ -343,7 +345,15 @@ async function supabaseRows<T>(table: string, query: Record<string, string>, tok
   return body as T[];
 }
 
-async function consumeGenerationQuota(token: string, env: ApiEnv): Promise<"ok" | "skipped" | "exceeded"> {
+// Outcome of the daily-counter write. `unavailable` and `skipped` both mean
+// "this reply was not recorded": the first is a failure, the second a
+// configuration that does not track usage (ENFORCE_QUOTA off). They are kept
+// apart because they need different reactions — one is a bug, the other is a
+// deployment decision — and both travel to the request log so neither stays
+// invisible.
+type QuotaOutcome = "ok" | "skipped" | "exceeded" | "unavailable";
+
+async function consumeGenerationQuota(token: string, env: ApiEnv): Promise<QuotaOutcome> {
   const supabaseUrl = (env.SUPABASE_URL ?? "").replace(/\/+$/, "");
   const publishableKey = env.SUPABASE_PUBLISHABLE_KEY ?? env.SUPABASE_ANON_KEY ?? "";
   if (env.ENFORCE_QUOTA !== "1" || !supabaseUrl || !publishableKey) return "skipped";
@@ -357,12 +367,22 @@ async function consumeGenerationQuota(token: string, env: ApiEnv): Promise<"ok" 
       })
     });
     if (response.ok) return "ok";
-    const body = await response.json().catch(() => null) as { message?: string } | null;
+    const body = await response.json().catch(() => null) as { message?: string; code?: string } | null;
     if (body?.message?.includes("QUOTA_EXCEEDED")) return "exceeded";
+    // PGRST202 is PostgREST reporting that the function does not exist, which
+    // means the database is still on an older docs/supabase-schema.sql. Drafts
+    // keep working (this gate never blocks on infrastructure), but nothing is
+    // recorded and daily limits are silently unenforced — so this one gets an
+    // unambiguous message and its own Sentry tag instead of a generic warning.
+    if (body?.code === "PGRST202") {
+      console.error("[verbia-api] consume_generation_quota is missing from the database. Run section 2 of docs/supabase-schema.sql. Usage is NOT being recorded and daily quotas are NOT enforced.");
+      reportError(new Error("Supabase is missing the consume_generation_quota function"), "quota_schema_missing", { upstreamStatus: String(response.status) });
+      return "unavailable";
+    }
     console.warn(`[verbia-api] consume_generation_quota failed (${response.status})`, body?.message ?? "");
     reportError(new Error(`Supabase consume_generation_quota returned ${response.status}`), "quota_write", { upstreamStatus: String(response.status) });
-    return "ok";
-  } catch (error) { console.warn("[verbia-api] consume_generation_quota request failed", error); reportError(error, "quota_write"); return "ok"; }
+    return "unavailable";
+  } catch (error) { console.warn("[verbia-api] consume_generation_quota request failed", error); reportError(error, "quota_write"); return "unavailable"; }
 }
 
 type TimingMetric = { name: string; duration: number };
@@ -376,7 +396,7 @@ function withServerTiming(response: Response, timings: TimingMetric[]): Response
   return response;
 }
 
-function logRequest(request: Request, path: string, response: Response | undefined, started: number, requestId?: string, provider?: string, modelRoute?: string) {
+function logRequest(request: Request, path: string, response: Response | undefined, started: number, details: { requestId?: string; provider?: string; modelRoute?: string; quota?: QuotaOutcome } = {}) {
   const cf = (request as Request & { cf?: { colo?: string; country?: string } }).cf;
   const timing = Object.fromEntries((response?.headers.get("server-timing") ?? "").split(",").map(value => {
     const [name, duration] = value.trim().split(";dur=");
@@ -388,9 +408,12 @@ function logRequest(request: Request, path: string, response: Response | undefin
     path,
     status: response?.status ?? 500,
     durationMs: Math.round(performance.now() - started),
-    ...(requestId ? { requestId } : {}),
-    ...(provider ? { provider } : {}),
-    ...(modelRoute ? { modelRoute } : {}),
+    ...(details.requestId ? { requestId: details.requestId } : {}),
+    ...(details.provider ? { provider: details.provider } : {}),
+    ...(details.modelRoute ? { modelRoute: details.modelRoute } : {}),
+    // Present on every signed-in generation, so logs answer "was this reply
+    // counted?" without a second lookup.
+    ...(details.quota ? { quota: details.quota } : {}),
     ...(Object.keys(timing).length ? { timing } : {}),
     ...(cf?.colo ? { colo: cf.colo } : {}),
     ...(cf?.country ? { country: cf.country } : {})

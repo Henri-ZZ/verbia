@@ -97,6 +97,35 @@ PREMIUM_DAILY_QUOTA=0    # 付费版；0 表示不限次数，也可设置独立
 - 配额数值/周期与付费层级的正式策略，等定价后再调（`profiles.plan` 已预留
   `free | premium` 与 `customer_id`）。
 
+### 4.1 数据库必须比 Worker 新（重要）
+
+额度写入发生在**数据库里的函数**，不在 Worker 里：`consume_generation_quota` 由
+`docs/supabase-schema.sql` 第 2 节定义。所以升级 Worker 时如果只部署代码、
+没重跑第 2 节，会出现一种很难察觉的故障：
+
+- 起草**照常成功**（网关对基础设施故障一律放行，不阻塞用户）；
+- 但 **`quota_usage` 一行都不写**，官网/插件用量永远显示 0；
+- 并且**免费用户的每日上限实际没有生效**。
+
+**「需要重跑」的改动只有一种**：`docs/supabase-schema.sql` 这个文件本身变了——
+建表 / 加字段 / 新建或改函数 / 索引 / RLS 策略 / grant-revoke。
+改 Worker 代码、插件代码、文案、官网都**不需要**碰数据库。
+
+**自检：一条命令，只读。**
+
+```bash
+pnpm db:check
+```
+
+它解析这份 SQL 里声明的每个表和函数，逐个探测线上项目：
+`[db-check] database matches the schema.` 表示一致；不一致会列出缺失对象并以非 0 退出。
+探针只带 publishable（anon）key，而这份 schema 已把 anon 从所有函数上 revoke，
+所以探针不可能真的执行到任何东西；反过来，如果某个函数**能**在 anon 下执行，它会报警提示授权过宽。
+
+也可以在 `wrangler tail` 里看每次起草的日志：`"quota":"ok"` 表示已记账，
+`"skipped"` 表示 `ENFORCE_QUOTA` 未开启或 Supabase 变量缺失，
+`"unavailable"` 表示写入失败（日志同时会打印具体原因）。
+
 ## 五、文件索引
 
 | 文件 | 内容 |

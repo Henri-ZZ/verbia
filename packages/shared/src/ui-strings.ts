@@ -160,6 +160,7 @@ const EN: Strings = {
   "content.toastFocusEditor": "Focus a text editor, then use the Verbia shortcut again.",
   "content.contextStaged": "Added to Verbia context.",
   "content.dismissHint": "Panel closed. Press the Verbia shortcut to reopen it here.",
+  "content.needsReload": "Verbia was updated. Refresh this page to keep using it.",
 
   // right-click menu
   "menu.addToContext": "Add to Verbia context",
@@ -332,6 +333,7 @@ const ZH_CN: Strings = {
   "content.toastFocusEditor": "请先聚焦一个文本编辑器，再按一次 Verbia 快捷键。",
   "content.contextStaged": "已加入 Verbia 上下文。",
   "content.dismissHint": "面板已关闭，按 Verbia 快捷键可在此重新唤起。",
+  "content.needsReload": "Verbia 已更新，刷新本页面后可继续使用。",
 
   // right-click menu
   "menu.addToContext": "加入 Verbia 上下文",
@@ -505,6 +507,7 @@ const ES: Strings = {
   "content.toastFocusEditor": "Enfoca un editor de texto y vuelve a usar el atajo de Verbia.",
   "content.contextStaged": "Añadido al contexto de Verbia.",
   "content.dismissHint": "Panel cerrado. Pulsa el atajo de Verbia para volver a abrirlo aquí.",
+  "content.needsReload": "Verbia se ha actualizado. Recarga esta página para seguir usándolo.",
 
   // right-click menu
   "menu.addToContext": "Añadir al contexto de Verbia",
@@ -677,6 +680,7 @@ const PT_BR: Strings = {
   "content.toastFocusEditor": "Foque um editor de texto e use o atalho do Verbia novamente.",
   "content.contextStaged": "Adicionado ao contexto do Verbia.",
   "content.dismissHint": "Painel fechado. Pressione o atalho do Verbia para reabri-lo aqui.",
+  "content.needsReload": "O Verbia foi atualizado. Recarregue esta página para continuar usando.",
 
   // right-click menu
   "menu.addToContext": "Adicionar ao contexto do Verbia",
@@ -849,6 +853,7 @@ const JA: Strings = {
   "content.toastFocusEditor": "テキスト入力欄にフォーカスしてから、もう一度 Verbia のショートカットを押してください。",
   "content.contextStaged": "Verbia のコンテキストに追加しました。",
   "content.dismissHint": "パネルを閉じました。Verbia のショートカットでここに再表示できます。",
+  "content.needsReload": "Verbia が更新されました。このページを再読み込みすると続けて使えます。",
 
   // right-click menu
   "menu.addToContext": "Verbia のコンテキストに追加",
@@ -1021,6 +1026,7 @@ const DE: Strings = {
   "content.toastFocusEditor": "Fokussiere ein Textfeld und nutze das Verbia-Kürzel erneut.",
   "content.contextStaged": "Zum Verbia-Kontext hinzugefügt.",
   "content.dismissHint": "Feld geschlossen. Drücke das Verbia-Kürzel, um es hier wieder zu öffnen.",
+  "content.needsReload": "Verbia wurde aktualisiert. Lade diese Seite neu, um es weiter zu nutzen.",
 
   // right-click menu
   "menu.addToContext": "Zum Verbia-Kontext hinzufügen",
@@ -1193,6 +1199,7 @@ const FR: Strings = {
   "content.toastFocusEditor": "Placez le curseur dans un champ de texte, puis réutilisez le raccourci Verbia.",
   "content.contextStaged": "Ajouté au contexte Verbia.",
   "content.dismissHint": "Panneau fermé. Appuyez sur le raccourci Verbia pour le rouvrir ici.",
+  "content.needsReload": "Verbia a été mis à jour. Rechargez cette page pour continuer.",
 
   // right-click menu
   "menu.addToContext": "Ajouter au contexte Verbia",

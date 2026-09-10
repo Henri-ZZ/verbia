@@ -1,7 +1,13 @@
 import type { ContextEnvelope, EditableTarget, GenerateReplyRequest, GenerateReplyResponse, SiteAdapter, UiLang, UserSettings } from "@verbia/shared";
 import { DEFAULT_SETTINGS, LENGTH_VALUES, REPLY_LANGUAGE_OPTIONS, TONE_VALUES, UI_STRINGS, resolveUiLang } from "@verbia/shared";
 import { readEditable } from "../editor/editable";
+import { extensionVersion, runtimeUrl, sendToBackground, uiLanguage } from "../../runtime";
 import { msgColor, msgIcon, type MsgKind } from "../../ui/message";
+
+// Every background reply is an ExtensionResponse; each caller knows which
+// `data` variant it asked for, so it narrows the union locally instead of
+// fighting the shared union type.
+type Reply<T> = { ok?: boolean; data?: T; error?: { userMessage?: string; detail?: string } };
 
 const styles = `
 :host{all:initial;display:block;inline-size:100%;color-scheme:light;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#172019}
@@ -42,6 +48,9 @@ export class VerbiaPanel {
   // a double-click on the header re-enables it.
   private floating = false;
   private floatAnchor: HTMLElement | null = null;
+  // Where the panel is currently attached (the inline anchor, or the editor for
+  // the floating variant). Used to tell "same editor" from "the editor moved".
+  private anchor: Element | null = null;
   private followAnchor = true;
   private floatWidth = 400;
   private floatFrame = 0;
@@ -71,7 +80,12 @@ export class VerbiaPanel {
     // The panel is a page-lifetime singleton (content/index.ts creates it
     // once), so a storage listener bound here never accumulates. It keeps a
     // mounted panel in sync when the Options page changes settings.
-    chrome.storage.onChanged.addListener(this.onSettingsChanged);
+    try {
+      chrome.storage.onChanged.addListener(this.onSettingsChanged);
+    } catch {
+      // Extension already gone (updated while this tab stayed open). The panel
+      // shell still renders; there is simply no settings stream to follow.
+    }
   }
 
   private onInput = (rawEvent: Event) => {
@@ -94,7 +108,7 @@ export class VerbiaPanel {
     else if (target.id === "tone") this.settings.defaultTone = target.value as UserSettings["defaultTone"];
     else if (target.id === "length") this.settings.defaultLength = target.value as UserSettings["defaultLength"];
     else return;
-    void chrome.runtime.sendMessage({ type: "SAVE_SETTINGS", settings: this.settings });
+    void sendToBackground({ type: "SAVE_SETTINGS", settings: this.settings });
   };
 
   private onKeyDown = (rawEvent: Event) => {
@@ -105,23 +119,47 @@ export class VerbiaPanel {
     }
   };
 
-  update(target: EditableTarget, context: ContextEnvelope) {
-    // The editor changed (e.g. the user closed a Gmail compose and opened a
-    // new one): re-anchor the floating panel to the new editor. Staying on
+  update(target: EditableTarget, context: ContextEnvelope, anchor: Element) {
+    // The editor changed (the user clicked Reply on a different Reddit comment,
+    // opened a new Gmail compose, …): re-anchor the panel to the new editor.
+    // Leaving an inline panel parked next to the previous editor can put it
+    // out of view entirely, which reads as "the panel didn't open". Staying on
     // the same editor keeps any manual drag position the user chose.
-    const movedEditor = this.floating && this.floatAnchor !== target.element;
+    const movedEditor = this.anchor !== anchor;
     this.target = target;
     this.context = context;
-    if (movedEditor) {
-      this.floatAnchor = target.element;
-      this.followAnchor = true;
-      this.scheduleFloat();
-    }
+    if (!movedEditor) return;
+    this.anchor = anchor;
+    this.floatAnchor = target.element;
+    this.followAnchor = true;
+    if (this.floating) this.scheduleFloat();
+    else this.mountAfter(anchor);
   }
 
   mountAfter(anchor: Element) {
+    this.anchor = anchor;
     if (anchor.nextSibling === this.host) return;
     anchor.parentNode?.insertBefore(this.host, anchor.nextSibling);
+  }
+
+  // True while the panel's host is still part of the page. Host pages rebuild
+  // the subtree we mounted into (Reddit re-creates its composer on every open),
+  // which takes our node with it: the panel would then stay "open" while
+  // rendering into a detached element, so nothing shows and no later summon can
+  // recover — the content script thinks an invisible panel is already up.
+  isMounted(): boolean {
+    return this.host.isConnected;
+  }
+
+  // Re-attach after such a rebuild. No-op while the panel is still mounted.
+  ensureMounted(anchor: Element) {
+    if (this.host.isConnected) return;
+    if (this.floating) {
+      this.host.ownerDocument.documentElement.append(this.host);
+      this.positionFloat();
+      return;
+    }
+    this.mountAfter(anchor);
   }
 
   // Overlay variant used when the editor lives inside its own document/iframe
@@ -134,6 +172,7 @@ export class VerbiaPanel {
     const doc = this.host.ownerDocument;
     this.floating = true;
     this.floatAnchor = anchor ?? null;
+    this.anchor = anchor ?? null;
     this.followAnchor = true;
     this.host.classList.add("floating");
     Object.assign(this.host.style, {
@@ -237,12 +276,15 @@ export class VerbiaPanel {
 
   async open(focusIntent = true) {
     this.previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const response = await chrome.runtime.sendMessage({ type: "GET_SETTINGS" });
-    if (response?.ok && response.data) this.settings = response.data as UserSettings;
+    // Best-effort: the settings snapshot is a nicety, the render is the point.
+    // A dead extension context (reload/update) must not leave the panel mounted
+    // but empty — that state is invisible and swallows every later summon.
+    const response = await sendToBackground<Reply<UserSettings>>({ type: "GET_SETTINGS" });
+    if (response?.ok && response.data) this.settings = response.data;
     // Resolve "auto" from the browser UI language (chrome.i18n), the same
     // source the Settings page and popup use. navigator.language reflects the
     // page content-language preference and can disagree with it.
-    this.lang = resolveUiLang(this.settings.uiLanguage, chrome.i18n.getUILanguage());
+    this.lang = resolveUiLang(this.settings.uiLanguage, uiLanguage());
     this.phase = "context_ready";
     this.renderPanel();
     if (this.floating) this.scheduleFloat();
@@ -317,7 +359,7 @@ export class VerbiaPanel {
 
   private renderPanel(intent = "") {
     const low = this.context.confidence === "low";
-    this.root.innerHTML = `<style>${styles}</style><div class="inline-shell"><section class="panel" role="region" aria-labelledby="verbia-title"><header class="head"><div><h2 class="brand" id="verbia-title"><img src="${chrome.runtime.getURL("icons/verbia-horizontal-logo.svg")}" alt="Verbia" class="wordmark"></h2><p class="slogan">${this.t("brand.slogan")}</p></div><button class="icon" data-action="collapse" type="button" aria-expanded="true" aria-label="${this.t("panel.collapseAria")}"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 10l4-4 4 4"/></svg></button></header><div class="panel-body"><div class="chip">${escapeHtml(this.contextLabel())}</div>${low ? '<p class="warning">${this.t("panel.warningLow")}</p>' : ""}${this.context.truncated ? '<p class="warning">${this.t("panel.warningTruncated")}</p>' : ""}<details class="context" ${this.settings.contextPreviewExpanded ? "open" : ""}><summary>${this.t("panel.summaryContext")}</summary><div class="context-body">${escapeHtml(this.contextText())}</div><button class="remove-context" data-action="remove-context" type="button">${this.t("panel.removeContext")}</button></details><label for="intent">${this.t("brand.uxLine")}</label><textarea class="intent" id="intent" maxlength="2000" placeholder="${this.t("panel.intentPlaceholder")}">${escapeHtml(intent)}</textarea><div class="actions"><button class="secondary" data-action="record" type="button">${this.t("panel.speak")}</button><button class="secondary" data-action="clear" type="button">${this.t("panel.clear")}</button></div><div class="row">${this.rowCells(this.settings)}</div><div class="actions"><button class="primary" data-action="generate" type="button">${this.t("panel.generate")}</button><button class="danger hidden" data-action="cancel" type="button">${this.t("panel.cancel")}</button></div><p class="status" role="status" aria-live="polite"></p><section class="draft-area hidden"><label for="draft">${this.t("panel.draftLabel")}</label><textarea class="draft" id="draft"></textarea><div class="actions"><button class="primary" data-action="insert" type="button">${this.t("panel.insert")}</button><button class="secondary" data-action="regenerate" type="button">${this.t("panel.regenerate")}</button><button class="secondary" data-action="copy" type="button">${this.t("panel.copy")}</button></div><div class="insert-choice hidden"><strong>${this.t("panel.editorHasText")}</strong><div class="actions"><button class="secondary" data-action="append" type="button">${this.t("panel.append")}</button><button class="danger" data-action="replace" type="button">${this.t("panel.replace")}</button><button class="secondary" data-action="choice-cancel" type="button">${this.t("panel.cancel")}</button></div></div></section><p class="foot">${this.t("panel.foot")}</p></div></section></div>`;
+    this.root.innerHTML = `<style>${styles}</style><div class="inline-shell"><section class="panel" role="region" aria-labelledby="verbia-title"><header class="head"><div><h2 class="brand" id="verbia-title"><img src="${runtimeUrl("icons/verbia-horizontal-logo.svg")}" alt="Verbia" class="wordmark"></h2><p class="slogan">${this.t("brand.slogan")}</p></div><button class="icon" data-action="collapse" type="button" aria-expanded="true" aria-label="${this.t("panel.collapseAria")}"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 10l4-4 4 4"/></svg></button></header><div class="panel-body"><div class="chip">${escapeHtml(this.contextLabel())}</div>${low ? '<p class="warning">${this.t("panel.warningLow")}</p>' : ""}${this.context.truncated ? '<p class="warning">${this.t("panel.warningTruncated")}</p>' : ""}<details class="context" ${this.settings.contextPreviewExpanded ? "open" : ""}><summary>${this.t("panel.summaryContext")}</summary><div class="context-body">${escapeHtml(this.contextText())}</div><button class="remove-context" data-action="remove-context" type="button">${this.t("panel.removeContext")}</button></details><label for="intent">${this.t("brand.uxLine")}</label><textarea class="intent" id="intent" maxlength="2000" placeholder="${this.t("panel.intentPlaceholder")}">${escapeHtml(intent)}</textarea><div class="actions"><button class="secondary" data-action="record" type="button">${this.t("panel.speak")}</button><button class="secondary" data-action="clear" type="button">${this.t("panel.clear")}</button></div><div class="row">${this.rowCells(this.settings)}</div><div class="actions"><button class="primary" data-action="generate" type="button">${this.t("panel.generate")}</button><button class="danger hidden" data-action="cancel" type="button">${this.t("panel.cancel")}</button></div><p class="status" role="status" aria-live="polite"></p><section class="draft-area hidden"><label for="draft">${this.t("panel.draftLabel")}</label><textarea class="draft" id="draft"></textarea><div class="actions"><button class="primary" data-action="insert" type="button">${this.t("panel.insert")}</button><button class="secondary" data-action="regenerate" type="button">${this.t("panel.regenerate")}</button><button class="secondary" data-action="copy" type="button">${this.t("panel.copy")}</button></div><div class="insert-choice hidden"><strong>${this.t("panel.editorHasText")}</strong><div class="actions"><button class="secondary" data-action="append" type="button">${this.t("panel.append")}</button><button class="danger" data-action="replace" type="button">${this.t("panel.replace")}</button><button class="secondary" data-action="choice-cancel" type="button">${this.t("panel.cancel")}</button></div></div></section><p class="foot">${this.t("panel.foot")}</p></div></section></div>`;
     this.renderHeadActions();
     this.setSelect("language", this.settings.outputLanguage);
     this.setSelect("tone", this.settings.defaultTone);
@@ -352,16 +394,16 @@ export class VerbiaPanel {
       page: { urlOrigin: location.origin, locale: document.documentElement.lang || undefined }, context: this.context,
       intent: { text: intent, source: this.voiceTranscript ? "voice_transcript" : "typed" },
       output: { language: this.value("language", this.settings.outputLanguage), tone: this.value("tone", this.settings.defaultTone) as GenerateReplyRequest["output"]["tone"], length: this.value("length", this.settings.defaultLength) as GenerateReplyRequest["output"]["length"] },
-      client: { extensionVersion: chrome.runtime.getManifest().version, adapterVersion: this.adapter.version }
+      client: { extensionVersion: extensionVersion(), adapterVersion: this.adapter.version }
     };
     try {
-      const response = await chrome.runtime.sendMessage({ type: "GENERATE_REPLY", payload: request });
-      if (!response?.ok) {
+      const response = await sendToBackground<Reply<GenerateReplyResponse>>({ type: "GENERATE_REPLY", payload: request });
+      if (!response?.ok || !response.data) {
         const message = response?.error?.userMessage || "Generation failed.";
         const detail = response?.error?.detail;
         throw Object.assign(new Error(message), { detail });
       }
-      const result = response.data as GenerateReplyResponse;
+      const result = response.data;
       if (result.requestId !== this.requestId) return;
       this.draft = result.draft;
       const draftEl = this.el<HTMLTextAreaElement>("draft");
@@ -383,7 +425,7 @@ export class VerbiaPanel {
   }
 
   private async cancel() {
-    if (this.requestId) await chrome.runtime.sendMessage({ type: "CANCEL_GENERATION", requestId: this.requestId });
+    if (this.requestId) await sendToBackground({ type: "CANCEL_GENERATION", requestId: this.requestId });
     this.requestId = undefined; this.phase = "context_ready"; this.setBusy(false); this.status(this.t("panel.status.cancelled"));
   }
 
@@ -556,10 +598,10 @@ export class VerbiaPanel {
   }
 
   private async refreshLanguageFromSettings() {
-    const response = await chrome.runtime.sendMessage({ type: "GET_SETTINGS" });
+    const response = await sendToBackground<Reply<UserSettings>>({ type: "GET_SETTINGS" });
     if (!response?.ok || !response.data) return;
-    const next = response.data as UserSettings;
-    const nextLang = resolveUiLang(next.uiLanguage, chrome.i18n.getUILanguage());
+    const next = response.data;
+    const nextLang = resolveUiLang(next.uiLanguage, uiLanguage());
     if (nextLang === this.lang) { this.settings = next; return; }
     // A rebuild would disturb an in-flight generation/recording; adopt the new
     // snapshot only and let the next explicit unfold pick the language up.
@@ -603,7 +645,7 @@ export class VerbiaPanel {
     this.restartTimer = undefined;
     this.recognition?.stop();
     this.recognition = undefined;
-    if (this.requestId) await chrome.runtime.sendMessage({ type: "CANCEL_GENERATION", requestId: this.requestId }).catch(() => undefined);
+    const requestId = this.requestId;
     this.requestId = undefined;
     this.phase = "idle";
     this.draft = "";
@@ -617,11 +659,21 @@ export class VerbiaPanel {
     }
     this.floating = false;
     this.floatAnchor = null;
+    this.anchor = null;
     this.host.classList.remove("floating");
-    chrome.storage.onChanged.removeListener(this.onSettingsChanged);
+    // Drop the DOM and hand the state back *before* touching the extension.
+    // Reloading the extension while this panel is open makes the chrome.* calls
+    // below throw, and "close" must still close when the user asks it to.
+    try {
+      chrome.storage.onChanged.removeListener(this.onSettingsChanged);
+    } catch {
+      // Context already dead — the listener went with it.
+    }
     this.host.remove();
     this.onRemove();
     this.previousFocus?.focus();
+    // Nothing here waits on the background: the panel is gone either way.
+    if (requestId) void sendToBackground({ type: "CANCEL_GENERATION", requestId });
   }
 
   // Folding keeps the panel mounted and its typed content intact; only the

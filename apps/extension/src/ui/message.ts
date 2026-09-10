@@ -12,6 +12,8 @@
 // (manifest.json lists assets/*), extension pages resolve them the same way
 // chrome.runtime.getURL is used for icons/verbia-logo.svg.
 
+import { runtimeUrl } from "../runtime";
+
 export type MsgKind = "info" | "success" | "warning" | "error";
 
 // Text colours pick up each icon's dominant hue: info blue #4F79DB,
@@ -30,10 +32,16 @@ export function msgColor(kind: MsgKind): string {
 
 export function msgIcon(kind: MsgKind, size = 14): HTMLImageElement {
   const img = document.createElement("img");
-  img.src = chrome.runtime.getURL(`assets/${MSG_META[kind].file}`);
+  const src = runtimeUrl(`assets/${MSG_META[kind].file}`);
+  // An orphaned content script cannot resolve extension URLs. Leave the image
+  // unfilled instead of throwing, so the text beside it still renders — the
+  // toast that tells the user to reload the page is one of these rows.
+  if (src) {
+    img.src = src;
+    img.width = size;
+    img.height = size;
+  }
   img.alt = "";
-  img.width = size;
-  img.height = size;
   img.decoding = "async";
   return img;
 }

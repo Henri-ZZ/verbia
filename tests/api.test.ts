@@ -115,6 +115,44 @@ describe("API fetch handler", () => {
     expect(upstream).toHaveBeenCalledTimes(2);
   });
 
+  it("still drafts, but flags the quota as unavailable, when the database lacks the quota function", async () => {
+    const projectUrl = "https://quota-schema-missing.supabase.co";
+    const logs = vi.spyOn(console, "log").mockImplementation(() => undefined);
+    const warnings = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const upstream = vi.spyOn(globalThis, "fetch").mockImplementation(async input => {
+      const url = String(input);
+      if (url.includes("/.well-known/jwks.json")) return jwksResponse();
+      // Exactly what PostgREST answers when a database is still on an older
+      // docs/supabase-schema.sql: the RPC was never created.
+      if (url.includes("/rest/v1/rpc/consume_generation_quota")) {
+        return Response.json({ code: "PGRST202", message: "Could not find the function public.consume_generation_quota" }, { status: 404 });
+      }
+      return new Response(null, { status: 404 });
+    });
+    const generateHandler = createApiHandler({
+      LLM_PROVIDER: "mock",
+      SUPABASE_URL: projectUrl,
+      SUPABASE_PUBLISHABLE_KEY: "public-key",
+      AUTH_REQUIRED: "1",
+      ENFORCE_QUOTA: "1"
+    });
+    const token = await userToken(projectUrl, "11111111-1111-4111-8111-111111111111", "user@example.com");
+    const response = await generateHandler(new Request("https://api.verbia.henriz.dev/v1/replies:generate", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify(validRequest)
+    }));
+
+    // Infrastructure never blocks a draft...
+    expect(response.status).toBe(200);
+    expect(upstream).toHaveBeenCalled();
+    // ...but it is never silent either: the operator gets a named cause on the
+    // request log instead of a reply that quietly was not counted.
+    expect(warnings).toHaveBeenCalledWith(expect.stringContaining("consume_generation_quota is missing"));
+    const requestLog = logs.mock.calls.map(([line]) => String(line)).find(line => line.includes('"event":"api_request"'));
+    expect(JSON.parse(requestLog ?? "{}")).toMatchObject({ quota: "unavailable" });
+  });
+
   it("rejects malformed and oversized bodies", async () => {
     const malformed = await handler(new Request("https://api.verbia.henriz.dev/v1/replies:generate", { method: "POST", body: "{" }));
     expect(malformed.status).toBe(400);

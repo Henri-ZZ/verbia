@@ -1,8 +1,15 @@
--- Verbia — Supabase schema (run once in the Supabase SQL editor)
+-- Verbia — Supabase schema (paste into the Supabase SQL editor)
 -- Creates the identity-facing tables used by the gateway and the extension:
 --   profiles      -> one row per auth user; the API owns billing/plan fields.
 --   quota_usage   -> per-user daily counts consumed by the generation RPC
 --                    (only enforced when the gateway runs with ENFORCE_QUOTA=1).
+--
+-- NOT "run once": every statement is idempotent (create-or-replace / if not
+-- exists), so re-run this whole file whenever it changes. The gateway calls the
+-- functions defined here by name, and a function that was never created fails
+-- at runtime as a plain 404 that the gateway is designed to swallow — drafts
+-- keep working while usage stops being recorded. Section 2 in particular must
+-- exist before ENFORCE_QUOTA=1 means anything.
 
 -- ---------------------------------------------------------------------------
 -- 1. profiles

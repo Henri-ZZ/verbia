@@ -3,6 +3,7 @@ import { RedditAdapter } from "./adapters/reddit";
 import { UniversalAdapter } from "./adapters/universal";
 import { OutlookAdapter } from "./adapters/outlook";
 import { isSafeEditable, toTarget } from "./editor/editable";
+import { extensionAlive, uiLanguage } from "../runtime";
 import { VerbiaPanel } from "./ui/panel";
 import { msgIcon, type MsgKind } from "../ui/message";
 import { DEFAULT_SETTINGS, UI_STRINGS, resolveUiLang, type ContextEnvelope, type SiteAdapter, type StagedSelection } from "@verbia/shared";
@@ -58,23 +59,71 @@ if (!window.__verbiaLoaded) {
       // auto-open until the user summons Verbia again.
       if (focusedRef === dismissedRef) return;
       if (autoAdapter && autoAdapter.findComposers().some(target => target.element === event.target)) {
-        void showFor(event.target, autoAdapter, false);
+        autoOpen(event.target, autoAdapter);
       }
     }, true);
 
-    async function showFor(element: HTMLElement, adapter: SiteAdapter, focusIntent: boolean, stagedSelection?: StagedSelection) {
+    // focusin alone misses two real cases: an editor clicked while it already
+    // holds focus (no focusin fires at all), and one whose box is still
+    // zero-sized when focus lands (@see isSafeEditable rejects those, and the
+    // mutation scan skips them because a panel is already mounted elsewhere on
+    // the page). A click inside a composer the adapter recognises is an
+    // unambiguous "open here", so it gets its own entry point.
+    document.addEventListener("click", event => {
+      if (!autoAdapter) return;
+      const target = event.target instanceof HTMLElement ? event.target : null;
+      // Cheap pre-filter first: the adapter scan below walks the whole document
+      // and most clicks on a page are nowhere near an editor.
+      if (!target?.closest("textarea, [contenteditable='true'], [role='textbox']")) return;
+      const composer = autoAdapter.findComposers().find(item => item.element === target || item.element.contains(target));
+      if (!composer) return;
+      // A manually-dismissed editor stays silent here too, exactly like the
+      // focus path.
+      if (toTarget(composer.element).ref === dismissedRef) return;
+      autoOpen(composer.element, autoAdapter);
+    }, true);
+
+    // Auto-open runs off page events (focus, DOM mutations) where a rejection
+    // has nowhere to land: report it and keep the listener alive.
+    function autoOpen(element: HTMLElement, adapter: SiteAdapter) {
+      void showFor(element, adapter, false).catch(error => {
+        console.warn("[verbia] panel could not open", error);
+      });
+    }
+
+    // Returns true when a panel ended up open and rendered for this editor.
+    async function showFor(element: HTMLElement, adapter: SiteAdapter, focusIntent: boolean, stagedSelection?: StagedSelection): Promise<boolean> {
       const target = toTarget(element);
-      if (target.ref === currentRef && document.querySelector("[data-verbia-root='true']")) {
+      // Already open for this editor and still on the page: nothing to rebuild.
+      // The check goes through the panel, not the document: host pages re-render
+      // the subtree our host sits in (Reddit re-creates its composer on every
+      // open), which detaches the node while a document query would still be
+      // answered by some *other* stale root.
+      if (target.ref === currentRef && panel?.isMounted()) {
         // Explicit re-invocation unfolds a folded panel in place so typed
         // content survives; passive focus-in never unfolds.
-        if (stagedSelection) panel?.mergeContextSelection(stagedSelection.text, stagedSelection.truncated);
-        if (focusIntent) void panel?.unfoldIfCollapsed();
-        return;
+        if (stagedSelection) panel.mergeContextSelection(stagedSelection.text, stagedSelection.truncated);
+        if (focusIntent) void panel.unfoldIfCollapsed();
+        return true;
+      }
+      // This content script is orphaned: the extension was reloaded, updated or
+      // disabled while the tab stayed open, so every chrome.* call throws and
+      // nothing we mount could work. Only a page reload installs a live copy —
+      // tell the user that instead of failing silently.
+      if (!extensionAlive()) {
+        await showToastFor("content.needsReload", "Verbia was updated. Refresh this page to use it again.", "warning");
+        return false;
       }
       const base = await adapter.extractContext(target);
       const context = applyStagedSelection(base, stagedSelection);
+      // Mail sites render the composer inline in the host page; float the panel
+      // so it never becomes part of the outgoing message. Park it next to the
+      // editor so the eye doesn't have to jump to the opposite corner of the
+      // page. Everywhere else the panel is inlined right after the reply box.
+      const floating = adapter === gmail || adapter === outlook;
+      const mountAnchor = floating ? element : findReplyAnchor(element);
       if (panel) {
-        panel.update(target, context);
+        panel.update(target, context, mountAnchor);
       } else {
         panel = new VerbiaPanel(adapter, target, context, () => {
           // User closed the panel: remember this editor so auto-open leaves it
@@ -84,18 +133,22 @@ if (!window.__verbiaLoaded) {
           panel = undefined;
           void notifyDismissedOnce();
         });
-        if (adapter === gmail || adapter === outlook) {
-          // Mail sites render the composer inline in the host page; float the
-          // panel so it never becomes part of the outgoing message. Park it
-          // next to the editor so the eye doesn't have to jump to the
-          // opposite corner of the page.
-          panel.mountFloating(element);
-        } else {
-          panel.mountAfter(findReplyAnchor(element));
-        }
+        if (floating) panel.mountFloating(element);
+        else panel.mountAfter(mountAnchor);
       }
+      // The page may have thrown our host away since the last render; put it
+      // back before drawing into it.
+      panel.ensureMounted(mountAnchor);
       currentRef = target.ref;
-      await panel.open(focusIntent);
+      try {
+        await panel.open(focusIntent);
+      } catch (error) {
+        // Never leave an editor marked as "open with an invisible panel": that
+        // swallows every later summon for it, the shortcut included.
+        currentRef = "";
+        throw error;
+      }
+      return true;
     }
 
     // A selection staged from the right-click menu wins over whatever the page
@@ -115,11 +168,11 @@ if (!window.__verbiaLoaded) {
         await showToastFor("content.toastFocusEditor", "Focus a text editor, then use the Verbia shortcut again.", "info");
         return false;
       }
-      await showFor(chosen, site, true, stagedSelection);
+      const shown = await showFor(chosen, site, true, stagedSelection);
       // An explicit summon (shortcut / action) lifts the manual dismissal so
       // auto-open for this editor behaves normally from now on.
-      dismissedRef = "";
-      return true;
+      if (shown) dismissedRef = "";
+      return shown;
     }
 
     // Right-click → "Add to Verbia context".
@@ -130,9 +183,16 @@ if (!window.__verbiaLoaded) {
     }
 
     async function showToastFor(key: string, fallback: string, kind: MsgKind = "info") {
-      const { settings } = await chrome.storage.local.get("settings");
-      const stored = (settings ?? DEFAULT_SETTINGS) as typeof DEFAULT_SETTINGS;
-      const lang = resolveUiLang(stored.uiLanguage, chrome.i18n.getUILanguage());
+      // Best-effort read: this throws once the extension is gone, and "reload
+      // the page" is precisely the toast we still need to be able to show.
+      let stored: typeof DEFAULT_SETTINGS = DEFAULT_SETTINGS;
+      try {
+        const { settings } = await chrome.storage.local.get("settings");
+        if (settings) stored = settings as typeof DEFAULT_SETTINGS;
+      } catch {
+        // Orphaned context: fall back to the bundled defaults.
+      }
+      const lang = resolveUiLang(stored.uiLanguage, uiLanguage());
       showToast(UI_STRINGS[lang][key] ?? UI_STRINGS.en[key] ?? fallback, kind);
     }
 
@@ -155,7 +215,7 @@ if (!window.__verbiaLoaded) {
       if (!chosen) return;
       const ref = toTarget(chosen).ref;
       if (ref === dismissedRef) return;
-      void showFor(chosen, autoAdapter, false);
+      autoOpen(chosen, autoAdapter);
     }
 
     if (autoAdapter) {

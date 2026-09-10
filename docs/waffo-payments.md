@@ -49,9 +49,13 @@ pnpm exec wrangler secret put WAFFO_PRIVATE_KEY
 ```bash
 pnpm typecheck
 pnpm test
-pnpm api:deploy:dry
-pnpm api:deploy
+git push origin <branch>    # 合并到 main 后 CI 自动部署
 ```
+
+> 生产部署走 Cloudflare Workers Builds（push 到 `main` 即部署），CI 的部署命令里带
+> `pnpm db:check`：线上数据库与 `docs/supabase-schema.sql` 不一致（缺表/缺函数）时构建失败、不部署。
+> 紧急情况可用 `pnpm api:deploy` 手动发布（同样先做数据库检查）。
+> 详见 `docs/cloudflare-api-deploy.md` 的「部署方式：Git 集成」。
 
 修改官网后：
 
