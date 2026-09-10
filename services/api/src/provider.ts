@@ -203,30 +203,34 @@ async function observedAttempt(
   const started = performance.now();
   try {
     const result = await provider.generate(request, signal);
-    logModelAttempt({
-      ...telemetry,
-      provider: provider.id,
-      model: provider.model,
-      attempt,
-      route,
-      outcome: "success",
-      durationMs: Math.round(performance.now() - started),
-      inputTokens: result.inputTokens,
-      outputTokens: result.outputTokens
-    });
+    if (telemetry) {
+      logModelAttempt({
+        ...telemetry,
+        provider: provider.id,
+        model: provider.model,
+        attempt,
+        route,
+        outcome: "success",
+        durationMs: Math.round(performance.now() - started),
+        inputTokens: result.inputTokens,
+        outputTokens: result.outputTokens
+      });
+    }
     return result;
   } catch (error) {
     const status = error instanceof ProviderError ? error.status : undefined;
-    logModelAttempt({
-      ...telemetry,
-      provider: provider.id,
-      model: provider.model,
-      attempt,
-      route,
-      outcome: modelAttemptOutcome(error, signal.aborted, timedOut()),
-      durationMs: Math.round(performance.now() - started),
-      status
-    });
+    if (telemetry) {
+      logModelAttempt({
+        ...telemetry,
+        provider: provider.id,
+        model: provider.model,
+        attempt,
+        route,
+        outcome: modelAttemptOutcome(error, signal.aborted, timedOut()),
+        durationMs: Math.round(performance.now() - started),
+        status
+      });
+    }
     throw error;
   }
 }
