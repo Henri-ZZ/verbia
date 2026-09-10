@@ -1,0 +1,14 @@
+{
+  "extensionName": {
+    "message": "Verbia - Assistente de respostas com IA"
+  },
+  "description": {
+    "message": "Fale ou digite em qualquer idioma. O Verbia entende a conversa e transforma o que você quer dizer em respostas naturais e contextualizadas."
+  },
+  "actionTitle": {
+    "message": "Abrir o painel do Verbia"
+  },
+  "openVerbiaDesc": {
+    "message": "Foque um campo de texto e use o atalho para abrir o painel de resposta"
+  }
+}

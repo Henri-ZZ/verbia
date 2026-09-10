@@ -93,7 +93,7 @@ PREMIUM_DAILY_QUOTA=0    # 付费版；0 表示不限次数，也可设置独立
 ```
 
 - 匿名请求始终放行（与产品决策一致）。
-- 已登录请求每起草一次调用 `consume_quota` RPC 并 +1；超限 429。
+- 已登录请求每起草一次调用 `consume_generation_quota` RPC，在同一事务里判断套餐并 +1；超限返回 429。
 - 配额数值/周期与付费层级的正式策略，等定价后再调（`profiles.plan` 已预留
   `free | premium` 与 `customer_id`）。
 
@@ -101,7 +101,7 @@ PREMIUM_DAILY_QUOTA=0    # 付费版；0 表示不限次数，也可设置独立
 
 | 文件 | 内容 |
 |---|---|
-| `docs/supabase-schema.sql` | profiles / quota_usage / 触发器 / consume_quota RPC / RLS |
+| `docs/supabase-schema.sql` | profiles / quota_usage / 账单表 / 原子套餐与额度 RPC / RLS |
 | `packages/shared/src/ui-strings.ts` | account.* 双语文案（en/zh 对称） |
 | `packages/shared/src/messages.ts` | `GET_AUTH_STATE` / `SIGN_OUT` 消息 |
 | `apps/extension/src/auth/supabase.ts` | PKCE client + chrome.storage 会话适配器 + `signInWithGoogle`（标签授权 + 等 session 落盘） |

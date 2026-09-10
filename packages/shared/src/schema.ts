@@ -72,7 +72,12 @@ export const VOICE_LANGUAGE_OPTIONS = [
 export const UI_LANGUAGE_OPTIONS = [
   { value: "auto", label: "Auto (follow browser)" },
   { value: "en", label: "English" },
-  { value: "zh-CN", label: "简体中文" }
+  { value: "zh-CN", label: "简体中文" },
+  { value: "es", label: "Español" },
+  { value: "pt-BR", label: "Português (Brasil)" },
+  { value: "ja", label: "日本語" },
+  { value: "de", label: "Deutsch" },
+  { value: "fr", label: "Français" }
 ] as const;
 
 // Target languages offered in the Reply Language selector. Generation itself

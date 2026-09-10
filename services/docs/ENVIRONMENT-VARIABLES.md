@@ -66,7 +66,7 @@
 | `SUPABASE_SERVICE_ROLE_KEY` | **是，高权限** | 反馈、账单同步和双向登录必需 | Worker 调用受限的 `submit_feedback`、`apply_billing_event` RPC，并生成登录交接用的一次性 Token。可以填写新版 `sb_secret_...` Secret Key 或旧版 `service_role` JWT；Supabase 会赋予 `service_role` 权限并绕过 RLS。缺失时相应接口失败。只能放在 Worker Secret 或本地 `.env.local`。变量名为兼容现有配置而保留。 |
 | `FEEDBACK_HASH_SALT` | **是** | 反馈功能必需 | 与用户 ID 或 IP 一起生成假名化限流哈希，避免保存原始 IP。缺失时反馈接口返回 503。上线后应保持稳定。 |
 | `AUTH_REQUIRED` | 否 | 可选 | 设为 `1` 时，生成接口要求有效登录；其他值允许匿名生成。生产当前为 `1`。 |
-| `ENFORCE_QUOTA` | 否 | 可选 | 设为 `1` 时，为已登录用户调用 Supabase RPC 扣减每日额度；未登录请求是否允许仍由 `AUTH_REQUIRED` 决定。 |
+| `ENFORCE_QUOTA` | 否 | 可选 | 设为 `1` 时，为已登录用户调用一次 `consume_generation_quota` RPC，在同一事务中判断套餐并扣减每日额度；未登录请求是否允许仍由 `AUTH_REQUIRED` 决定。 |
 | `FREE_DAILY_QUOTA` | 否 | 可选，默认 `10` | 免费用户每日生成次数。`0` 或负数表示不限量。 |
 | `PREMIUM_DAILY_QUOTA` | 否 | 可选，默认 `0` | Premium 用户每日生成次数。`0` 或负数表示不限量；当前生产配置为 `100`。 |
 

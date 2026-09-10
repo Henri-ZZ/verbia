@@ -7,7 +7,14 @@
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": false,
   "routes": [{ "pattern": "api.verbia.henriz.dev", "custom_domain": true }],
-  "observability": { "enabled": true },
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "enabled": true,
+      "invocation_logs": true,
+      "head_sampling_rate": 1
+    }
+  },
   "vars": {
     "LLM_PROVIDER": "auto",
     "LLM_PROVIDER_ORDER": "gemini,mistral,cloudflare,groq",

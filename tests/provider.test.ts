@@ -14,7 +14,7 @@ const request = {
 } satisfies GenerateReplyRequest;
 
 function provider(id: string, generate?: ReplyProvider["generate"]): ReplyProvider {
-  return { id, generate: generate ?? (async () => ({ draft: id })) };
+  return { id, model: `${id}-model`, generate: generate ?? (async () => ({ draft: id })) };
 }
 
 describe("BalancedProvider", () => {
@@ -71,5 +71,20 @@ describe("BalancedProvider", () => {
     await expect(router.generate(request, new AbortController().signal)).rejects.toMatchObject({ status: 502 });
     await expect(router.generate(request, new AbortController().signal)).rejects.toMatchObject({ status: 429 });
     expect(failed).toHaveBeenCalledTimes(1);
+  });
+
+  it("logs every failed and successful attempt as structured metadata", async () => {
+    const logs = vi.spyOn(console, "log").mockImplementation(() => undefined);
+    const router = new BalancedProvider([
+      { provider: provider("slow", async () => { throw new ProviderError("busy", 429); }) },
+      { provider: provider("fast", async () => ({ draft: "done", inputTokens: 24, outputTokens: 8 })) }
+    ]);
+
+    await router.generate(request, new AbortController().signal, { requestId: request.requestId, country: "US", colo: "IAD" });
+    const events = logs.mock.calls.map(([value]) => JSON.parse(String(value))).filter(value => value.event === "model_attempt");
+    expect(events).toHaveLength(2);
+    expect(events[0]).toMatchObject({ provider: "slow", model: "slow-model", attempt: 1, route: "baseline", outcome: "rate_limited", status: 429, country: "US", colo: "IAD" });
+    expect(events[1]).toMatchObject({ provider: "fast", model: "fast-model", attempt: 2, route: "fallback", outcome: "success", inputTokens: 24, outputTokens: 8, country: "US", colo: "IAD" });
+    expect(JSON.stringify(events)).not.toContain(request.intent.text);
   });
 });

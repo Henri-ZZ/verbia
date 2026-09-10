@@ -165,7 +165,7 @@
 ## 10. 账号、配额与 Premium
 
 - 用量在插件 Account 卡与官网 `/account` 展示（used/limit + 重置时间）。
-- 配额为服务端逻辑：登录请求起草时调用 `consume_quota` 计数；网关当前配置 `FREE_DAILY_QUOTA=10`，Premium 更高（100），额度到 UTC 每天 0 点重置、不结转。
+- 配额为服务端逻辑：登录请求起草时调用一次 `consume_generation_quota`，在数据库事务内判断套餐并计数；网关当前配置 `FREE_DAILY_QUOTA=10`，Premium 更高（100），额度到 UTC 每天 0 点重置、不结转。
 - **升级 Premium**：popup/options 免费用户的升级入口会打开官网首页价格区 `#pricing`；结账由官网调用网关 `/v1/billing/checkout` → Waffo 托管收银台（按月/按年）完成；支付后通过 Webhook 自动开通，Account 卡显示 Premium 徽标。
 - 账号套餐判定依赖 Waffo 订阅订单状态（active/canceling）；取消/欠费后回到免费版。
 

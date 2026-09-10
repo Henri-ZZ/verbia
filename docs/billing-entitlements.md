@@ -13,10 +13,12 @@ Waffo / 未来的 Stripe
   → billing_events 幂等记账
   → billing_subscriptions 更新该支付平台的订阅
   → profiles 汇总所有平台后的当前套餐
-  → generate 读取 profiles.plan
+  → generate 通过 consume_generation_quota 在同一事务中判断套餐并扣减额度
 ```
 
 这样新增支付平台时，只需要把其事件映射为统一套餐状态，不需要修改生成链路。
+
+生成热路径只调用一次 `consume_generation_quota`。该 RPC 在数据库内部读取 `profiles.plan`，核对仍然有效的多平台订阅，选择 Free 或 Premium 限额，并原子扣减当天用量；Worker 不再先查套餐再发第二次扣减请求。
 
 ## profiles 账单字段
 

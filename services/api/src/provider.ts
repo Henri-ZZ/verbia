@@ -12,8 +12,11 @@ export type ProviderResult = {
 
 export interface ReplyProvider {
   readonly id: string;
+  readonly model?: string;
   generate(request: GenerateReplyRequest, signal: AbortSignal): Promise<ProviderResult>;
 }
+
+export type ModelTelemetryContext = { requestId: string; country?: string; colo?: string };
 
 export class ProviderError extends Error {
   constructor(message: string, public readonly status?: number, public readonly detail?: string, public readonly retryable = true) {
@@ -24,6 +27,7 @@ export class ProviderError extends Error {
 
 export class MockProvider implements ReplyProvider {
   readonly id = "mock";
+  readonly model = "mock";
   async generate(request: GenerateReplyRequest): Promise<ProviderResult> {
     return { draft: request.intent.text, provider: this.id, modelRoute: "baseline" };
   }
@@ -31,7 +35,7 @@ export class MockProvider implements ReplyProvider {
 
 export class GeminiProvider implements ReplyProvider {
   readonly id = "gemini";
-  constructor(private apiKey: string, private model: string, private maxOutputTokens: number, private temperature: number) {}
+  constructor(private apiKey: string, readonly model: string, private maxOutputTokens: number, private temperature: number) {}
 
   async generate(request: GenerateReplyRequest, signal: AbortSignal): Promise<ProviderResult> {
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(this.model)}:generateContent`, {
@@ -71,7 +75,8 @@ type OpenAiOptions = {
 
 export class OpenAiCompatibleProvider implements ReplyProvider {
   readonly id: string;
-  constructor(private options: OpenAiOptions) { this.id = options.id; }
+  readonly model: string;
+  constructor(private options: OpenAiOptions) { this.id = options.id; this.model = options.model; }
 
   async generate(request: GenerateReplyRequest, signal: AbortSignal): Promise<ProviderResult> {
     const body: Record<string, unknown> = {
@@ -136,7 +141,7 @@ export class BalancedProvider implements ReplyProvider {
     }));
   }
 
-  async generate(request: GenerateReplyRequest, signal: AbortSignal): Promise<ProviderResult> {
+  async generate(request: GenerateReplyRequest, signal: AbortSignal, telemetry?: ModelTelemetryContext): Promise<ProviderResult> {
     const candidates = this.orderedCandidates();
     if (!candidates.length) {
       throw new ProviderError("All configured model providers are cooling down.", 429, "No provider is eligible until its cooldown expires.", true);
@@ -148,7 +153,7 @@ export class BalancedProvider implements ReplyProvider {
       entry.attempts += 1;
       const timeoutSignal = AbortSignal.timeout(this.attemptTimeoutMs);
       try {
-        const result = await entry.provider.generate(request, AbortSignal.any([signal, timeoutSignal]));
+        const result = await observedAttempt(entry.provider, request, AbortSignal.any([signal, timeoutSignal]), telemetry, attempt + 1, attempt === 0 ? "baseline" : "fallback", () => timeoutSignal.aborted);
         entry.failures = 0;
         entry.cooldownUntil = 0;
         return { ...result, provider: entry.provider.id, modelRoute: attempt === 0 ? "baseline" : "fallback" };
@@ -178,6 +183,82 @@ export class BalancedProvider implements ReplyProvider {
     }
     return Math.min(this.cooldownMs * (2 ** Math.max(0, failures - 1)), 5 * 60_000);
   }
+}
+
+export async function generateWithTelemetry(provider: ReplyProvider, request: GenerateReplyRequest, signal: AbortSignal, telemetry: ModelTelemetryContext): Promise<ProviderResult> {
+  if (provider instanceof BalancedProvider) return provider.generate(request, signal, telemetry);
+  const result = await observedAttempt(provider, request, signal, telemetry, 1, "baseline", () => false);
+  return { ...result, provider: result.provider ?? provider.id, modelRoute: result.modelRoute ?? "baseline" };
+}
+
+async function observedAttempt(
+  provider: ReplyProvider,
+  request: GenerateReplyRequest,
+  signal: AbortSignal,
+  telemetry: ModelTelemetryContext | undefined,
+  attempt: number,
+  route: ModelRoute,
+  timedOut: () => boolean
+): Promise<ProviderResult> {
+  const started = performance.now();
+  try {
+    const result = await provider.generate(request, signal);
+    logModelAttempt({
+      ...telemetry,
+      provider: provider.id,
+      model: provider.model,
+      attempt,
+      route,
+      outcome: "success",
+      durationMs: Math.round(performance.now() - started),
+      inputTokens: result.inputTokens,
+      outputTokens: result.outputTokens
+    });
+    return result;
+  } catch (error) {
+    const status = error instanceof ProviderError ? error.status : undefined;
+    logModelAttempt({
+      ...telemetry,
+      provider: provider.id,
+      model: provider.model,
+      attempt,
+      route,
+      outcome: modelAttemptOutcome(error, signal.aborted, timedOut()),
+      durationMs: Math.round(performance.now() - started),
+      status
+    });
+    throw error;
+  }
+}
+
+type ModelAttemptOutcome = "success" | "timeout" | "rate_limited" | "authentication" | "upstream_4xx" | "upstream_5xx" | "network" | "invalid_response" | "aborted";
+
+function modelAttemptOutcome(error: unknown, aborted: boolean, timedOut: boolean): ModelAttemptOutcome {
+  if (timedOut) return "timeout";
+  if (aborted) return "aborted";
+  if (!(error instanceof ProviderError)) return "network";
+  if (error.status === 429) return "rate_limited";
+  if (error.status === 401 || error.status === 403) return "authentication";
+  if (error.status !== undefined && error.status >= 500) return "upstream_5xx";
+  if (error.status !== undefined && error.status >= 400) return "upstream_4xx";
+  return "invalid_response";
+}
+
+function logModelAttempt(event: {
+  requestId?: string;
+  provider: string;
+  model?: string;
+  attempt: number;
+  route: ModelRoute;
+  outcome: ModelAttemptOutcome;
+  durationMs: number;
+  status?: number;
+  inputTokens?: number;
+  outputTokens?: number;
+  country?: string;
+  colo?: string;
+}) {
+  console.log(JSON.stringify({ event: "model_attempt", ...event }));
 }
 
 const draftJsonSchema = { type: "OBJECT", properties: { draft: { type: "STRING" } }, required: ["draft"] };

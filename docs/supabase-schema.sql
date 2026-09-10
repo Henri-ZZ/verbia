@@ -1,7 +1,7 @@
 -- Verbia — Supabase schema (run once in the Supabase SQL editor)
 -- Creates the identity-facing tables used by the gateway and the extension:
 --   profiles      -> one row per auth user; the API owns billing/plan fields.
---   quota_usage   -> per-user daily counts consumed via the consume_quota RPC
+--   quota_usage   -> per-user daily counts consumed by the generation RPC
 --                    (only enforced when the gateway runs with ENFORCE_QUOTA=1).
 
 -- ---------------------------------------------------------------------------
@@ -62,7 +62,7 @@ select id, email from auth.users
 on conflict (id) do update set email = excluded.email;
 
 -- ---------------------------------------------------------------------------
--- 2. quota_usage + consume_quota RPC
+-- 2. quota_usage + atomic plan/quota RPC
 -- ---------------------------------------------------------------------------
 create table if not exists public.quota_usage (
   user_id uuid not null references auth.users (id) on delete cascade,
@@ -78,7 +78,9 @@ create policy "quota_select_own"
   on public.quota_usage for select
   using (auth.uid() = user_id);
 
--- Called by the api gateway with the user's own Bearer token. Increments the
+-- Legacy compatibility RPC. Keep this while an older deployed Worker may
+-- still call it during rollout. New Workers use consume_generation_quota.
+-- Called with the user's own Bearer token. Increments the
 -- counter for today and returns the remaining count (or -1 = unlimited).
 -- Exceeding p_limit raises QUOTA_EXCEEDED so the gateway can reply 429.
 create or replace function public.consume_quota(p_limit integer default 0)
@@ -112,6 +114,80 @@ $$;
 -- Only signed-in users may consume quota; anon/global execution is denied.
 revoke execute on function public.consume_quota(integer) from public, anon;
 grant execute on function public.consume_quota(integer) to authenticated;
+
+-- Generation hot path: determine the effective plan and consume its quota in
+-- one database transaction and one HTTP round trip from the Worker.
+create or replace function public.consume_generation_quota(
+  p_free_limit integer default 10,
+  p_premium_limit integer default 0
+) returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_user_id uuid := auth.uid();
+  v_period text := to_char(now() at time zone 'utc', 'YYYY-MM-DD');
+  v_plan text := 'free';
+  v_limit integer;
+  v_count integer := 0;
+  v_has_billing boolean := false;
+begin
+  if v_user_id is null then
+    raise exception 'UNAUTHENTICATED' using errcode = '28000';
+  end if;
+
+  select coalesce(p.plan, 'free'), p.billing_provider is not null
+  into v_plan, v_has_billing
+  from public.profiles p
+  where p.id = v_user_id;
+  v_plan := coalesce(v_plan, 'free');
+  v_has_billing := coalesce(v_has_billing, false);
+
+  -- Paid subscriptions are stored per provider. This also expires a
+  -- canceling subscription safely if its final webhook arrives late. A
+  -- profile with no billing provider can still represent a manual grant.
+  if v_plan = 'premium' and v_has_billing and not exists (
+    select 1 from public.billing_subscriptions s
+    where s.user_id = v_user_id
+      and (
+        s.status = 'active'
+        or (s.status = 'canceling' and (s.current_period_end is null or s.current_period_end > now()))
+      )
+  ) then
+    v_plan := 'free';
+  end if;
+
+  v_limit := case when v_plan = 'premium'
+    then greatest(coalesce(p_premium_limit, 0), 0)
+    else greatest(coalesce(p_free_limit, 0), 0)
+  end;
+
+  -- A zero limit means unlimited and intentionally does not grow the daily
+  -- counter, preserving the previous gateway behavior.
+  if v_limit = 0 then
+    return jsonb_build_object('plan', v_plan, 'remaining', -1);
+  end if;
+
+  insert into public.quota_usage (user_id, period, count)
+  values (v_user_id, v_period, 1)
+  on conflict (user_id, period)
+  do update set count = public.quota_usage.count + 1
+  returning count into v_count;
+
+  if v_count > v_limit then
+    raise exception 'QUOTA_EXCEEDED' using errcode = 'P0001';
+  end if;
+
+  return jsonb_build_object(
+    'plan', v_plan,
+    'remaining', greatest(v_limit - v_count, 0)
+  );
+end;
+$$;
+
+revoke execute on function public.consume_generation_quota(integer,integer) from public, anon;
+grant execute on function public.consume_generation_quota(integer,integer) to authenticated;
 
 -- ---------------------------------------------------------------------------
 -- 3. provider-neutral billing state + idempotent webhook application

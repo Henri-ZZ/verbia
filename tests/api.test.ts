@@ -55,6 +55,66 @@ describe("API fetch handler", () => {
     expect(await response.json()).toMatchObject({ requestId: validRequest.requestId, draft: validRequest.intent.text, modelRoute: "baseline" });
   });
 
+  it("determines plan and consumes quota with one Supabase RPC before generation", async () => {
+    const projectUrl = "https://generate-quota.supabase.co";
+    const upstream = vi.spyOn(globalThis, "fetch").mockImplementation(async input => {
+      const url = String(input);
+      if (url.includes("/.well-known/jwks.json")) return jwksResponse();
+      if (url.includes("/rest/v1/rpc/consume_generation_quota")) return Response.json({ plan: "premium", remaining: 99 });
+      return new Response(null, { status: 404 });
+    });
+    const generateHandler = createApiHandler({
+      LLM_PROVIDER: "mock",
+      SUPABASE_URL: projectUrl,
+      SUPABASE_PUBLISHABLE_KEY: "public-key",
+      AUTH_REQUIRED: "1",
+      ENFORCE_QUOTA: "1",
+      FREE_DAILY_QUOTA: "10",
+      PREMIUM_DAILY_QUOTA: "100"
+    });
+    const token = await userToken(projectUrl, "11111111-1111-4111-8111-111111111111", "user@example.com");
+    const response = await generateHandler(new Request("https://api.verbia.henriz.dev/v1/replies:generate", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify(validRequest)
+    }));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("server-timing")).toMatch(/auth;dur=.*quota;dur=.*model;dur=/);
+    expect(response.headers.get("server-timing")).not.toContain("plan;dur=");
+    const urls = upstream.mock.calls.map(([input]) => String(input));
+    expect(urls.filter(url => url.includes("/rest/v1/"))).toEqual([`${projectUrl}/rest/v1/rpc/consume_generation_quota`]);
+    const quotaCall = upstream.mock.calls.find(([input]) => String(input).includes("consume_generation_quota"));
+    expect(JSON.parse(String(quotaCall?.[1]?.body))).toEqual({ p_free_limit: 10, p_premium_limit: 100 });
+  });
+
+  it("does not call a model after the combined quota RPC rejects the request", async () => {
+    const projectUrl = "https://generate-exceeded.supabase.co";
+    const upstream = vi.spyOn(globalThis, "fetch").mockImplementation(async input => {
+      const url = String(input);
+      if (url.includes("/.well-known/jwks.json")) return jwksResponse();
+      if (url.includes("/rest/v1/rpc/consume_generation_quota")) return Response.json({ message: "QUOTA_EXCEEDED" }, { status: 400 });
+      return new Response(null, { status: 404 });
+    });
+    const generateHandler = createApiHandler({
+      LLM_PROVIDER: "mock",
+      SUPABASE_URL: projectUrl,
+      SUPABASE_PUBLISHABLE_KEY: "public-key",
+      AUTH_REQUIRED: "1",
+      ENFORCE_QUOTA: "1"
+    });
+    const token = await userToken(projectUrl, "11111111-1111-4111-8111-111111111111", "user@example.com");
+    const response = await generateHandler(new Request("https://api.verbia.henriz.dev/v1/replies:generate", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify(validRequest)
+    }));
+
+    expect(response.status).toBe(429);
+    expect(await response.json()).toMatchObject({ code: "QUOTA_EXCEEDED" });
+    expect(upstream).toHaveBeenCalledTimes(2);
+  });
+
   it("rejects malformed and oversized bodies", async () => {
     const malformed = await handler(new Request("https://api.verbia.henriz.dev/v1/replies:generate", { method: "POST", body: "{" }));
     expect(malformed.status).toBe(400);

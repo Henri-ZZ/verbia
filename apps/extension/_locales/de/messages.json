@@ -1,0 +1,14 @@
+{
+  "extensionName": {
+    "message": "Verbia - KI-Antwort- und Schreibassistent"
+  },
+  "description": {
+    "message": "Sprich oder tippe in jeder Sprache. Verbia versteht das Gespräch und macht aus dem, was du meinst, natürliche, kontextbezogene Antworten."
+  },
+  "actionTitle": {
+    "message": "Verbia-Dashboard öffnen"
+  },
+  "openVerbiaDesc": {
+    "message": "Fokussiere ein Textfeld und nutze das Kürzel, um das Antwortfeld zu öffnen"
+  }
+}

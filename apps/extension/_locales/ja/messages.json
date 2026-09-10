@@ -1,0 +1,14 @@
+{
+  "extensionName": {
+    "message": "Verbia - AI 返信・ライティングアシスタント"
+  },
+  "description": {
+    "message": "どの言語でも話すか入力するだけ。Verbia が会話を理解し、伝えたい内容を自然で文脈に合った返信に変えます。"
+  },
+  "actionTitle": {
+    "message": "Verbia ダッシュボードを開く"
+  },
+  "openVerbiaDesc": {
+    "message": "テキスト欄にフォーカスしてショートカットを押すと返信パネルが開きます"
+  }
+}

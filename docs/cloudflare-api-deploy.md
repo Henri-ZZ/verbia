@@ -118,9 +118,11 @@ pnpm exec wrangler tail --cwd /tmp --config "$PWD/wrangler.jsonc"
 
 结束观察时按 `Ctrl+C`。
 
+每次模型尝试的结构化日志字段、Cloudflare Query Builder 看板和推荐统计口径见 `docs/model-observability.md`。
+
 ## Sentry 错误监控
 
-Worker 使用 `@sentry/cloudflare` 捕获程序异常、全部模型失败、Supabase 鉴权/配额故障、Waffo 套餐查询故障和结账故障。用户输入错误、额度耗尽、无效 Webhook，以及单个模型失败后成功切换不会触发 Sentry 错误事件。
+Worker 使用 `@sentry/cloudflare` 捕获程序异常、全部模型失败、Supabase JWKS/配额故障、账单 Webhook 入库故障和结账故障。用户输入错误、额度耗尽、无效 Webhook，以及单个模型失败后成功切换不会触发 Sentry 错误事件。
 
 创建 Sentry Cloudflare 项目后，将 DSN 保存为 Worker Secret：
 

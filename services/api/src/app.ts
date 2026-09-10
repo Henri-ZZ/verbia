@@ -1,5 +1,5 @@
 import { generateReplyRequestSchema, generateReplyResponseSchema, type AccountUsage, type ApiError } from "@verbia/shared";
-import { BalancedProvider, GeminiProvider, MockProvider, OpenAiCompatibleProvider, type ReplyProvider } from "./provider";
+import { BalancedProvider, GeminiProvider, MockProvider, OpenAiCompatibleProvider, generateWithTelemetry, type ReplyProvider } from "./provider";
 import { billingConfigured, createCheckout, persistBillingWebhook, verifyBillingWebhook, type BillingCycle } from "./billing";
 import { reportError } from "./monitoring";
 import { verifyBearer, type AuthenticatedBearer } from "./auth";
@@ -127,15 +127,15 @@ export function createApiHandler(env: ApiEnv) {
       if (auth.status === "invalid") return apiError(401, requestId, "UNAUTHENTICATED", false, "Sign-in expired. Sign in again from Verbia settings.");
       if (auth.status === "none" && env.AUTH_REQUIRED === "1") return apiError(401, requestId, "UNAUTHENTICATED", false, "Sign in from Verbia settings to generate a reply.");
       if (auth.status === "ok") {
-        const plan = await measure("plan", timings, () => readAccountPlan(auth, env));
-        const quota = await measure("quota", timings, () => consumeQuota(auth.token, plan, env));
-        if (quota === "exceeded") return apiError(429, requestId, "QUOTA_EXCEEDED", false, "You have used your daily replies. Try again tomorrow.");
+        const quota = await measure("quota", timings, () => consumeGenerationQuota(auth.token, env));
+        if (quota === "exceeded") return withServerTiming(apiError(429, requestId, "QUOTA_EXCEEDED", false, "You have used your daily replies. Try again tomorrow."), timings);
       }
       const started = performance.now();
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), numberEnv(env, "LLM_TOTAL_TIMEOUT_MS", numberEnv(env, "LLM_TIMEOUT_MS", 25_000)));
       try {
-        const result = await measure("model", timings, () => getProvider().generate(parsed.data, controller.signal));
+        const cf = (request as Request & { cf?: { colo?: string; country?: string } }).cf;
+        const result = await measure("model", timings, () => generateWithTelemetry(getProvider(), parsed.data, controller.signal, { requestId, country: cf?.country, colo: cf?.colo }));
         logProvider = result.provider;
         logModelRoute = result.modelRoute ?? "baseline";
         const warnings = [parsed.data.context.confidence === "low" && "low_context_confidence", parsed.data.context.truncated && "context_truncated"].filter(Boolean) as Array<"low_context_confidence" | "context_truncated">;
@@ -338,20 +338,26 @@ async function supabaseRows<T>(table: string, query: Record<string, string>, tok
   return body as T[];
 }
 
-async function consumeQuota(token: string, plan: AccountPlan, env: ApiEnv): Promise<"ok" | "skipped" | "exceeded"> {
+async function consumeGenerationQuota(token: string, env: ApiEnv): Promise<"ok" | "skipped" | "exceeded"> {
   const supabaseUrl = (env.SUPABASE_URL ?? "").replace(/\/+$/, "");
   const publishableKey = env.SUPABASE_PUBLISHABLE_KEY ?? env.SUPABASE_ANON_KEY ?? "";
-  const limit = quotaLimitForPlan(plan, env);
-  if (env.ENFORCE_QUOTA !== "1" || limit === null || !supabaseUrl || !publishableKey) return "skipped";
+  if (env.ENFORCE_QUOTA !== "1" || !supabaseUrl || !publishableKey) return "skipped";
   try {
-    const response = await fetch(`${supabaseUrl}/rest/v1/rpc/consume_quota`, { method: "POST", headers: { apikey: publishableKey, authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify({ p_limit: limit }) });
+    const response = await fetch(`${supabaseUrl}/rest/v1/rpc/consume_generation_quota`, {
+      method: "POST",
+      headers: { apikey: publishableKey, authorization: `Bearer ${token}`, "content-type": "application/json" },
+      body: JSON.stringify({
+        p_free_limit: Math.max(0, numberEnv(env, "FREE_DAILY_QUOTA", 10)),
+        p_premium_limit: Math.max(0, numberEnv(env, "PREMIUM_DAILY_QUOTA", 0))
+      })
+    });
     if (response.ok) return "ok";
     const body = await response.json().catch(() => null) as { message?: string } | null;
     if (body?.message?.includes("QUOTA_EXCEEDED")) return "exceeded";
-    console.warn(`[verbia-api] consume_quota failed (${response.status})`, body?.message ?? "");
-    reportError(new Error(`Supabase consume_quota returned ${response.status}`), "quota_write", { upstreamStatus: String(response.status) });
+    console.warn(`[verbia-api] consume_generation_quota failed (${response.status})`, body?.message ?? "");
+    reportError(new Error(`Supabase consume_generation_quota returned ${response.status}`), "quota_write", { upstreamStatus: String(response.status) });
     return "ok";
-  } catch (error) { console.warn("[verbia-api] consume_quota request failed", error); reportError(error, "quota_write"); return "ok"; }
+  } catch (error) { console.warn("[verbia-api] consume_generation_quota request failed", error); reportError(error, "quota_write"); return "ok"; }
 }
 
 type TimingMetric = { name: string; duration: number };
