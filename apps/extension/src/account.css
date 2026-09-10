@@ -118,11 +118,11 @@
   color: #a83a32;
 }
 
-/* Premium plan mark (shared popup + options) */
+/* Premium plan pill (shared popup + options) */
 .account-plan {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
 }
 
 .account-plan .plan-mark {
@@ -132,11 +132,12 @@
   height: 14px;
 }
 
-/* "until <date>" qualifier shown after a time-limited Premium plan name */
-.account-plan .plan-until {
-  color: #66736a;
+/* "until <date>" qualifier: sits next to the plan pill, never inside it
+   (mirrors .badge-until on the website) */
+.account-plan-line .plan-until {
+  color: #3f4944;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 650;
 }
 
 /* Free-user upgrade nudge (tiered: quiet → amber near limit → red at limit) */

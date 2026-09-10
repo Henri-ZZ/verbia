@@ -353,7 +353,8 @@ const ZH_CN: Strings = {
   "account.upgradeLimit": "今日额度已用完——升级 Premium，用量更充足",
   "account.plan": "方案",
   "account.planFree": "免费",
-  "account.planPremium": "高级版",
+  // Tier name, kept in English on purpose: "Premium" is the product term.
+  "account.planPremium": "Premium",
   "account.premiumUntil": "有效期至 {date}",
   "account.todayUsage": "今日用量",
   "account.dailyAllowance": "每日 UTC 00:00 重置",

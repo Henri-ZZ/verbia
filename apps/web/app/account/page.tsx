@@ -25,12 +25,10 @@ const T = {
     sent: "Check your inbox — the sign-in link is on its way.",
     signInHint: "Verbia never needs a password. Google and email magic links only.",
     signedInTitle: "Signed in",
-    emailLabel: "Email",
     planFree: "Free",
     planPremium: "Premium",
     premiumUntil: "until {date}",
     providerGoogle: "Google",
-    providerEmail: "Email link",
     usageLabel: "Today’s usage",
     unlimited: "Unlimited",
     usedOf: (used: number, limit: number) => `${used} of ${limit}`,
@@ -57,12 +55,11 @@ const T = {
     sent: "请查收邮件，登录链接已发送。",
     signInHint: "Verbia 无需密码，只支持 Google 或邮箱免密登录。",
     signedInTitle: "已登录",
-    emailLabel: "邮箱",
     planFree: "免费版",
-    planPremium: "高级版",
+    // "Premium" stays untranslated: it is the product tier name, same in every locale.
+    planPremium: "Premium",
     premiumUntil: "有效期至 {date}",
     providerGoogle: "Google",
-    providerEmail: "邮箱链接",
     usageLabel: "今日用量",
     unlimited: "不限",
     usedOf: (used: number, limit: number) => `${used} / ${limit}`,
@@ -253,9 +250,11 @@ export default function AccountPage() {
             <div className="account-identity">
               {avatar ? <img className="account-avatar" src={avatar} alt="" width="48" height="48" referrerPolicy="no-referrer" /> : <span className="account-avatar fallback">{(user.email ?? "V").slice(0, 1).toUpperCase()}</span>}
               <div className="account-identity-copy">
-                <span className="account-email-label">{t.emailLabel}</span>
-                <strong className="account-email">{user.email}</strong>
-                <span className="account-badges">{usage?.plan === "premium" ? <><span className="account-badge plan"><img className="premium-mark" src="/premium.png" alt="" width="14" height="14"/>{t.planPremium}</span>{usage.premiumUntil && <span className="badge-until">{t.premiumUntil.replace("{date}", usage.premiumUntil)}</span>}</> : <span className="account-badge plan">{t.planFree}</span>}{provider && (provider === "google" ? <span className="account-badge provider"><img className="provider-mark" src="/google.svg" alt={t.providerGoogle} width="14" height="14"/></span> : <span className="account-badge provider">{t.providerEmail}</span>)}</span>
+                <span className="account-email-line">
+                  <strong className="account-email">{user.email}</strong>
+                  {provider === "google" && <img className="provider-mark" src="/google.svg" alt={t.providerGoogle} width="14" height="14"/>}
+                </span>
+                <span className="account-badges">{usage?.plan === "premium" ? <><span className="account-badge plan"><img className="premium-mark" src="/premium.png" alt="" width="14" height="14"/>{t.planPremium}</span>{usage.premiumUntil && <span className="badge-until">{t.premiumUntil.replace("{date}", usage.premiumUntil)}</span>}</> : <span className="account-badge plan">{t.planFree}</span>}</span>
               </div>
             </div>
 
