@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { InstallLink } from "./install-link";
+import { STORE_URLS } from "../lib/browser-stores";
 import type { SiteLocale } from "./language-redirect";
 
 function Mark() {
@@ -45,7 +45,8 @@ export function SiteFooter({ locale = "en" }: { locale?: SiteLocale }) {
         </nav>
         <nav aria-label={zh ? "下载" : "Download"}>
           <h2>{zh ? "下载" : "Download"}</h2>
-          <InstallLink className="footer-install" label={zh ? "立即安装" : "Install now"}/>
+          <a className="footer-store-link" href={STORE_URLS.chrome} target="_blank" rel="noopener noreferrer"><img src="/chrome.svg" alt="" width="18" height="18"/>Google Chrome <span aria-hidden="true">↗</span></a>
+          <a className="footer-store-link" href={STORE_URLS.edge} target="_blank" rel="noopener noreferrer"><img src="/edge.svg" alt="" width="18" height="18"/>Microsoft Edge <span aria-hidden="true">↗</span></a>
         </nav>
       </div>
     </div>

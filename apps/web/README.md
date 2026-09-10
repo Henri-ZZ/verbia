@@ -21,15 +21,7 @@ pnpm web:build
 
 ## 浏览器商店链接
 
-复制 `.env.example` 为 `.env.local`，逐步填入各浏览器的商店地址：
-
-```text
-NEXT_PUBLIC_CHROME_STORE_URL=
-NEXT_PUBLIC_EDGE_STORE_URL=
-NEXT_PUBLIC_FIREFOX_STORE_URL=
-```
-
-“Install now”按钮会根据访问者的浏览器选择对应地址。Edge 或 Firefox 地址尚未配置时回退到 Chrome 地址；所有地址都为空时留在页面安装区。
+Chrome Web Store 与 Microsoft Edge Add-ons 地址统一维护在 `components/install-link.tsx`。全站“Install now / 立即安装”按钮会识别 Microsoft Edge，并跳转到 Edge Add-ons；Chrome 及其他浏览器默认跳转到 Chrome Web Store。页脚分别提供两个商店的固定入口。
 
 ## 当前占位内容
 

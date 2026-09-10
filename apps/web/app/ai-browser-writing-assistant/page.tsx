@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 
 const faqItems: FaqItem[] = [
   { question: "What is an AI browser writing assistant?", answer: "It is a browser extension that helps you draft text where you are already writing. Verbia takes your intent, available context, output language, tone, and length, then prepares a reply you can review and insert." },
-  { question: "Which browsers does Verbia support?", answer: "Verbia is currently distributed through the Chrome Web Store. Other Chromium-based browsers can install compatible Chrome extensions. Dedicated Edge and Firefox store releases are planned." },
+  { question: "Which browsers does Verbia support?", answer: "Verbia is available for Google Chrome and Microsoft Edge through their official extension stores. A dedicated Firefox release is planned." },
   { question: "Does Verbia work on websites other than Reddit?", answer: "Yes. Automatic Mode supports Reddit, Gmail, and Outlook on the web. On other supported web editors, Universal Mode lets you focus an input field and optionally add selected text as context." },
   { question: "How do I open Verbia on another website?", answer: "Focus the text field where you want to write and use Verbia’s keyboard shortcut. You can also select relevant page text and add it as context from the right-click menu." },
   { question: "Can I use voice input in the browser extension?", answer: "Yes. You can dictate your intent. Voice language controls speech recognition and remains separate from the language you choose for the final reply." },
@@ -26,7 +26,7 @@ const faqItems: FaqItem[] = [
 
 const browserItems = [
   ["/chrome.svg", "Chrome", "Available now"],
-  ["/edge.svg", "Chromium browsers", "Chrome extension compatible"],
+  ["/edge.svg", "Microsoft Edge", "Available now"],
   ["/firefox.svg", "Firefox", "Dedicated release planned"],
 ];
 
@@ -44,7 +44,7 @@ export default function AiBrowserWritingAssistantPage() {
 
     <section className="seo-flow shell" aria-labelledby="browser-flow-title"><div className="seo-heading"><p className="eyebrow">A SHORTER WRITING FLOW</p><h2 id="browser-flow-title">From focused editor to finished draft.</h2></div><ol><li><span>01</span><div><h3>Focus the place where you want to write</h3><p>Click a standard text field or supported editable area.</p></div></li><li><span>02</span><div><h3>Add context when useful</h3><p>Use automatic context on Reddit, Gmail, or Outlook web, or select page text manually elsewhere.</p></div></li><li><span>03</span><div><h3>Open Verbia and give direction</h3><p>Use the shortcut, enter typed or spoken intent, and choose the output settings.</p></div></li><li><span>04</span><div><h3>Insert or copy</h3><p>Review the draft first. If an editor blocks insertion, copy and paste it yourself.</p></div></li></ol></section>
 
-    <section className="browser-support shell" aria-labelledby="browser-support-title"><div><p className="eyebrow">BROWSER AVAILABILITY</p><h2 id="browser-support-title">Start with the Chrome extension.</h2><p>Verbia is currently published through the Chrome Web Store. Dedicated Edge and Firefox listings are planned as browser support expands.</p></div><ul>{browserItems.map(([src, name, status]) => <li key={name}><img src={src} alt="" width="34" height="34"/><div><strong>{name}</strong><span>{status}</span></div></li>)}</ul></section>
+    <section className="browser-support shell" aria-labelledby="browser-support-title"><div><p className="eyebrow">BROWSER AVAILABILITY</p><h2 id="browser-support-title">Available for Chrome and Edge.</h2><p>Install Verbia from the official Chrome Web Store or Microsoft Edge Add-ons. A dedicated Firefox release is planned.</p></div><ul>{browserItems.map(([src, name, status]) => <li key={name}><img src={src} alt="" width="34" height="34"/><div><strong>{name}</strong><span>{status}</span></div></li>)}</ul></section>
 
     <section className="browser-limit shell" aria-labelledby="browser-limit-title"><img src="/verbia-mark.svg" alt="" width="48" height="48"/><div><p className="eyebrow">PRACTICAL BY DESIGN</p><h2 id="browser-limit-title">Built for drafts, with a fallback when editors are complex.</h2><p>Standard text fields and many editable areas support direct insertion. Protected browser pages and some complex rich-text editors may restrict extensions; Copy keeps the generated draft usable in those cases.</p></div></section>
     <section className="related-pages shell" aria-labelledby="browser-related-title"><div><p className="eyebrow">RELATED GUIDES</p><h2 id="browser-related-title">Explore how Verbia handles the reply.</h2></div><nav aria-label="Related Verbia guides"><Link href="/multilingual-reply-generator">Multilingual Replies <span>Choose any output language →</span></Link><Link href="/ai-reply-generator">AI Reply Generator <span>Turn intent into a draft →</span></Link></nav></section>

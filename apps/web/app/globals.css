@@ -215,6 +215,16 @@ main {
   font-size: 12px;
   color: var(--outline);
 }
+.browser-availability {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 650;
+}
+.browser-availability img + img { margin-left: -2px; }
 .support-note { display: inline-flex; align-items: center; gap: 9px; }
 .support-note .email-platform-logos { gap: 6px; }
 .support-note .email-platform-logos img {
@@ -961,9 +971,15 @@ blockquote {
 .footer-guides-row nav a {
   font-size: 13px;
 }
-.footer-install {
+.footer-store-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   color: var(--primary) !important;
   font-weight: 700 !important;
+}
+.footer-store-link img {
+  flex: 0 0 auto;
 }
 .copyright {
   padding-block: 20px;
