@@ -1,9 +1,9 @@
 {
   "extensionName": {
-    "message": "Verbia - Assistant de réponse et d’écriture IA"
+    "message": "Verbia - Assistant de réponse IA"
   },
   "description": {
-    "message": "Parlez ou écrivez dans n’importe quelle langue. Verbia comprend la conversation et transforme ce que vous voulez dire en réponses naturelles et adaptées au contexte."
+    "message": "Parlez ou écrivez dans n’importe quelle langue. Verbia comprend la conversation et rédige des réponses naturelles."
   },
   "actionTitle": {
     "message": "Ouvrir le tableau de bord Verbia"
