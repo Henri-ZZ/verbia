@@ -154,11 +154,13 @@
 ## 9. 快捷键
 
 默认（可在浏览器内自定义）：
-- Windows/Linux：`Ctrl+Shift+Y`
-- macOS：`⌘⇧Y`（Chrome 报告为 Command+Shift+Y）
+- Windows/Linux：`Alt+Shift+Y`
+- macOS：`⌥⇧Y`（即 `Alt+Shift+Y`；Chromium 在 macOS 上把 `Alt` 视作 Option 键）
 
 自定义：`chrome://extensions` → 左下角“键盘快捷键”（插件 options 页也有“Open shortcut settings”入口）。
-说明文字（“唤起回复面板”等）在 popup 与 options 中会按当前实际绑定实时显示（由 `chrome.commands.getAll()` 读取）。
+说明文字（“唤起回复面板”等）在 popup 与 options 中会按当前实际绑定实时显示（由 `chrome.commands.getAll()` 读取）；按键符号**按平台区分**——macOS 显示 `⌘⇧⌥⌃` 字形，Windows/Linux 显示 `Ctrl` / `Alt` / `Shift` 文字（实现在 `apps/extension/src/ui/shortcut.ts`）。
+
+> 注意两点：① **修改建议快捷键只对全新安装生效**，已安装用户的绑定不会被改动；② Chromium 在建议快捷键与其它扩展或系统快捷键冲突时会**静默留空**，不报错——所以用户装完后可能看到“未设置”，需要在上面那个页面手动设置一次。
 
 ---
 
@@ -224,8 +226,9 @@
 | `src/runtime.ts` | chrome.* 安全层：上下文失效时降级而不是抛出（内容脚本在扩展更新后会变成孤儿） |
 | `src/popup/` `src/options/` | popup 与设置页（Account/额度/升级/快捷键/加载态等） |
 | `src/ui/message.ts` | 面板系统消息（类型化图标/颜色） |
+| `src/ui/shortcut.ts` | 快捷键展示（popup + options 共用）：平台感知的按键字形 + 两种返回形态的拆分 |
 | `src/auth/supabase.ts` | PKCE 客户端 + chrome.storage 会话适配器 + local-scope 登出 |
-| `manifest.json` | 命令 `open-verbia`（默认 Ctrl+Shift+Y / Cmd+Shift+Y）；`web_accessible_resources` 需列出注入页面会请求的资源（如 `icons/*.svg`、`assets/*`） |
+| `manifest.json` | 命令 `open-verbia`（默认 `Alt+Shift+Y`，macOS 上即 `⌥⇧Y`）；`web_accessible_resources` 需列出注入页面会请求的资源（如 `icons/*.svg`、`assets/*`） |
 
 ### 共享包（`packages/shared/`）
 | 路径 | 职责 |

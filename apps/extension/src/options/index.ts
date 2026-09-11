@@ -1,6 +1,7 @@
 import { DEFAULT_SETTINGS, LENGTH_VALUES, REPLY_LANGUAGE_OPTIONS, TONE_VALUES, UI_LANGUAGE_OPTIONS, UI_STRINGS, VOICE_LANGUAGE_OPTIONS, resolveUiLang, type AuthState, type UiLang, type UserSettings } from "@verbia/shared";
 import { AUTH_STORAGE_KEY, SUPABASE_SIGNIN_REDIRECT, authEnabled, getSupabase, signInWithGoogle } from "../auth/supabase";
 import { setStatusMessage, type MsgKind } from "../ui/message";
+import { renderShortcutKeys } from "../ui/shortcut";
 
 const form = document.querySelector<HTMLFormElement>("#settings")!;
 const status = document.querySelector<HTMLElement>("#status")!;
@@ -164,14 +165,7 @@ function show(message: string, kind: MsgKind = "success") {
 }
 
 // Keyboard shortcut card: show the shortcut actually bound via Chrome's
-// commands API. macOS reports "Alt" for the Option key, so spell that out the
-// way Mac users know it when a custom binding uses Alt.
-const isMac = /Mac|iP(hone|ad|od)/.test(navigator.platform ?? "");
-function displayShortcut(raw: string): string {
-  if (!isMac) return raw;
-  return raw.replace(/\bAlt\+/g, "Option+");
-}
-
+// commands API. Labels are platform-aware (see ui/shortcut.ts).
 async function applyShortcuts() {
   let commands: Array<{ name?: string; shortcut?: string }> = [];
   try {
@@ -190,7 +184,7 @@ async function applyShortcuts() {
   }
   el.setAttribute("aria-label", t("settings.shortcutTitle"));
   const value = byName.get("open-verbia") ?? "";
-  renderShortcutKeys(el, value ? displayShortcut(value) : t("settings.shortcutUnset"));
+  renderShortcutKeys(el, value || t("settings.shortcutUnset"));
   const link = document.querySelector<HTMLElement>("#open-shortcuts-link");
   if (link && !document.querySelector(".shortcut-customize-hint")) {
     const hint = document.createElement("p");
@@ -198,36 +192,6 @@ async function applyShortcuts() {
     hint.textContent = t("settings.shortcutHelp");
     link.before(hint);
   }
-}
-
-function renderShortcutKeys(container: HTMLElement, shortcut: string) {
-  container.replaceChildren();
-  for (const key of splitShortcutKeys(shortcut)) {
-    const chip = document.createElement("kbd");
-    chip.textContent = key === "Command" ? "⌘" : key === "Shift" ? "⇧" : key === "Option" || key === "Alt" ? "⌥" : key === "Control" ? "⌃" : key;
-    container.append(chip);
-  }
-}
-
-// Chrome's commands API usually returns keys joined by "+" (e.g. "Command+Shift+Y"),
-// but on some platforms / custom bindings the modifier glyphs arrive already
-// concatenated (e.g. "⌘⇧Y") with no separator. Treat both shapes uniformly so each
-// key always lands in its own chip.
-const SHORTCUT_GLYPHS = new Set(["⌘", "⇧", "⌥", "⌃", "⌫", "⌦", "⏎", "⇥"]);
-
-function splitShortcutKeys(raw: string): string[] {
-  if (!raw) return [];
-  if (raw.includes("+")) return raw.split("+").map(s => s.trim()).filter(Boolean);
-  const parts: string[] = [];
-  let buf = "";
-  for (const ch of raw) {
-    if (SHORTCUT_GLYPHS.has(ch)) {
-      if (buf) { parts.push(buf); buf = ""; }
-      parts.push(ch);
-    } else buf += ch;
-  }
-  if (buf) parts.push(buf);
-  return parts;
 }
 
 document.querySelector<HTMLAnchorElement>("#open-shortcuts-link")?.addEventListener("click", event => {

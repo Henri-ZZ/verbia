@@ -79,7 +79,7 @@
   ],
   "commands": {
     "open-verbia": {
-      "suggested_key": { "default": "Ctrl+Shift+Y", "mac": "Command+Shift+Y" },
+      "suggested_key": { "default": "Alt+Shift+Y", "mac": "Alt+Shift+Y" },
       "description": "__MSG_openVerbiaDesc__"
     }
   }
