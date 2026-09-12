@@ -2,6 +2,7 @@ import { DEFAULT_SETTINGS, LENGTH_VALUES, REPLY_LANGUAGE_OPTIONS, TONE_VALUES, U
 import { AUTH_STORAGE_KEY, SUPABASE_SIGNIN_REDIRECT, authEnabled, getSupabase, signInWithGoogle } from "../auth/supabase";
 import { setStatusMessage, type MsgKind } from "../ui/message";
 import { renderShortcutKeys } from "../ui/shortcut";
+import { reviewUrl } from "../ui/stores";
 
 const form = document.querySelector<HTMLFormElement>("#settings")!;
 const status = document.querySelector<HTMLElement>("#status")!;
@@ -66,8 +67,24 @@ function applyLanguage() {
   if (sectionHeadings[1]) sectionHeadings[1].textContent = strings["settings.interfacePrivacy"] ?? "Interface & privacy";
   if (sectionDescriptions[1]) sectionDescriptions[1].textContent = strings["settings.interfacePrivacyDesc"] ?? "";
   renderOptions(strings);
-  const contact = document.querySelector<HTMLAnchorElement>("#contact-feedback");
-  if (contact) contact.href = `https://verbia.henriz.dev/${lang === "zh-CN" ? "zh/" : ""}contact?source=settings&version=${encodeURIComponent(chrome.runtime.getManifest().version)}`;
+}
+
+// Both the privacy card's link and the Support card's button open the same
+// contact page; one builder keeps the two from drifting apart.
+function feedbackUrl(): string {
+  return `https://verbia.henriz.dev/${lang === "zh-CN" ? "zh/" : ""}contact?source=settings&version=${encodeURIComponent(chrome.runtime.getManifest().version)}`;
+}
+
+// Targets that depend on runtime state: which store this copy came from, and the
+// interface language in the URL. The anchors carry working defaults in the HTML,
+// so a failure here never leaves a dead button.
+function applyLinks() {
+  const review = document.querySelector<HTMLAnchorElement>("#leave-review");
+  if (review) review.href = reviewUrl();
+  for (const id of ["#contact-feedback", "#send-feedback"]) {
+    const link = document.querySelector<HTMLAnchorElement>(id);
+    if (link) link.href = feedbackUrl();
+  }
 }
 
 async function load() {
@@ -75,6 +92,7 @@ async function load() {
   const value = response?.ok ? response.data as UserSettings : DEFAULT_SETTINGS;
   lang = resolveUiLang(value.uiLanguage, chrome.i18n.getUILanguage());
   applyLanguage();
+  applyLinks();
   set("backend", value.backendBaseUrl); set("voice-language", value.voiceLanguage); set("ui-language", value.uiLanguage); set("output-language", value.outputLanguage); set("tone", value.defaultTone); set("length", value.defaultLength);
   check("contextPreviewExpanded", value.contextPreviewExpanded); check("telemetryEnabled", value.telemetryEnabled);
   check("showLanguageInPanel", value.showLanguageInPanel); check("showToneInPanel", value.showToneInPanel); check("showLengthInPanel", value.showLengthInPanel);

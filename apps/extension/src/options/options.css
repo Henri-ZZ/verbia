@@ -5,4 +5,13 @@ input[type="checkbox"]:checked{background:#0f6e56;border-color:#0f6e56}
 input[type="checkbox"]:checked::after{content:"";width:9px;height:5px;border:solid #fff;border-width:0 0 2px 2px;transform:rotate(-45deg) translateY(-1px)}
 input[type="checkbox"]:focus-visible{outline:3px solid #0f6e5633;outline-offset:2px}
 .developer-section{margin-top:16px}
+.support-section{margin-top:16px}
+.support-section .section-heading{margin-bottom:6px}
+.support-row{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:13px 0}
+.support-row + .support-row{border-top:1px solid #e5ebe5}
+.support-row p{margin:0;color:#66736a;font-size:13px}
+.support-action{display:inline-flex;align-items:center;justify-content:center;flex:none;min-height:36px;border:1px solid #cfdacf;border-radius:9px;padding:8px 16px;background:#fff;color:#1d2a22;font:750 13px inherit;text-decoration:none;cursor:pointer;transition:background .15s ease,border-color .15s ease}
+.support-action:hover{border-color:#9fb8a6;background:#f6faf6}
+.support-action.is-primary{border-color:transparent;background:#0f6e56;color:#fff}
+.support-action.is-primary:hover{border-color:transparent;background:#0a5a45}
 .contact-feedback-link{display:inline-flex;margin-top:12px;color:#0f6e56;font-size:12px;font-weight:750;text-underline-offset:3px}

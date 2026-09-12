@@ -180,6 +180,7 @@
 - **界面语言**：en / 中文（跟随浏览器或手动指定）；
 - **界面与隐私**：仅元数据诊断开关（默认关，只可能上报运行指标、不含正文）；
 - **高级设置（可折叠）**：重置设置；
+- **Support**：`Leave Review` 打开扩展商店评分页（按 manifest 的 `update_url` 判断这份扩展来自 Chrome 还是 Edge 商店，未打包时回退到当前浏览器）；`Send Feedback` 打开官网反馈页（`source=settings`，带版本号）；
 - **开发者设置（仅开发构建）**：后端 URL 可编辑；**发布构建不含此模块**，后端固定生产地址。
 
 ---
@@ -227,6 +228,7 @@
 | `src/popup/` `src/options/` | popup 与设置页（Account/额度/升级/快捷键/加载态等） |
 | `src/ui/message.ts` | 面板系统消息（类型化图标/颜色） |
 | `src/ui/shortcut.ts` | 快捷键展示（popup + options 共用）：平台感知的按键字形 + 两种返回形态的拆分 |
+| `src/ui/stores.ts` | 扩展商店链接：按 `update_url` 判断来自哪个商店，供 Support 卡的评分按钮使用 |
 | `src/auth/supabase.ts` | PKCE 客户端 + chrome.storage 会话适配器 + local-scope 登出 |
 | `manifest.json` | 命令 `open-verbia`（默认 `Alt+Shift+Y`，macOS 上即 `⌥⇧Y`）；`web_accessible_resources` 需列出注入页面会请求的资源（如 `icons/*.svg`、`assets/*`） |
 
