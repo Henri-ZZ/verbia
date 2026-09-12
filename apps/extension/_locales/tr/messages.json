@@ -1,0 +1,14 @@
+{
+  "extensionName": {
+    "message": "Verbia - AI Yanıt ve Yazma Asistanı"
+  },
+  "description": {
+    "message": "Her dilde konuş ya da yaz. Verbia konuşmayı anlar ve ne demek istediğini doğal, bağlama uygun yanıtlara dönüştürür."
+  },
+  "actionTitle": {
+    "message": "Verbia Panelini aç"
+  },
+  "openVerbiaDesc": {
+    "message": "Bir metin alanına odaklan, sonra yanıt panelini açmak için kısayolu kullan"
+  }
+}

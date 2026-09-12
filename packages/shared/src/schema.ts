@@ -64,8 +64,11 @@ export const VOICE_LANGUAGE_OPTIONS = [
   { value: "fr-FR", label: "Français" },
   { value: "de-DE", label: "Deutsch" },
   { value: "it-IT", label: "Italiano" },
+  { value: "tr-TR", label: "Türkçe" },
   { value: "ru-RU", label: "Русский" },
   { value: "hi-IN", label: "हिन्दी" },
+  { value: "vi-VN", label: "Tiếng Việt" },
+  { value: "id-ID", label: "Bahasa Indonesia" },
   { value: "ar-SA", label: "العربية" }
 ] as const;
 
@@ -77,7 +80,12 @@ export const UI_LANGUAGE_OPTIONS = [
   { value: "pt-BR", label: "Português (Brasil)" },
   { value: "ja", label: "日本語" },
   { value: "de", label: "Deutsch" },
-  { value: "fr", label: "Français" }
+  { value: "fr", label: "Français" },
+  { value: "ko", label: "한국어" },
+  { value: "it", label: "Italiano" },
+  { value: "tr", label: "Türkçe" },
+  { value: "vi", label: "Tiếng Việt" },
+  { value: "id", label: "Bahasa Indonesia" }
 ] as const;
 
 // Target languages offered in the Reply Language selector. Generation itself

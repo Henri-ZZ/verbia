@@ -1,0 +1,14 @@
+{
+  "extensionName": {
+    "message": "Verbia - Asisten AI untuk balasan dan penulisan"
+  },
+  "description": {
+    "message": "Bicara atau menulis dalam bahasa apa pun. Verbia memahami konteks dan mengubah maksud Anda menjadi balasan yang alami."
+  },
+  "actionTitle": {
+    "message": "Buka Dasbor Verbia"
+  },
+  "openVerbiaDesc": {
+    "message": "Fokuskan kolom teks, lalu gunakan pintasan untuk membuka panel balasan"
+  }
+}

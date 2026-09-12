@@ -1,0 +1,14 @@
+{
+  "extensionName": {
+    "message": "Verbia - Trợ lý AI viết và trả lời"
+  },
+  "description": {
+    "message": "Nói hoặc nhập bằng bất kỳ ngôn ngữ nào. Verbia hiểu ngữ cảnh và biến ý bạn muốn nói thành câu trả lời tự nhiên."
+  },
+  "actionTitle": {
+    "message": "Mở Bảng điều khiển Verbia"
+  },
+  "openVerbiaDesc": {
+    "message": "Đặt con trỏ vào ô văn bản, rồi dùng phím tắt để mở bảng trả lời"
+  }
+}

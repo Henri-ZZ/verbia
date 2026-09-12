@@ -1,0 +1,14 @@
+{
+  "extensionName": {
+    "message": "Verbia - AI 답장 및 글쓰기 도우미"
+  },
+  "description": {
+    "message": "어떤 언어로든 말하거나 입력하세요. Verbia가 대화를 이해하고 전하려는 뜻을 자연스럽고 맥락에 맞는 답장으로 바꿔줍니다."
+  },
+  "actionTitle": {
+    "message": "Verbia 대시보드 열기"
+  },
+  "openVerbiaDesc": {
+    "message": "텍스트 입력란을 선택한 뒤 단축키를 눌러 답장 패널을 여세요"
+  }
+}
