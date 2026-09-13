@@ -24,6 +24,7 @@
     "https://outlook.office.com/*",
     "https://outlook.com/*",
     "https://www.outlook.com/*",
+    "https://wx.mail.qq.com/*",
     "https://verbia.henriz.dev/*",
     "https://pthfyoejvlcwxboskrjr.supabase.co/*"
   ],
@@ -68,6 +69,11 @@
         "https://outlook.com/*",
         "https://www.outlook.com/*"
       ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://wx.mail.qq.com/*"],
       "js": ["content.js"],
       "run_at": "document_idle"
     },

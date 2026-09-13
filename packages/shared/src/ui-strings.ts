@@ -86,6 +86,8 @@ const EN: Strings = {
   "popup.shortcutHint": "Open reply panel.",
   "popup.settings": "Settings",
   "popup.dashboard": "Dashboard",
+  "popup.noticeStorePage": "Chrome and Edge block extensions on their store pages, so the reply panel cannot open here.",
+  "popup.noticeUnsupportedPage": "Verbia cannot run on browser pages. Open a normal web page, focus a text field, and try again.",
 
   // reply panel
   "panel.speak": "Speak",
@@ -264,6 +266,8 @@ const ZH_CN: Strings = {
   "popup.shortcutHint": "唤起回复面板",
   "popup.settings": "设置",
   "popup.dashboard": "控制面板",
+  "popup.noticeStorePage": "Chrome 与 Edge 不允许扩展在各自的商店页面运行，所以回复面板无法在这里打开。",
+  "popup.noticeUnsupportedPage": "Verbia 无法在浏览器页面上运行。请打开一个普通网页，聚焦文本输入框后重试。",
 
   // reply panel
   "panel.speak": "口述",
@@ -443,6 +447,8 @@ const ES: Strings = {
   "popup.shortcutHint": "Abrir el panel de respuesta.",
   "popup.settings": "Ajustes",
   "popup.dashboard": "Panel de control",
+  "popup.noticeStorePage": "Chrome y Edge bloquean las extensiones en sus páginas de tienda, así que el panel de respuesta no puede abrirse aquí.",
+  "popup.noticeUnsupportedPage": "Verbia no puede ejecutarse en páginas del navegador. Abre una página web normal, enfoca un campo de texto y vuelve a intentarlo.",
 
   // reply panel
   "panel.speak": "Hablar",
@@ -621,6 +627,8 @@ const PT_BR: Strings = {
   "popup.shortcutHint": "Abrir o painel de resposta.",
   "popup.settings": "Configurações",
   "popup.dashboard": "Painel",
+  "popup.noticeStorePage": "O Chrome e o Edge bloqueiam extensões nas páginas de suas lojas, então o painel de resposta não pode abrir aqui.",
+  "popup.noticeUnsupportedPage": "O Verbia não funciona em páginas do navegador. Abra uma página web normal, foque um campo de texto e tente novamente.",
 
   // reply panel
   "panel.speak": "Falar",
@@ -799,6 +807,8 @@ const JA: Strings = {
   "popup.shortcutHint": "返信パネルを開きます。",
   "popup.settings": "設定",
   "popup.dashboard": "ダッシュボード",
+  "popup.noticeStorePage": "Chrome と Edge は各ストアのページで拡張機能の実行を許可していないため、このページでは返信パネルを開けません。",
+  "popup.noticeUnsupportedPage": "Verbia はブラウザのページでは動作しません。通常のウェブページを開き、テキスト欄にフォーカスしてからもう一度お試しください。",
 
   // reply panel
   "panel.speak": "話す",
@@ -977,6 +987,8 @@ const DE: Strings = {
   "popup.shortcutHint": "Antwortfeld öffnen.",
   "popup.settings": "Einstellungen",
   "popup.dashboard": "Dashboard",
+  "popup.noticeStorePage": "Chrome und Edge lassen keine Erweiterungen auf ihren Store-Seiten zu, deshalb kann das Antwortfeld hier nicht geöffnet werden.",
+  "popup.noticeUnsupportedPage": "Verbia kann auf Browserseiten nicht ausgeführt werden. Öffne eine normale Webseite, fokussiere ein Textfeld und versuche es erneut.",
 
   // reply panel
   "panel.speak": "Sprechen",
@@ -1155,6 +1167,8 @@ const FR: Strings = {
   "popup.shortcutHint": "Ouvrir le panneau de réponse.",
   "popup.settings": "Paramètres",
   "popup.dashboard": "Tableau de bord",
+  "popup.noticeStorePage": "Chrome et Edge bloquent les extensions sur leurs pages de boutique : le panneau de réponse ne peut pas s’ouvrir ici.",
+  "popup.noticeUnsupportedPage": "Verbia ne peut pas s’exécuter sur les pages du navigateur. Ouvrez une page web normale, placez le curseur dans un champ de texte, puis réessayez.",
 
   // reply panel
   "panel.speak": "Parler",
@@ -1333,6 +1347,8 @@ const KO: Strings = {
   "popup.shortcutHint": "답장 패널을 엽니다.",
   "popup.settings": "설정",
   "popup.dashboard": "대시보드",
+  "popup.noticeStorePage": "Chrome과 Edge는 각자의 스토어 페이지에서 확장 프로그램 실행을 허용하지 않아, 여기서는 답장 패널을 열 수 없습니다.",
+  "popup.noticeUnsupportedPage": "Verbia는 브라우저 페이지에서 실행할 수 없습니다. 일반 웹페이지를 열고 텍스트 입력란을 선택한 뒤 다시 시도하세요.",
 
   // reply panel
   "panel.speak": "말하기",
@@ -1511,6 +1527,8 @@ const IT: Strings = {
   "popup.shortcutHint": "Apri il pannello di risposta.",
   "popup.settings": "Impostazioni",
   "popup.dashboard": "Dashboard",
+  "popup.noticeStorePage": "Chrome ed Edge bloccano le estensioni sulle pagine dei loro store, quindi il pannello di risposta non può aprirsi qui.",
+  "popup.noticeUnsupportedPage": "Verbia non può essere eseguito sulle pagine del browser. Apri una normale pagina web, posiziona il cursore in un campo di testo e riprova.",
 
   // reply panel
   "panel.speak": "Parla",
@@ -1689,6 +1707,8 @@ const TR: Strings = {
   "popup.shortcutHint": "Yanıt panelini aç.",
   "popup.settings": "Ayarlar",
   "popup.dashboard": "Panel",
+  "popup.noticeStorePage": "Chrome ve Edge kendi mağaza sayfalarında uzantılara izin vermez; bu yüzden yanıt paneli burada açılamaz.",
+  "popup.noticeUnsupportedPage": "Verbia tarayıcı sayfalarında çalışamaz. Normal bir web sayfası aç, bir metin alanına odaklan ve tekrar dene.",
 
   // reply panel
   "panel.speak": "Konuş",
@@ -1867,6 +1887,8 @@ const VI: Strings = {
   "popup.shortcutHint": "Mở bảng trả lời.",
   "popup.settings": "Cài đặt",
   "popup.dashboard": "Bảng điều khiển",
+  "popup.noticeStorePage": "Chrome và Edge chặn tiện ích trên trang cửa hàng của họ, nên bảng trả lời không thể mở tại đây.",
+  "popup.noticeUnsupportedPage": "Verbia không thể chạy trên các trang của trình duyệt. Hãy mở một trang web thường, đặt con trỏ vào ô văn bản rồi thử lại.",
 
   // reply panel
   "panel.speak": "Nói",
@@ -2045,6 +2067,8 @@ const ID: Strings = {
   "popup.shortcutHint": "Buka panel balasan.",
   "popup.settings": "Pengaturan",
   "popup.dashboard": "Dasbor",
+  "popup.noticeStorePage": "Chrome dan Edge memblokir ekstensi di halaman toko mereka, jadi panel balasan tidak bisa dibuka di sini.",
+  "popup.noticeUnsupportedPage": "Verbia tidak dapat berjalan di halaman browser. Buka halaman web biasa, fokuskan kolom teks, lalu coba lagi.",
 
   // reply panel
   "panel.speak": "Bicara",

@@ -2268,3 +2268,60 @@ button:focus-visible {
 .email-privacy p { margin: 0; color: var(--muted); }
 @media (max-width: 850px) { .email-demo, .gmail-demo, .outlook-demo { grid-template-columns: 1fr; } }
 @media (max-width: 680px) { .email-demo, .gmail-demo, .outlook-demo { width: min(100% - 30px,1180px); padding: 10px; } .email-message, .gmail-message, .gmail-demo > aside, .outlook-demo > aside { padding: 22px 18px; } .email-reply-field { flex-direction: column; } .email-platforms { padding-block: 20px 72px; } .email-platforms > div:last-child { grid-template-columns: 1fr; } .email-platforms article { padding: 25px 21px; } .outlook-layout { grid-template-columns: 1fr; } .outlook-layout nav { display: none; } .outlook-layout article { padding: 22px 18px; } .gmail-window > header span, .outlook-window > header span { display: none; } .email-privacy { grid-template-columns: 1fr; padding: 28px 22px; } }
+
+/* ---- Follow-up email after no response ---- */
+.followup-hero { max-width: 980px; padding-bottom: 72px; }
+.followup-eyebrow { width: max-content; max-width: 100%; margin: 0 auto; display: flex; align-items: center; gap: 9px; color: var(--primary-dark); font-size: 11px; font-weight: 780; letter-spacing: .075em; }
+.followup-quick-example { max-width: 790px; margin: 31px auto 0; padding: 22px 25px; background: rgba(255,255,255,.8); border: 1px solid var(--border); border-radius: 15px; box-shadow: 0 8px 30px rgba(23,32,25,.055); text-align: left; }
+.followup-quick-example > span { color: var(--primary); font-size: 10px; font-weight: 800; letter-spacing: .09em; }
+.followup-quick-example blockquote { margin: 7px 0 0; color: var(--ink); font-size: 15px; line-height: 1.7; }
+.followup-structure { padding-top: 78px; }
+.followup-demo { padding: 54px; background: linear-gradient(145deg,#e5f5e9,#f9fcfa); border: 1px solid rgba(15,110,86,.13); border-radius: 24px; box-shadow: 0 18px 50px -24px rgba(23,32,25,.16); }
+.followup-demo-heading { max-width: 750px; }
+.followup-demo-heading h2, .followup-guidance h2 { margin: 7px 0 12px; font: 720 clamp(29px,4vw,41px)/1.13 var(--display); letter-spacing: -.035em; }
+.followup-demo-heading > p:last-child { margin: 0; color: var(--muted); font-size: 16px; }
+.followup-scenario-tabs { display: flex; flex-wrap: wrap; gap: 9px; margin: 31px 0 18px; }
+.followup-scenario-tabs button { min-height: 42px; padding: 9px 15px; border: 1px solid var(--border); border-radius: 999px; background: rgba(255,255,255,.8); color: var(--muted); font-weight: 650; transition: background .18s, border-color .18s, color .18s; }
+.followup-scenario-tabs button:hover { border-color: rgba(15,110,86,.4); color: var(--ink); }
+.followup-scenario-tabs button[aria-pressed="true"] { border-color: var(--primary); background: var(--primary); color: #fff; }
+.followup-scenario-tabs button:focus-visible { outline: 3px solid rgba(15,110,86,.25); outline-offset: 2px; }
+.followup-workspace { padding: 14px; display: grid; grid-template-columns: .9fr 1.1fr; gap: 14px; background: rgba(255,255,255,.5); border: 1px solid rgba(190,201,195,.6); border-radius: 18px; }
+.followup-email, .followup-verbia { min-width: 0; margin: 0; background: var(--paper); border-radius: 13px; }
+.followup-email { padding: 28px; }
+.followup-email > header { display: flex; align-items: center; gap: 11px; }
+.followup-email > header > div:last-child { min-width: 0; display: flex; flex-direction: column; }
+.followup-email > header span { overflow: hidden; color: var(--outline); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.followup-email > p { margin: 28px 0 24px; color: var(--muted); font-size: 15px; line-height: 1.75; }
+.followup-email > small { display: block; padding-top: 14px; border-top: 1px solid var(--border); color: var(--outline); font-size: 11px; }
+.followup-verbia { overflow: hidden; border: 1px solid rgba(15,110,86,.17); }
+.followup-verbia > header { padding: 16px 19px; display: flex; align-items: center; gap: 9px; border-bottom: 1px solid var(--border); }
+.followup-verbia > header span { margin-left: auto; color: var(--primary); font-size: 11px; font-weight: 700; }
+.followup-verbia > div { padding: 24px; }
+.followup-verbia small { color: var(--primary); font-size: 10px; font-weight: 780; letter-spacing: .08em; }
+.followup-intent, .followup-verbia blockquote { margin: 7px 0 20px; padding: 14px 15px; border-radius: 9px; background: var(--low); }
+.followup-verbia blockquote { background: #fbfdfb; border-left: 3px solid var(--primary); font-size: 15px; font-weight: 620; line-height: 1.7; }
+.followup-explanation { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.65; }
+.followup-adjustments { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 17px; }
+.followup-adjustments span { padding: 6px 9px; border: 1px solid var(--border); border-radius: 7px; color: var(--outline); font-size: 11px; font-weight: 650; }
+.followup-guidance { padding-block: 110px; display: grid; grid-template-columns: 1.08fr .92fr; gap: 18px; }
+.followup-guidance article { padding: 38px; background: var(--paper); border-radius: 18px; box-shadow: 0 5px 22px rgba(23,32,25,.05); }
+.followup-guidance article.followup-avoid { background: #f2f7f3; box-shadow: none; }
+.followup-guidance h2 { font-size: clamp(27px,3vw,35px); }
+.followup-guidance article > p:not(.eyebrow), .followup-guidance li { color: var(--muted); line-height: 1.7; }
+.followup-guidance ul { display: grid; gap: 9px; margin: 20px 0 0; padding-left: 20px; }
+.followup-guidance li::marker { color: var(--primary); }
+.followup-platforms { padding-top: 0; }
+@media (max-width: 850px) { .followup-workspace, .followup-guidance { grid-template-columns: 1fr; } }
+@media (max-width: 680px) {
+  .followup-hero { padding-bottom: 55px; }
+  .followup-quick-example { padding: 19px 18px; }
+  .followup-structure { padding-top: 60px; }
+  .followup-demo { width: min(100% - 30px,1180px); padding: 27px 17px; }
+  .followup-scenario-tabs { display: grid; grid-template-columns: 1fr; }
+  .followup-scenario-tabs button { width: 100%; border-radius: 10px; text-align: left; }
+  .followup-workspace { padding: 8px; }
+  .followup-email, .followup-verbia > div { padding: 21px 17px; }
+  .followup-guidance { padding-block: 72px; }
+  .followup-guidance article { padding: 27px 22px; }
+}
+@media (prefers-reduced-motion: reduce) { .followup-scenario-tabs button { transition: none; } }

@@ -2,18 +2,22 @@ import { GmailAdapter } from "./adapters/gmail";
 import { RedditAdapter } from "./adapters/reddit";
 import { UniversalAdapter } from "./adapters/universal";
 import { OutlookAdapter } from "./adapters/outlook";
+import { QqMailAdapter } from "./adapters/qqmail";
 import { isSafeEditable, toTarget } from "./editor/editable";
+import { claimPage, dropPanelRoots, ownsPage, PANEL_ROOT_SELECTOR } from "./page-claim";
 import { extensionAlive, uiLanguage } from "../runtime";
 import { VerbiaPanel } from "./ui/panel";
 import { msgIcon, type MsgKind } from "../ui/message";
 import { DEFAULT_SETTINGS, UI_STRINGS, resolveUiLang, type ContextEnvelope, type SiteAdapter, type StagedSelection } from "@verbia/shared";
 
+// One content script instance per frame is the intent, but two can end up live
+// on the same page (an update re-injecting over a running instance, or a second
+// copy of Verbia installed alongside this one). Both would mount a panel, so the
+// page is claimed on the document, where every instance — whatever JS world it
+// runs in — can see who owns it (@see page-claim.ts).
 declare global {
   interface Window {
     __verbiaLoaded?: boolean;
-    // Set by an instance that just booted, so an instance orphaned by an
-    // extension update knows it has been replaced and stays quiet.
-    __verbiaReplaced?: boolean;
   }
 }
 
@@ -23,14 +27,16 @@ if (!window.__verbiaLoaded) {
   // Chrome cuts its bindings but cannot unload it — and the background re-injects
   // this file into every open tab to recover. Take over cleanly: drop the panel
   // shell a dead instance may have left behind (its shadow root is closed, so
-  // nothing else can reach it), and record that this instance is the current one
-  // so the dead one stops advising a refresh on a page where the panel now works.
-  document.querySelectorAll("[data-verbia-root='true']").forEach(node => node.remove());
-  window.__verbiaReplaced = true;
+  // nothing else can reach it), and claim the page so that instance — and any
+  // other copy of Verbia running here — stops acting on a page this one owns.
+  dropPanelRoots();
+  const epoch = claimPage();
+  const isCurrent = () => ownsPage(epoch);
   const reddit = new RedditAdapter();
   const gmail = new GmailAdapter();
   const universal = new UniversalAdapter();
   const outlook = new OutlookAdapter();
+  const qqmail = new QqMailAdapter();
   const url = new URL(location.href);
 
   // Gmail injects the content script into every frame of mail.google.com
@@ -44,6 +50,9 @@ if (!window.__verbiaLoaded) {
   const onGmailHost = /(^|\.)mail\.google\.com$/.test(url.hostname) ||
     (url.protocol === "about:" && (() => { try { return window.parent !== window && /(^|\.)mail\.google\.com$/.test(window.parent.location.hostname); } catch { return false; } })());
   const onOutlookHost = outlook.matches(url);
+  // QQ Mail is a single-document SPA with no frames at all, so the host is the
+  // whole check — its composer comes and goes with the route.
+  const onQqMailHost = qqmail.matches(url);
   const isTopFrame = window === window.top;
   const startDormant = onGmailHost && !isTopFrame;
 
@@ -51,8 +60,8 @@ if (!window.__verbiaLoaded) {
   else bootActive();
 
   function bootActive() {
-    const site: SiteAdapter = onOutlookHost ? outlook : onGmailHost ? gmail : reddit.matches(url) ? reddit : universal;
-    const autoAdapter = site === reddit || site === gmail || site === outlook ? site : null;
+    const site: SiteAdapter = onQqMailHost ? qqmail : onOutlookHost ? outlook : onGmailHost ? gmail : reddit.matches(url) ? reddit : universal;
+    const autoAdapter = site === reddit || site === gmail || site === outlook || site === qqmail ? site : null;
 
     let lastEditable: HTMLElement | null = isSafeEditable(document.activeElement) ? document.activeElement : null;
     let panel: VerbiaPanel | undefined;
@@ -67,6 +76,7 @@ if (!window.__verbiaLoaded) {
     let scanFrame = 0;
 
     document.addEventListener("focusin", event => {
+      if (!isCurrent()) return;
       if (!isSafeEditable(event.target)) return;
       lastEditable = event.target;
       const focusedRef = toTarget(event.target).ref;
@@ -85,7 +95,7 @@ if (!window.__verbiaLoaded) {
     // the page). A click inside a composer the adapter recognises is an
     // unambiguous "open here", so it gets its own entry point.
     document.addEventListener("click", event => {
-      if (!autoAdapter) return;
+      if (!autoAdapter || !isCurrent()) return;
       const target = event.target instanceof HTMLElement ? event.target : null;
       // Cheap pre-filter first: the adapter scan below walks the whole document
       // and most clicks on a page are nowhere near an editor.
@@ -108,6 +118,9 @@ if (!window.__verbiaLoaded) {
 
     // Returns true when a panel ended up open and rendered for this editor.
     async function showFor(element: HTMLElement, adapter: SiteAdapter, focusIntent: boolean, stagedSelection?: StagedSelection): Promise<boolean> {
+      // A losing instance must not act at all: it would mount a second panel
+      // next to the one the instance that owns the page is showing.
+      if (!isCurrent()) return false;
       const target = toTarget(element);
       // Already open for this editor and still on the page: nothing to rebuild.
       // The check goes through the panel, not the document: host pages re-render
@@ -119,6 +132,9 @@ if (!window.__verbiaLoaded) {
         // content survives; passive focus-in never unfolds.
         if (stagedSelection) panel.mergeContextSelection(stagedSelection.text, stagedSelection.truncated);
         if (focusIntent) void panel.unfoldIfCollapsed();
+        // The panel owns this editor now, so nothing below re-reads the page —
+        // but the page may have caught up since the first read (see the method).
+        void panel.refreshContextIfEmpty();
         return true;
       }
       // This content script is orphaned: the extension was reloaded, updated or
@@ -129,20 +145,39 @@ if (!window.__verbiaLoaded) {
         // …unless a newer instance already took over this page (the background
         // re-injects on update), in which case the panel works and this advice
         // would send the user to refresh a perfectly good tab.
-        if (!window.__verbiaReplaced) await showToastFor("content.needsReload", "Verbia was updated. Refresh this page to use it again.", "warning");
+        if (isCurrent()) await showToastFor("content.needsReload", "Verbia was updated. Refresh this page to use it again.", "warning");
         return false;
       }
       const base = await adapter.extractContext(target);
       const context = applyStagedSelection(base, stagedSelection);
+      // The page read above is the one await that matters: a newer instance can
+      // take the page over while it is in flight, and everything below — the
+      // panel included — would then be built a second time.
+      if (!isCurrent()) return false;
       // Mail sites render the composer inline in the host page; float the panel
       // so it never becomes part of the outgoing message. Park it next to the
       // editor so the eye doesn't have to jump to the opposite corner of the
       // page. Everywhere else the panel is inlined right after the reply box.
-      const floating = adapter === gmail || adapter === outlook;
+      const floating = adapter === gmail || adapter === outlook || adapter === qqmail;
       const mountAnchor = floating ? element : findReplyAnchor(element);
+      // Focus and click arrive as two separate events, and an explicit summon can
+      // race the auto-open, so two invocations can both clear the check at the top
+      // and meet again only here — after the page read. Whoever lands second must
+      // adopt the panel the first one mounted; without this the page ends up with
+      // two stacked panels.
+      if (panel && currentRef === target.ref) {
+        panel.update(target, context, mountAnchor);
+        if (focusIntent) void panel.unfoldIfCollapsed();
+        return true;
+      }
       if (panel) {
         panel.update(target, context, mountAnchor);
       } else {
+        // Last line of defence: whatever shell is on this page is not ours to
+        // keep, so it goes before ours arrives. An instance that ignores the
+        // page claim (an older build, a second copy) cannot leave its panel
+        // standing next to this one.
+        dropPanelRoots();
         panel = new VerbiaPanel(adapter, target, context, () => {
           // User closed the panel: remember this editor so auto-open leaves it
           // alone until they explicitly summon Verbia again.
@@ -179,6 +214,7 @@ if (!window.__verbiaLoaded) {
 
     // Returns true when a panel was open/opened for this invocation.
     async function activate(stagedSelection?: StagedSelection): Promise<boolean> {
+      if (!isCurrent()) return false;
       const element = isSafeEditable(document.activeElement) ? document.activeElement : lastEditable;
       const fallback = site.findComposers().at(-1)?.element ?? null;
       const chosen = element && isSafeEditable(element) ? element : fallback;
@@ -195,6 +231,7 @@ if (!window.__verbiaLoaded) {
 
     // Right-click → "Add to Verbia context".
     async function addContextFromMenu(selection: StagedSelection): Promise<boolean> {
+      if (!isCurrent()) return false;
       if (panel?.mergeContextSelection(selection.text, selection.truncated)) return true;
       await showToastFor("content.contextStaged", "Added to Verbia context.", "success");
       return false;
@@ -226,7 +263,7 @@ if (!window.__verbiaLoaded) {
     // (Reddit, Gmail). Universal mode stays manual.
     function scanComposer() {
       scanFrame = 0;
-      if (!autoAdapter || document.querySelector("[data-verbia-root='true']")) return;
+      if (!autoAdapter || !isCurrent() || document.querySelector(PANEL_ROOT_SELECTOR)) return;
       const active = isSafeEditable(document.activeElement) ? document.activeElement : null;
       const composers = autoAdapter.findComposers();
       const chosen = active && composers.some(item => item.element === active) ? active : composers.at(-1)?.element;

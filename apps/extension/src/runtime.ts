@@ -61,3 +61,10 @@ export function uiLanguage(): string {
     return navigator.language || "en";
   }
 }
+
+// Why the background force-opened the popup: the user pressed the shortcut on a
+// page the browser refuses to script (store pages, browser UI), where the reply
+// panel can never open. The background writes one of the popup.notice* string
+// keys here and the popup shows it once, then clears it — a normal toolbar click
+// must never show a stale notice.
+export const ACTION_NOTICE_KEY = "actionNotice";

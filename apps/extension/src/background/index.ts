@@ -1,5 +1,6 @@
 import { DEFAULT_SETTINGS, UI_STRINGS, generateReplyRequestSchema, generateReplyResponseSchema, resolveUiLang, type AccountUsage, type AuthState, type ExtensionRequest, type ExtensionResponse, type StagedContext, type StagedSelection, type UiLang, type UserSettings } from "@verbia/shared";
 import { SUPABASE_URL, WEB_AUTH_ORIGIN, authBearer, authEnabled, authSnapshot, clearSession, establishSessionFromTokenHash, getSupabase, refreshStoredSession, signOut } from "../auth/supabase";
+import { ACTION_NOTICE_KEY } from "../runtime";
 import { migrateOpenTabs, reloadContentScript } from "./migrate";
 
 const ADD_CONTEXT_MENU_ID = "verbia-add-context";
@@ -173,7 +174,8 @@ async function deliverSelectionToPage(tabId: number, pageUrl: string, selection:
       // Not injectable (browser UI, restricted store pages…). Rare: the menu
       // item only appears on http(s) pages. Drop quietly instead of
       // interrupting the user with an error badge.
-      console.error("Verbia could not add the selection on this page", error);
+      if (isScriptingBlocked(error)) console.debug("[verbia] selection blocked on", pageUrl, error);
+      else console.error("Verbia could not add the selection on this page", error);
     }
   }
 }
@@ -198,7 +200,13 @@ async function clearStagedContext(tabId: number) {
 
 async function activate(tab: chrome.tabs.Tab) {
   if (!tab.id || !tab.url || !/^https?:/.test(tab.url)) {
-    await showActionError("Open a normal web page, focus an editor, and try again.");
+    await openNoticePopup(tab, "popup.noticeUnsupportedPage", "Open a normal web page, focus an editor, and try again.");
+    return;
+  }
+  // The store page is not scriptable at all, so skip the doomed injection and
+  // explain it instead of reporting a failure the user cannot act on.
+  if (isStorePage(tab.url)) {
+    await openNoticePopup(tab, "popup.noticeStorePage", hintForUrl(tab.url));
     return;
   }
   // A selection staged from the right-click menu rides along on the open
@@ -223,14 +231,33 @@ async function activate(tab: chrome.tabs.Tab) {
       if (response?.opened) await clearActionError();
       else await showActionError(hintForUrl(tab.url));
     } catch (error) {
-      console.error("Verbia could not open on this page", error);
+      if (isScriptingBlocked(error)) console.debug("[verbia] panel cannot open on", tab.url, error);
+      else console.error("Verbia could not open on this page", error);
       await showActionError(hintForUrl(tab.url));
     }
   }
 }
 
+// Chrome refuses to inject any script into its own gallery, and Edge blocks its
+// add-ons store the same way. Nothing can make the panel open there, so recognize
+// the page up front instead of letting a guaranteed failure look like a bug.
+const STORE_PAGE = /^https:\/\/chromewebstore\.google\.com(\/|$)|^https:\/\/chrome\.google\.com\/(webstore|extensions)(\/|$)|^https:\/\/microsoftedge\.microsoft\.com\/addons(\/|$)/i;
+
+function isStorePage(url: string | undefined): boolean {
+  return !!url && STORE_PAGE.test(url);
+}
+
+// Chrome's only signal is the message text ("The extensions gallery cannot be
+// scripted."), so match it loosely: a page the browser refuses to script is
+// expected, not a crash, and must not land in the extension's error list.
+function isScriptingBlocked(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error ?? "");
+  return /cannot be scripted|extensions gallery/i.test(message);
+}
+
 function hintForUrl(url: string | undefined): string {
   if (!url) return "Verbia could not open on this page.";
+  if (isStorePage(url)) return "Chrome and Edge block extensions on their store pages, so the panel cannot open here.";
   if (/^https:\/\/mail\.google\.com\//.test(url) || /^https:\/\/(www\.)?outlook\.(com|live\.com|office\.com)\//.test(url)) {
     return "Open a reply or new email window, then try again.";
   }
@@ -241,6 +268,23 @@ function hintForUrl(url: string | undefined): string {
     return "Focus a reply composer, then try again.";
   }
   return "Focus a text editor on the page, then try again.";
+}
+
+// A page the browser refuses to script (store pages, browser UI, PDFs…) is the
+// one case the badge explains badly: a tooltip holds one sentence, and there is
+// no fix the user can apply. The popup is the only surface that can say so
+// without a new permission, so stash the reason and open it. Chrome before 127
+// has no openPopup — fall back to the badge there.
+async function openNoticePopup(tab: chrome.tabs.Tab, noticeKey: string, fallbackHint: string) {
+  try {
+    await chrome.storage.session.set({ [ACTION_NOTICE_KEY]: noticeKey });
+    await chrome.action.openPopup({ windowId: tab.windowId });
+    await clearActionError();
+  } catch (error) {
+    console.debug("[verbia] could not open the notice popup", error);
+    await chrome.storage.session.remove(ACTION_NOTICE_KEY);
+    await showActionError(fallbackHint);
+  }
 }
 
 async function showActionError(title: string) {

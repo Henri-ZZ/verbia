@@ -22,6 +22,12 @@ select:focus-visible{border-color:#0F6E56;box-shadow:0 0 0 1px #0F6E5626}
 
 type Phase = "idle" | "context_ready" | "recording" | "generating" | "draft_ready" | "inserting" | "inserted" | "error";
 
+// A context with nothing to send: a fresh compose box, or a page read that ran
+// before the composer had rendered what it is answering. Distinguishes "the page
+// has nothing for us" from "we looked too early" (see refreshContextIfEmpty).
+const hasContextBody = (context: ContextEnvelope): boolean =>
+  Boolean(context.selectedText || context.target?.body || context.post?.body || context.post?.title || context.ancestors?.length);
+
 export class VerbiaPanel {
   private host = document.createElement("div");
   private root = this.host.attachShadow({ mode: "closed" });
@@ -52,7 +58,12 @@ export class VerbiaPanel {
   // the floating variant). Used to tell "same editor" from "the editor moved".
   private anchor: Element | null = null;
   private followAnchor = true;
-  private floatWidth = 400;
+  // Floating panels overlay a mail composer (Gmail, Outlook), where the body
+  // text arrives as full-width paragraphs — the inline width reads cramped
+  // there, so the overlay starts about 1.5× wider. The viewport clamp below
+  // still wins on narrow windows, and `positionFloat()` measures the real width
+  // after mount, so the placement math stays correct either way.
+  private floatWidth = 600;
   private floatFrame = 0;
   private dragging = false;
   private dragStart = { x: 0, y: 0, left: 0, top: 0 };
@@ -136,6 +147,30 @@ export class VerbiaPanel {
     else this.mountAfter(anchor);
   }
 
+  // Gmail injects the reply composer before it parses the thread it answers, so
+  // the first extract can report a contextless "new email". showFor skips the
+  // extract once a panel owns an editor, so that early reading would otherwise
+  // stick for the rest of the session. Every later summon re-reads the page
+  // while the panel still has nothing to send, and swaps in the richer context
+  // once the page catches up. A context the user removed by hand ("none") is a
+  // decision, not a gap, so it is left alone.
+  async refreshContextIfEmpty(): Promise<void> {
+    if (this.context.relation === "none" || hasContextBody(this.context)) return;
+    const next = await this.adapter.extractContext(this.target).catch(() => null);
+    if (!next || !hasContextBody(next)) return;
+    this.applyContext(next);
+  }
+
+  // Swaps in a freshly-read context without rebuilding the panel, so a typed
+  // intent, a ready draft, and a collapsed state all survive the refresh.
+  private applyContext(context: ContextEnvelope) {
+    this.context = context;
+    const chip = this.root.querySelector(".chip");
+    if (chip) chip.textContent = this.contextLabel();
+    const body = this.root.querySelector(".context-body");
+    if (body) body.textContent = this.contextText();
+  }
+
   mountAfter(anchor: Element) {
     this.anchor = anchor;
     if (anchor.nextSibling === this.host) return;
@@ -179,14 +214,17 @@ export class VerbiaPanel {
       position: "fixed",
       top: "0px",
       left: "0px",
-      width: "min(400px, calc(100vw - 20px))",
+      width: `min(${this.floatWidth}px, calc(100vw - 20px))`,
       maxHeight: "calc(100vh - 20px)",
       overflowY: "auto",
       zIndex: "2147483647",
       boxShadow: "0 6px 24px rgba(23,32,25,.22)"
     });
     doc.documentElement.append(this.host);
-    this.floatWidth = this.host.getBoundingClientRect().width || 400;
+    // Prefer the width the browser actually laid out (the clamp above may have
+    // shrunk it); keep the default only when the host has no box yet.
+    const measured = this.host.getBoundingClientRect().width;
+    if (measured) this.floatWidth = measured;
     this.positionFloat();
     window.addEventListener("resize", this.onViewportChange);
     // Capture-phase scroll sees scrollers inside the host page (Gmail moves
@@ -292,7 +330,9 @@ export class VerbiaPanel {
   }
 
   private contextLabel() {
-    const source = this.adapter.id === "reddit" ? "Reddit" : this.adapter.id === "gmail" ? this.t("context.gmail") : this.adapter.id === "outlook" ? this.t("context.outlook") : this.t("context.universal");
+    // Brand names that read the same in every language stay inline (Reddit, QQ
+    // Mail); only labels that need translating live in the string table.
+    const source = this.adapter.id === "reddit" ? "Reddit" : this.adapter.id === "qqmail" ? "QQ Mail" : this.adapter.id === "gmail" ? this.t("context.gmail") : this.adapter.id === "outlook" ? this.t("context.outlook") : this.t("context.universal");
     const relation = this.t(`context.rel.${this.context.relation}`);
     return `${source} · ${relation}`;
   }

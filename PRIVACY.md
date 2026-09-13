@@ -1,10 +1,10 @@
 # Privacy Policy for Verbia
 
-Last updated: 2026-09-03
+Last updated: 2026-09-13
 
 ## What data Verbia handles
 
-When you explicitly open Verbia, it reads the currently focused editor and the minimum context needed for that reply. On Reddit this can include the post title/body, target comment, and up to three ancestor comments. On other pages it uses only text you selected, or no page context. When you click Generate, Verbia transmits that context, your intent, output preferences, and non-identifying version metadata to the configured Verbia generation service.
+When you explicitly open Verbia, it reads the currently focused editor and the minimum context needed for that reply. On sites where automatic mode is available, this can include the thread or email you are replying to; elsewhere it uses only the text you selected, or no page context. When you click Generate, Verbia transmits that context, your intent, output preferences, and non-identifying version metadata to the configured Verbia generation service.
 
 Verbia does not read cookies, browsing history, Reddit account IDs, passwords, payment fields, or unrelated page content. It does not monitor whether you send a draft.
 

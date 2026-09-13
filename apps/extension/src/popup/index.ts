@@ -1,4 +1,5 @@
 import { DEFAULT_SETTINGS, UI_STRINGS, resolveUiLang, type AuthState } from "@verbia/shared";
+import { ACTION_NOTICE_KEY } from "../runtime";
 import { renderShortcutKeys } from "../ui/shortcut";
 
 async function applyLanguage() {
@@ -30,6 +31,28 @@ async function applyShortcut() {
 }
 
 void applyShortcut();
+
+// The background opens this popup itself when the shortcut is pressed on a page
+// the browser refuses to script (store pages, browser UI), where the reply panel
+// can never open. It leaves the matching string key in session storage; show it
+// once and clear it, so a later toolbar click never shows a stale notice.
+async function renderPageNotice() {
+  const notice = document.querySelector<HTMLElement>("#page-notice");
+  if (!notice) return;
+  const stored = (await chrome.storage.session.get(ACTION_NOTICE_KEY).catch(() => ({}))) as Record<string, string | undefined>;
+  const key = stored[ACTION_NOTICE_KEY];
+  if (!key) return;
+  await chrome.storage.session.remove(ACTION_NOTICE_KEY).catch(() => undefined);
+  const { settings } = await chrome.storage.local.get("settings");
+  const value = (settings ?? DEFAULT_SETTINGS) as typeof DEFAULT_SETTINGS;
+  const lang = resolveUiLang(value.uiLanguage, chrome.i18n.getUILanguage());
+  const text = UI_STRINGS[lang][key];
+  if (!text) return;
+  notice.textContent = text;
+  notice.hidden = false;
+}
+
+void renderPageNotice();
 
 document.querySelector<HTMLButtonElement>("#open-settings")?.addEventListener("click", () => {
   void chrome.runtime.openOptionsPage();

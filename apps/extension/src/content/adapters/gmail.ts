@@ -63,10 +63,24 @@ function editorBody(root: ParentNode): HTMLElement | null {
   return null;
 }
 
+// Gmail collapses the quoted block behind its "…" toggle: the element stays in
+// the DOM, but innerText comes back empty for a hidden subtree. Fall back to
+// textContent — the point is to read the message being answered, whether or not
+// the user has it expanded on screen. The fallback reads a clone without the
+// invisible element types, so a collapsed quote of an HTML email cannot leak
+// <style> rules or <script> source into the context. Everything a real browser
+// shows is already handled by innerText, which drops both on its own.
+function nodeText(node: HTMLElement): string {
+  if (node.innerText?.trim()) return node.innerText;
+  const clone = node.cloneNode(true) as HTMLElement;
+  clone.querySelectorAll("style,script,noscript,template,head,title").forEach(hidden => hidden.remove());
+  return clone.textContent ?? "";
+}
+
 function quotedOriginal(editor: HTMLElement): HTMLElement | null {
   for (const selector of QUOTE_SELECTORS) {
     const node = editor.querySelector<HTMLElement>(selector);
-    if (node && node.innerText.trim()) return node;
+    if (node && nodeText(node).trim()) return node;
   }
   return null;
 }
@@ -78,17 +92,84 @@ function quotedOriginal(editor: HTMLElement): HTMLElement | null {
 // use. Gmail tags expanded message bodies with class `a3s` inside a
 // `[data-thread-id]` container; list-row snippets carry the same class and
 // are filtered out by the minimum-length check below.
+// Gmail has shipped several wrappers around a message body: the class that holds
+// the text (`a3s`) has stayed put, the ancestor attributes around it have not.
+// Try the precise shapes first, then the class inside the main pane on its own —
+// the minimum-length filter, not the wrapper, is what keeps list-row snippets
+// out of the result.
+const BODY_SELECTORS = [
+  '[role="main"] [data-thread-id] [data-message-id] .a3s',
+  '[role="main"] [data-thread-id] [data-message-id] [class*="a3s"]',
+  '[role="main"] [data-message-id] .a3s',
+  '[role="main"] .a3s'
+];
+
 function visibleEmailBody(): HTMLElement | null {
-  const candidates = document.querySelectorAll<HTMLElement>(
-    '[role="main"] [data-thread-id] [data-message-id] .a3s, [role="main"] [data-thread-id] [data-message-id] [class*="a3s"]'
-  );
   let best: HTMLElement | null = null;
-  for (const node of candidates) {
-    const len = (node.innerText || "").trim().length;
-    if (len < MIN_EXPANDED_BODY_LENGTH) continue;
-    if (!best || len > (best.innerText || "").trim().length) best = node;
+  let bestLength = 0;
+  for (const selector of BODY_SELECTORS) {
+    for (const node of document.querySelectorAll<HTMLElement>(selector)) {
+      // Measured with the same fallback as the read below: a collapsed message
+      // reports an empty innerText, and dropping it here would hide the very
+      // message the user is looking at.
+      const len = nodeText(node).trim().length;
+      if (len < MIN_EXPANDED_BODY_LENGTH || len <= bestLength) continue;
+      best = node;
+      bestLength = len;
+    }
   }
   return best;
+}
+
+// Everything that exists to be *operated* rather than read: control labels,
+// toolbars, form fields, and the assistive-only text Gmail ships for screen
+// readers ("Search for all messages with label Inbox"). A newsletter's own links
+// survive — they are anchors, and their text is message content.
+const NON_CONTENT = [
+  "style", "script", "noscript", "template", "head", "title",
+  "button", "[role='button']", "[role='toolbar']", "[role='menu']", "[role='menuitem']",
+  "[role='tab']", "[role='tablist']", "[role='tabpanel']", "[role='combobox']",
+  "[role='listbox']", "[role='option']", "[aria-haspopup]",
+  "select", "option", "textarea", "input", "form", "label",
+  "[class*='a11y']", "[class*='sr-only']", "[class*='screenReader']",
+  "[contenteditable='true']", "[contenteditable='plaintext-only']", "[contenteditable='']", "[role='textbox']"
+].join(",");
+
+function stripNonContent(root: HTMLElement) {
+  root.querySelectorAll(NON_CONTENT).forEach(node => node.remove());
+}
+
+function siblingsBefore(node: HTMLElement): HTMLElement[] {
+  const before: HTMLElement[] = [];
+  for (let sibling = node.previousElementSibling; sibling; sibling = sibling.previousElementSibling) {
+    if (sibling instanceof HTMLElement) before.unshift(sibling);
+  }
+  return before;
+}
+
+// Reading the thread as a whole is the one fallback that needs no Gmail class
+// names at all: `role="main"` is an accessibility landmark, and that contract has
+// outlived every class rename the UI has shipped. Only an *in-thread* reply is
+// eligible — a docked compose window sits outside the landmark, and letting it
+// through here would hand the inbox list to the model as "context".
+function threadBody(editor: HTMLElement): string {
+  const main = document.querySelector<HTMLElement>('[role="main"]');
+  if (!main || !main.contains(editor)) return "";
+  // Everything that precedes the composer *in document order*, one level at a
+  // time. A reply box can sit beside the message it answers or several wrappers
+  // deep inside the thread, and only the per-level walk covers both — stopping at
+  // the pane's direct child would miss a message nested next to the composer.
+  // Cloning an ancestor is not an option: it would drag the composer into its own
+  // context. This keeps the composer's recipient rows and send controls out while
+  // still carrying the conversation above it.
+  const parts: HTMLElement[] = [];
+  for (let node: HTMLElement | null = editor; node && node !== main; node = node.parentElement) {
+    parts.unshift(...siblingsBefore(node));
+  }
+  const scope = document.createElement("div");
+  for (const part of parts) scope.append(part.cloneNode(true));
+  stripNonContent(scope);
+  return nodeText(scope);
 }
 
 function parentIsGmail(): boolean {
@@ -130,7 +211,7 @@ export class GmailAdapter implements SiteAdapter {
     const editor = target.element;
     const quote = quotedOriginal(editor);
     if (quote) {
-      const body = clean(quote.innerText, 6_000);
+      const body = clean(nodeText(quote), 6_000);
       return {
         relation: "reply_to_email",
         target: { body: body.text || userTypedBody(editor).slice(0, 6_000) },
@@ -157,7 +238,7 @@ export class GmailAdapter implements SiteAdapter {
     }
     const visible = visibleEmailBody();
     if (visible) {
-      const body = clean(visible.innerText, 6_000);
+      const body = clean(nodeText(visible), 6_000);
       // visibleEmailBody only returns genuinely-expanded emails (filtered
       // for length), so the body is a real thread message and we can call
       // this a high-confidence reply context.
@@ -167,6 +248,19 @@ export class GmailAdapter implements SiteAdapter {
         truncated: body.truncated,
         extractorVersion: this.version,
         confidence: "high"
+      };
+    }
+    // Nothing matched by name: read the thread text itself. Heavy HTML mail
+    // (tables, buttons, images) is where Gmail most often leaves the composer
+    // without a quoted block, so this is the path that still carries it.
+    const thread = clean(threadBody(editor), 6_000);
+    if (thread.text.length >= MIN_EXPANDED_BODY_LENGTH) {
+      return {
+        relation: "reply_to_email",
+        target: { body: thread.text },
+        truncated: thread.truncated,
+        extractorVersion: this.version,
+        confidence: "medium"
       };
     }
     return {

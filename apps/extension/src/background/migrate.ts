@@ -14,9 +14,10 @@
 //     set that flag (it lives on the page's window, not in the extension). The
 //     injector is the one deciding the page needs a new instance, so it clears
 //     the marker first — otherwise the injection is a silent no-op.
-//   - the orphan may still have its panel mounted. The fresh instance drops the
-//     leftover shell and marks itself current so the orphan stops advising a
-//     refresh on a page where the panel now works (see content/index.ts).
+//   - the orphan may still have its panel mounted. The fresh instance claims the
+//     page (see content/page-claim.ts) and drops the leftover shell, so the
+//     orphan stops acting on a page that is no longer its own — and stops
+//     advising a refresh on a page where the panel now works.
 
 type ContentScriptEntry = { matches?: string[]; js?: string[]; allFrames?: boolean };
 
@@ -48,7 +49,9 @@ export function matchesPattern(pattern: string, url: URL): boolean {
 export async function reloadContentScript(tabId: number, files: string[], allFrames = false): Promise<void> {
   const target = { tabId, allFrames };
   // `func` runs in the page's isolated world — the same one the content script
-  // uses — so it can drop the marker the orphan left behind.
+  // uses — so it can drop the marker the orphan left behind. The file then
+  // claims the page for itself, which is what retires the orphan
+  // (see content/page-claim.ts).
   await chrome.scripting.executeScript({ target, func: () => { window.__verbiaLoaded = false; } });
   await chrome.scripting.executeScript({ target, files });
 }

@@ -1,6 +1,6 @@
 # Chrome Web Store Listing — Verbia
 
-> Last Updated: 2026-09-12
+> Last Updated: 2026-09-13
 
 ## Store Listing
 
@@ -254,6 +254,7 @@ Screenshot 1 should show reviewed Reddit context and the intent controls. Screen
 | reddit.com origins                                                        | host_permissions | Shows the inline assistant under Reddit reply boxes, reads only the active reply chain, and inserts a user-reviewed draft into its composer.                                                                                                  |
 | https://mail.google.com/*                                                 | host_permissions | Lets the content script run in Gmail's message-composer frame (all_frames + match_about_blank) so Verbia can draft replies inside the email composer the user is writing. Reads only the email being replied to after the composer is opened. |
 | outlook origins (`outlook.live.com`, `outlook.office.com`, `outlook.com`) | host_permissions | Lets the content script locate the message composer in Outlook on the web and read only the email being replied to after the user opens a reply.                                                                                              |
+| https://wx.mail.qq.com/*                                                  | host_permissions | Lets the content script locate the message composer in QQ Mail's web app and read only the message being answered after the user opens the composer.                                                                                          |
 | https://pthfyoejvlcwxboskrjr.supabase.co/*                                | host_permissions | Completes user-initiated Google or email sign-in with Verbia's Supabase project and refreshes the resulting account session.                                                                                                                  |
 
 ## Privacy & Data Use
