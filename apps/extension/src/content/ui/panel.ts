@@ -1,6 +1,8 @@
-import type { ContextEnvelope, EditableTarget, GenerateReplyRequest, GenerateReplyResponse, SiteAdapter, UiLang, UserSettings } from "@verbia/shared";
+import type { ContextEnvelope, ContextExtractionRequest, ContextExtractionResponse, EditableTarget, GenerateReplyRequest, GenerateReplyResponse, SiteAdapter, UiLang, UserSettings } from "@verbia/shared";
 import { DEFAULT_SETTINGS, LENGTH_VALUES, REPLY_LANGUAGE_OPTIONS, TONE_VALUES, UI_STRINGS, resolveUiLang } from "@verbia/shared";
 import { readEditable } from "../editor/editable";
+import { COLLECTOR_VERSION, collectLocalContext, regionFingerprint } from "../context/collector";
+import { contextFromExtraction, extractionSummary } from "../context/mapping";
 import { extensionVersion, runtimeUrl, sendToBackground, uiLanguage } from "../../runtime";
 import { msgColor, msgIcon, type MsgKind } from "../../ui/message";
 
@@ -17,7 +19,8 @@ label{display:block;font-size:.75rem;font-weight:750;color:#39483e;margin:10px 0
 select:hover{border-color:#8fae9b}
 select:focus-visible{border-color:#0F6E56;box-shadow:0 0 0 1px #0F6E5626}
 .head-actions{display:flex;align-items:center;gap:2px}.remove-panel{display:none;color:#87362f}.remove-panel:hover{background:#fae3df}.panel.collapsed .remove-panel{display:grid}.panel.collapsed .head-actions .icon svg{transform:none}.panel.collapsed .head-actions [data-action="collapse"] svg{transform:rotate(180deg)}
-.row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-block-start:10px}.primary,.secondary,.danger{min-block-size:32px;border:0;border-radius:9px;padding:8px 12px;font-weight:750}.primary{background:#0F6E56;color:white}.secondary{background:#e7eee8;color:#214531}.danger{background:#fae3df;color:#87362f}.primary:disabled,.secondary:disabled{opacity:.45;cursor:not-allowed}.status{min-block-size:18px;margin:8px 0 0;color:#526057;font-size:.75rem;display:flex;align-items:center;gap:6px}.status img{inline-size:14px;block-size:14px;flex:none}.status.recording{display:block;color:#a72c25;font-weight:800}.foot{font-size:.7rem;color:#718078;margin:10px 0 0}.insert-choice{border:1px solid #efcf8b;background:#fff9e8;padding:10px;border-radius:10px;margin-block-start:10px}.hidden{display:none!important}@container (max-width:380px){.row{grid-template-columns:1fr}}
+.row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-block-start:10px}
+.identify{display:flex;flex-direction:column;align-items:flex-start;gap:6px;margin-block-start:10px}.identify-status{margin:0;font-size:.75rem;line-height:1.4;color:#526057}.identify-status.error{color:#9c3c34}.primary,.secondary,.danger{min-block-size:32px;border:0;border-radius:9px;padding:8px 12px;font-weight:750}.primary{background:#0F6E56;color:white}.secondary{background:#e7eee8;color:#214531}.danger{background:#fae3df;color:#87362f}.primary:disabled,.secondary:disabled{opacity:.45;cursor:not-allowed}.status{min-block-size:18px;margin:8px 0 0;color:#526057;font-size:.75rem;display:flex;align-items:center;gap:6px}.status img{inline-size:14px;block-size:14px;flex:none}.status.recording{display:block;color:#a72c25;font-weight:800}.foot{font-size:.7rem;color:#718078;margin:10px 0 0}.insert-choice{border:1px solid #efcf8b;background:#fff9e8;padding:10px;border-radius:10px;margin-block-start:10px}.hidden{display:none!important}@container (max-width:380px){.row{grid-template-columns:1fr}}
 `;
 
 type Phase = "idle" | "context_ready" | "recording" | "generating" | "draft_ready" | "inserting" | "inserted" | "error";
@@ -67,6 +70,12 @@ export class VerbiaPanel {
   private floatFrame = 0;
   private dragging = false;
   private dragStart = { x: 0, y: 0, left: 0, top: 0 };
+  // The repair path's state. It belongs to one conversation: how the button
+  // reads, what the last answer said, and the region that answer was about.
+  private identify: "idle" | "loading" | "done" | "failed" = "idle";
+  private identifyMessage = "";
+  private summary: { from: string | null; subject: string | null } | null = null;
+  private aiFingerprint = "";
 
   constructor(private adapter: SiteAdapter, target: EditableTarget, context: ContextEnvelope, private onRemove: () => void) {
     this.target = target;
@@ -140,6 +149,10 @@ export class VerbiaPanel {
     this.target = target;
     this.context = context;
     if (!movedEditor) return;
+    // A different editor is a different conversation: an identification of the
+    // old one must not follow the panel across. The context itself was just
+    // handed over by the caller, so it is left alone.
+    this.forgetIdentification(false);
     this.anchor = anchor;
     this.floatAnchor = target.element;
     this.followAnchor = true;
@@ -338,16 +351,23 @@ export class VerbiaPanel {
   }
 
   private contextText() {
+    // `target` and `ancestors` hold different things across sites: Reddit uses
+    // them for the comment being replied to and its parents, mail for the message
+    // being answered and the rounds before it (the extraction mapping is what
+    // fills the latter in). The headings follow the relation so neither site reads
+    // the other's words.
+    const isMailReply = this.context.relation === "reply_to_email";
     const parts: string[] = [];
     if (this.context.post?.title) parts.push(`${this.t("context.postTitle")}\n${this.context.post.title}`);
     if (this.context.post?.body) parts.push(`${this.t("context.post")}\n${this.context.post.body}`);
-    for (const item of this.context.ancestors ?? []) parts.push(`${this.t("context.parentComment")}\n${item.body}`);
+    const earlier = this.context.ancestors ?? [];
+    // Oldest first in mail: the list arrives newest-first (depth 1 is the round
+    // right before this message) and reads better ending on what is being
+    // answered.
+    for (const item of isMailReply ? [...earlier].reverse() : earlier) {
+      parts.push(`${this.t(isMailReply ? "context.earlierMessages" : "context.parentComment")}\n${item.body}`);
+    }
     if (this.context.target?.body) {
-      // `target` holds different things across sites: Reddit uses it for the
-      // comment being replied to; mail sites (Gmail, Outlook) for the
-      // original message body. Label by relation so the heading matches the
-      // site rather than showing a Reddit-flavoured "Target comment" in mail.
-      const isMailReply = this.context.relation === "reply_to_email";
       const label = isMailReply ? this.t("context.originalMessage") : this.t("context.targetComment");
       parts.push(`${label}\n${this.context.target.body}`);
     }
@@ -397,9 +417,13 @@ export class VerbiaPanel {
     }
   }
 
+  // A picked-not-handed context (confidence "low") is exactly the case a
+  // correction path exists for, so it is also the case where the read has to be
+  // visible: the preview opens itself and the warning sits above it. A normal
+  // read keeps the user's own contextPreviewExpanded preference.
   private renderPanel(intent = "") {
     const low = this.context.confidence === "low";
-    this.root.innerHTML = `<style>${styles}</style><div class="inline-shell"><section class="panel" role="region" aria-labelledby="verbia-title"><header class="head"><div><h2 class="brand" id="verbia-title"><img src="${runtimeUrl("icons/verbia-horizontal-logo.svg")}" alt="Verbia" class="wordmark"></h2><p class="slogan">${this.t("brand.slogan")}</p></div><button class="icon" data-action="collapse" type="button" aria-expanded="true" aria-label="${this.t("panel.collapseAria")}"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 10l4-4 4 4"/></svg></button></header><div class="panel-body"><div class="chip">${escapeHtml(this.contextLabel())}</div>${low ? '<p class="warning">${this.t("panel.warningLow")}</p>' : ""}${this.context.truncated ? '<p class="warning">${this.t("panel.warningTruncated")}</p>' : ""}<details class="context" ${this.settings.contextPreviewExpanded ? "open" : ""}><summary>${this.t("panel.summaryContext")}</summary><div class="context-body">${escapeHtml(this.contextText())}</div><button class="remove-context" data-action="remove-context" type="button">${this.t("panel.removeContext")}</button></details><label for="intent">${this.t("brand.uxLine")}</label><textarea class="intent" id="intent" maxlength="2000" placeholder="${this.t("panel.intentPlaceholder")}">${escapeHtml(intent)}</textarea><div class="actions"><button class="secondary" data-action="record" type="button">${this.t("panel.speak")}</button><button class="secondary" data-action="clear" type="button">${this.t("panel.clear")}</button></div><div class="row">${this.rowCells(this.settings)}</div><div class="actions"><button class="primary" data-action="generate" type="button">${this.t("panel.generate")}</button><button class="danger hidden" data-action="cancel" type="button">${this.t("panel.cancel")}</button></div><p class="status" role="status" aria-live="polite"></p><section class="draft-area hidden"><label for="draft">${this.t("panel.draftLabel")}</label><textarea class="draft" id="draft"></textarea><div class="actions"><button class="primary" data-action="insert" type="button">${this.t("panel.insert")}</button><button class="secondary" data-action="regenerate" type="button">${this.t("panel.regenerate")}</button><button class="secondary" data-action="copy" type="button">${this.t("panel.copy")}</button></div><div class="insert-choice hidden"><strong>${this.t("panel.editorHasText")}</strong><div class="actions"><button class="secondary" data-action="append" type="button">${this.t("panel.append")}</button><button class="danger" data-action="replace" type="button">${this.t("panel.replace")}</button><button class="secondary" data-action="choice-cancel" type="button">${this.t("panel.cancel")}</button></div></div></section><p class="foot">${this.t("panel.foot")}</p></div></section></div>`;
+    this.root.innerHTML = `<style>${styles}</style><div class="inline-shell"><section class="panel" role="region" aria-labelledby="verbia-title"><header class="head"><div><h2 class="brand" id="verbia-title"><img src="${runtimeUrl("icons/verbia-horizontal-logo.svg")}" alt="Verbia" class="wordmark"></h2><p class="slogan">${this.t("brand.slogan")}</p></div><button class="icon" data-action="collapse" type="button" aria-expanded="true" aria-label="${this.t("panel.collapseAria")}"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 10l4-4 4 4"/></svg></button></header><div class="panel-body"><div class="chip">${escapeHtml(this.contextLabel())}</div>${low ? `<p class="warning">${this.t("panel.warningLow")}</p>` : ""}${this.context.truncated ? `<p class="warning">${this.t("panel.warningTruncated")}</p>` : ""}<details class="context" ${this.settings.contextPreviewExpanded || low ? "open" : ""}><summary>${this.t("panel.summaryContext")}</summary><div class="context-body">${escapeHtml(this.contextText())}</div><button class="remove-context" data-action="remove-context" type="button">${this.t("panel.removeContext")}</button></details>${this.identifyBlock()}<label for="intent">${this.t("brand.uxLine")}</label><textarea class="intent" id="intent" maxlength="2000" placeholder="${this.t("panel.intentPlaceholder")}">${escapeHtml(intent)}</textarea><div class="actions"><button class="secondary" data-action="record" type="button">${this.t("panel.speak")}</button><button class="secondary" data-action="clear" type="button">${this.t("panel.clear")}</button></div><div class="row">${this.rowCells(this.settings)}</div><div class="actions"><button class="primary" data-action="generate" type="button">${this.t("panel.generate")}</button><button class="danger hidden" data-action="cancel" type="button">${this.t("panel.cancel")}</button></div><p class="status" role="status" aria-live="polite"></p><section class="draft-area hidden"><label for="draft">${this.t("panel.draftLabel")}</label><textarea class="draft" id="draft"></textarea><div class="actions"><button class="primary" data-action="insert" type="button">${this.t("panel.insert")}</button><button class="secondary" data-action="regenerate" type="button">${this.t("panel.regenerate")}</button><button class="secondary" data-action="copy" type="button">${this.t("panel.copy")}</button></div><div class="insert-choice hidden"><strong>${this.t("panel.editorHasText")}</strong><div class="actions"><button class="secondary" data-action="append" type="button">${this.t("panel.append")}</button><button class="danger" data-action="replace" type="button">${this.t("panel.replace")}</button><button class="secondary" data-action="choice-cancel" type="button">${this.t("panel.cancel")}</button></div></div></section><p class="foot">${this.t("panel.foot")}</p></div></section></div>`;
     this.renderHeadActions();
     this.setSelect("language", this.settings.outputLanguage);
     this.setSelect("tone", this.settings.defaultTone);
@@ -413,6 +437,7 @@ export class VerbiaPanel {
     if (action === "remove-panel") { void this.destroy(); return; }
     if (action === "clear") { const input = this.el<HTMLTextAreaElement>("intent"); if (input) input.value = ""; }
     if (action === "remove-context") this.removeContext();
+    if (action === "identify") void this.identifyContext();
     if (action === "generate" || action === "regenerate") void this.generate();
     if (action === "cancel") void this.cancel();
     if (action === "insert") void this.requestInsert();
@@ -575,6 +600,112 @@ export class VerbiaPanel {
   }
 
   private removeContext() { this.context = { relation: "none", truncated: false, extractorVersion: this.context.extractorVersion, confidence: "high" }; this.root.querySelector(".context-body")!.textContent = this.contextText(); this.root.querySelector(".chip")!.textContent = this.contextLabel(); this.status(this.t("panel.status.contextRemoved")); }
+  // --- the repair path ---------------------------------------------------------
+  //
+  // The adapters read the region around the reply box themselves; when that read
+  // is wrong the user presses this button and the region goes to a model that
+  // says which part of it is the message. This is the only place in the panel
+  // that spends a model call on a click, so it is also the only place allowed to
+  // build a request carrying trigger:"explicit_user_click" — the field the server
+  // checks before paying for one (@see the shared schema and the PRD in
+  // apps/extension/docs).
+
+  private async identifyContext() {
+    if (this.identify === "loading") return;
+    const collected = collectLocalContext(this.target.element);
+    // Nothing above the reply box reads as a conversation: there is no email to
+    // identify, and asking a model about a compose form would only invent one.
+    if (!collected.replyDetected) {
+      this.setIdentify("failed", this.t("context.identifyFailed"));
+      return;
+    }
+    const payload: ContextExtractionRequest = {
+      requestId: crypto.randomUUID(),
+      schemaVersion: "1",
+      trigger: "explicit_user_click",
+      platform: this.adapter.id as ContextExtractionRequest["platform"],
+      page: { urlOrigin: location.origin, locale: document.documentElement.lang || undefined },
+      collected: { text: collected.text, truncated: collected.truncated, nodeCount: collected.nodeCount },
+      client: { extensionVersion: extensionVersion(), collectorVersion: COLLECTOR_VERSION }
+    };
+    // Read before the request: the answer is about the page as it is right now.
+    const fingerprint = regionFingerprint(this.target.element);
+    this.setIdentify("loading", "");
+    try {
+      const response = await sendToBackground<Reply<ContextExtractionResponse>>({ type: "EXTRACT_CONTEXT", payload });
+      if (!response?.ok || !response.data) throw new Error(response?.error?.userMessage || this.t("context.identifyFailed"));
+      const next = contextFromExtraction(response.data, { regionTruncated: collected.truncated });
+      // Nothing usable came back (nothing grounded, or no message in it): the
+      // read this would replace is still the best thing on screen.
+      if (!next) {
+        this.setIdentify("failed", this.t("context.identifyFailed"));
+        return;
+      }
+      this.context = next;
+      const summary = extractionSummary(response.data);
+      this.summary = { from: summary.from, subject: summary.subject };
+      this.aiFingerprint = fingerprint;
+      this.setIdentify("done", "");
+    } catch (error) {
+      const message = error instanceof Error && error.message ? error.message : this.t("context.identifyFailed");
+      this.setIdentify("failed", message);
+    }
+  }
+
+  // The button, and what the last press came back with, right below the context it
+  // is about. The mode ("replying to email") is already the second half of the
+  // chip above, so the summary adds the two things the chip cannot say: who the
+  // mail is from, and what it is about.
+  private identifyBlock(): string {
+    const loading = this.identify === "loading";
+    const label = loading ? this.t("context.identifying") : this.t("context.identify");
+    const status = this.identifyStatus();
+    const klass = this.identify === "failed" ? "identify-status error" : "identify-status";
+    return `<div class="identify"><button class="secondary" data-action="identify" type="button"${loading ? " disabled" : ""}>${label}</button>${status ? `<p class="${klass}" role="status" aria-live="polite">${escapeHtml(status)}</p>` : ""}</div>`;
+  }
+
+  private identifyStatus(): string {
+    if (this.identify === "failed") return this.identifyMessage;
+    if (this.identify !== "done" || !this.summary) return "";
+    const parts = [this.t("context.identified")];
+    if (this.summary.from) parts.push(`${this.t("context.summaryFrom")}: ${this.summary.from}`);
+    if (this.summary.subject) parts.push(`${this.t("context.summarySubject")}: ${this.summary.subject}`);
+    return parts.join(" · ");
+  }
+
+  // Re-renders around a state change, carrying the typed intent and a visible
+  // draft across the rebuild exactly like mergeContextSelection does.
+  private setIdentify(state: "idle" | "loading" | "done" | "failed", message: string) {
+    const intent = this.el<HTMLTextAreaElement>("intent")?.value ?? "";
+    const draftText = this.el<HTMLTextAreaElement>("draft")?.value ?? "";
+    const draftVisible = !this.el("draft-area")?.classList.contains("hidden");
+    this.identify = state;
+    this.identifyMessage = message;
+    this.renderPanel(intent);
+    if (draftText) { const draft = this.el<HTMLTextAreaElement>("draft"); if (draft) draft.value = draftText; }
+    if (draftVisible) this.el("draft-area")?.classList.remove("hidden");
+  }
+
+  // True when the conversation on screen is no longer the one the answer was
+  // about — another message was opened while this panel stayed mounted. The
+  // caller reads the page again; keeping the answer would be worse than the read
+  // it replaced, because nothing on screen supports it any more.
+  dropsStaleIdentification(): boolean {
+    if (!this.aiFingerprint || this.aiFingerprint === regionFingerprint(this.target.element)) return false;
+    this.forgetIdentification(true);
+    return true;
+  }
+
+  // `dropContext` is for the caller that is about to read the page again; without
+  // it the envelope the caller just handed over is left alone.
+  private forgetIdentification(dropContext: boolean) {
+    this.aiFingerprint = "";
+    this.summary = null;
+    this.identify = "idle";
+    this.identifyMessage = "";
+    if (dropContext) this.context = { relation: "none", truncated: false, extractorVersion: this.context.extractorVersion, confidence: "high" };
+  }
+
   private setBusy(busy: boolean) { this.action("generate")?.toggleAttribute("disabled", busy); this.action("cancel")?.classList.toggle("hidden", !busy); }
   private status(message: string, kind: MsgKind | "recording" = "info") {
     const el = this.el("status");

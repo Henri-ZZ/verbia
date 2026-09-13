@@ -2325,3 +2325,8 @@ button:focus-visible {
   .followup-guidance article { padding: 27px 22px; }
 }
 @media (prefers-reduced-motion: reduce) { .followup-scenario-tabs button { transition: none; } }
+
+/* ---- How to ask for payment politely ---- */
+.payment-page .followup-quick-example { border-color: rgba(15,110,86,.2); }
+.payment-demo { background: linear-gradient(145deg,#e2f3e8,#fbfdfb); }
+.payment-status { color: var(--primary-dark) !important; font-weight: 700; }

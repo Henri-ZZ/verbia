@@ -4,7 +4,7 @@ export const dynamic = "force-static";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const lastModified = new Date();
-  return ["", "/zh", "/ai-reply-generator", "/reddit-reply-generator", "/multilingual-reply-generator", "/context-aware-reply-generator", "/ai-reddit-assistant", "/ai-browser-writing-assistant", "/ai-email-reply-generator", "/follow-up-email-after-no-response", "/gmail-ai-reply-assistant", "/outlook-ai-reply-assistant", "/contact", "/privacy", "/terms", "/refund", "/zh/contact", "/zh/privacy", "/zh/terms", "/zh/refund"].map(path => ({
+  return ["", "/zh", "/ai-reply-generator", "/reddit-reply-generator", "/multilingual-reply-generator", "/context-aware-reply-generator", "/ai-reddit-assistant", "/ai-browser-writing-assistant", "/ai-email-reply-generator", "/follow-up-email-after-no-response", "/how-to-ask-for-payment-politely", "/how-to-respond-to-a-job-offer-email", "/reply-to-email-confirmation", "/how-to-remind-someone-politely-in-an-email", "/gmail-ai-reply-assistant", "/outlook-ai-reply-assistant", "/contact", "/privacy", "/terms", "/refund", "/zh/contact", "/zh/privacy", "/zh/terms", "/zh/refund"].map(path => ({
     url: `https://verbia.henriz.dev${path}`,
     lastModified,
     changeFrequency: path === "" || path === "/zh" || path.includes("reply-generator") || path.includes("assistant") ? "weekly" : "yearly",

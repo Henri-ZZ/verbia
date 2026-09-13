@@ -18,6 +18,11 @@ export function SiteFooter({ locale = "en" }: { locale?: SiteLocale }) {
     ["/reddit-reply-generator", zh ? "Reddit 回复生成器" : "Reddit Reply Generator"],
     ["/ai-reddit-assistant", zh ? "AI Reddit 助手" : "AI Reddit Assistant"],
     ["/ai-email-reply-generator", zh ? "AI 邮件回复生成器" : "AI Email Reply Generator"],
+    ["/follow-up-email-after-no-response", zh ? "未回复邮件跟进" : "Follow Up After No Response"],
+    ["/how-to-ask-for-payment-politely", zh ? "礼貌请求付款" : "Ask for Payment Politely"],
+    ["/how-to-respond-to-a-job-offer-email", zh ? "回复工作录用邮件" : "Respond to a Job Offer Email"],
+    ["/reply-to-email-confirmation", zh ? "回复确认邮件" : "Reply to Email Confirmation"],
+    ["/how-to-remind-someone-politely-in-an-email", zh ? "礼貌邮件提醒" : "Send a Polite Email Reminder"],
     ["/gmail-ai-reply-assistant", zh ? "Gmail AI 回复助手" : "Gmail AI Reply Assistant"],
     ["/outlook-ai-reply-assistant", zh ? "Outlook AI 回复助手" : "Outlook AI Reply Assistant"],
   ] as const;

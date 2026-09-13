@@ -1,5 +1,6 @@
-import { generateReplyRequestSchema, generateReplyResponseSchema, type AccountUsage, type ApiError } from "@verbia/shared";
+import { contextExtractionRequestSchema, contextExtractionResponseSchema, generateReplyRequestSchema, generateReplyResponseSchema, type AccountUsage, type ApiError } from "@verbia/shared";
 import { BalancedProvider, GeminiProvider, MockProvider, OpenAiCompatibleProvider, generateWithTelemetry, type ReplyProvider } from "./provider";
+import { createExtractor, extractEmailContext } from "./extraction";
 import { billingConfigured, createCheckout, persistBillingWebhook, verifyBillingWebhook, type BillingCycle } from "./billing";
 import { reportError } from "./monitoring";
 import { verifyBearer, type AuthenticatedBearer } from "./auth";
@@ -113,6 +114,45 @@ export function createApiHandler(env: ApiEnv) {
         console.error("[verbia-api] session handoff failed", error);
         reportError(error, "session_handoff");
         return json(502, { error: "Sign-in sync is temporarily unavailable." });
+      }
+    }
+    if (request.method === "POST" && path === "/v1/context:extract") {
+      let requestId = "unknown";
+      const timings: TimingMetric[] = [];
+      try {
+        const body = await readJson(request, maxBodyBytes);
+        // `trigger` is part of the schema and must be "explicit_user_click", so
+        // a missing gate in the UI costs a 400 here instead of a silent call.
+        const parsed = contextExtractionRequestSchema.safeParse(body);
+        if (!parsed.success) return apiError(400, requestId, "INVALID_REQUEST", false, "Verbia could not read the page text it collected.");
+        requestId = parsed.data.requestId;
+        logRequestId = requestId;
+        const auth = await measure("auth", timings, () => verifyBearer(request.headers.get("authorization"), env));
+        if (auth.status === "invalid") return apiError(401, requestId, "UNAUTHENTICATED", false, "Sign-in expired. Sign in again from Verbia settings.");
+        if (auth.status === "none" && env.AUTH_REQUIRED === "1") return apiError(401, requestId, "UNAUTHENTICATED", false, "Sign in from Verbia settings to identify the context.");
+        // Deliberately not counted against the daily reply quota: this repairs a
+        // read the user is about to generate from, and charging for it would make
+        // the honest path the expensive one.
+        const extractor = createExtractor(env);
+        if (!extractor) return apiError(503, requestId, "NOT_CONFIGURED", false, "Context identification is not configured.");
+        const started = performance.now();
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), numberEnv(env, "EXTRACTOR_TIMEOUT_MS", 12_000));
+        try {
+          const result = await measure("model", timings, () => extractEmailContext(extractor, parsed.data, controller.signal));
+          logProvider = extractor.id;
+          const value = contextExtractionResponseSchema.parse({ requestId, ...result, latencyMs: Math.round(performance.now() - started) });
+          return withServerTiming(json(200, value), timings);
+        } finally { clearTimeout(timer); }
+      } catch (error) {
+        const err = error as { code?: string; status?: number; detail?: string; name?: string; message?: string };
+        console.error(`[verbia-api] context extraction ${requestId} failed:`, err);
+        if (err.code === "TOO_LARGE") return apiError(413, requestId, "TOO_LARGE", false, "The collected page text is too large.");
+        if (err instanceof SyntaxError) return apiError(400, requestId, "INVALID_REQUEST", false, "Verbia could not read the page text it collected.");
+        if (err.name === "AbortError") return apiError(504, requestId, "TIMEOUT", true, "Identifying the context timed out. Try again.");
+        if (err.status === 429) return apiError(429, requestId, "RATE_LIMITED", true, "The model is busy or quota-limited. Try again shortly.", err.detail);
+        reportError(error, "context_extraction", { requestId });
+        return apiError(502, requestId, "PROVIDER_ERROR", true, "Verbia could not identify the context on this page. Select the text you are answering instead.", err.detail ?? err.message);
       }
     }
     if (request.method !== "POST" || path !== "/v1/replies:generate") return json(404, { error: "Not found" });

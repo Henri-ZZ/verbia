@@ -122,6 +122,12 @@ if (!window.__verbiaLoaded) {
       // next to the one the instance that owns the page is showing.
       if (!isCurrent()) return false;
       const target = toTarget(element);
+      // Mail sites render the composer inline in the host page; float the panel
+      // so it never becomes part of the outgoing message. Park it next to the
+      // editor so the eye doesn't have to jump to the opposite corner of the
+      // page. Everywhere else the panel is inlined right after the reply box.
+      const floating = adapter === gmail || adapter === outlook || adapter === qqmail;
+      const anchorFor = () => (floating ? element : findReplyAnchor(element));
       // Already open for this editor and still on the page: nothing to rebuild.
       // The check goes through the panel, not the document: host pages re-render
       // the subtree our host sits in (Reddit re-creates its composer on every
@@ -132,6 +138,15 @@ if (!window.__verbiaLoaded) {
         // content survives; passive focus-in never unfolds.
         if (stagedSelection) panel.mergeContextSelection(stagedSelection.text, stagedSelection.truncated);
         if (focusIntent) void panel.unfoldIfCollapsed();
+        // An identification is an answer about the conversation that was on
+        // screen when the user asked for it, and this panel outlives a switch to
+        // the next message. Keeping that answer would be worse than the read it
+        // replaced, so the page is read again and the answer dropped.
+        if (panel.dropsStaleIdentification()) {
+          panel.update(target, await adapter.extractContext(target), anchorFor());
+          await panel.open(false);
+          return true;
+        }
         // The panel owns this editor now, so nothing below re-reads the page —
         // but the page may have caught up since the first read (see the method).
         void panel.refreshContextIfEmpty();
@@ -154,12 +169,7 @@ if (!window.__verbiaLoaded) {
       // take the page over while it is in flight, and everything below — the
       // panel included — would then be built a second time.
       if (!isCurrent()) return false;
-      // Mail sites render the composer inline in the host page; float the panel
-      // so it never becomes part of the outgoing message. Park it next to the
-      // editor so the eye doesn't have to jump to the opposite corner of the
-      // page. Everywhere else the panel is inlined right after the reply box.
-      const floating = adapter === gmail || adapter === outlook || adapter === qqmail;
-      const mountAnchor = floating ? element : findReplyAnchor(element);
+      const mountAnchor = anchorFor();
       // Focus and click arrive as two separate events, and an explicit summon can
       // race the auto-open, so two invocations can both clear the check at the top
       // and meet again only here — after the page read. Whoever lands second must

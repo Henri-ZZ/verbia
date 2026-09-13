@@ -28,6 +28,9 @@ describe("Gmail context adapter", () => {
     const context = await new GmailAdapter().extractContext(toTarget(document.querySelector(COMPOSER)!));
     expect(context.relation).toBe("reply_to_email");
     expect(context.target?.body).toContain("The whole original message.");
+    // Picked by "longest .a3s", not handed over by Gmail: reported honestly as a
+    // guess, so the panel shows it and the user can correct it.
+    expect(context.confidence).toBe("low");
   });
 
   // HTML emails (newsletters, reports, tables) need no parsing: the adapter
@@ -50,6 +53,21 @@ describe("Gmail context adapter", () => {
     const context = await new GmailAdapter().extractContext(toTarget(document.querySelector(COMPOSER)!));
     expect(context.relation).toBe("reply_to_email");
     expect(context.target?.body).toContain("The whole original message.");
+  });
+
+  // The thread text runs oldest → newest, so a cap has to keep the end: cutting
+  // the head drops the message being answered and keeps the round from five
+  // replies ago. (The quoted block Gmail inserts is the other way round, newest
+  // first, which is why that read still keeps its head.)
+  it("keeps the newest end when a long thread has to be cut", async () => {
+    const oldest = `Old round: ${"stale detail. ".repeat(500)}`;
+    const newest = "Newest round: can you confirm the final version is ready by Friday?";
+    document.body.innerHTML = `<div role="main"><div><p>${oldest}</p><p>${newest}</p></div><div contenteditable="true"></div></div>`;
+    const context = await new GmailAdapter().extractContext(toTarget(document.querySelector(COMPOSER)!));
+    expect(context.relation).toBe("reply_to_email");
+    expect(context.truncated).toBe(true);
+    expect(context.target?.body).toContain("final version is ready by Friday");
+    expect(context.target?.body).not.toContain("Old round:");
   });
 
   // A docked compose window sits outside the message landmark: whatever is on

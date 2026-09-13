@@ -52,6 +52,58 @@ export const generateReplyResponseSchema = z.object({
   latencyMs: z.number().nonnegative()
 });
 
+// --- AI context extraction: the repair path -----------------------------------
+//
+// The mail adapters read the region around a reply box themselves (@see
+// apps/extension/src/content/context/collector.ts). When that read is wrong the
+// user can ask for this instead: the collected region goes to a model that says
+// which part of it is the message being answered, who sent it, and what the
+// subject is.
+//
+// Two gates keep this from becoming an always-on call. The extension only sends
+// it from the button's own click handler, and `trigger` must be
+// "explicit_user_click" for the server to accept the request at all — a missing
+// gate in the UI then costs a 400 instead of a silent bill.
+
+export const extractionTaskSchema = z.enum(["compose", "reply", "reply_all", "forward", "unknown"]);
+export const extractionWarningSchema = z.enum(["subject_not_found", "sender_not_found", "sender_name_not_found", "no_current_message"]);
+
+export const contextExtractionRequestSchema = z.object({
+  requestId: z.string().uuid(),
+  schemaVersion: z.literal("1"),
+  trigger: z.literal("explicit_user_click"),
+  platform: z.enum(["reddit", "gmail", "outlook", "qqmail", "universal"]),
+  page: z.object({ urlOrigin: z.string().url().max(300), locale: z.string().max(30).optional() }),
+  collected: z.object({
+    // The region text, already cleaned in the browser. Never the page: the
+    // extractor only ever sees what the collector handed over.
+    text: z.string().trim().min(1).max(6_000),
+    truncated: z.boolean(),
+    nodeCount: z.number().int().nonnegative().max(10_000)
+  }),
+  client: z.object({ extensionVersion: z.string().max(30), collectorVersion: z.string().max(30) })
+});
+
+export const contextExtractionResponseSchema = z.object({
+  requestId: z.string().uuid(),
+  task: extractionTaskSchema,
+  subject: z.string().max(500).nullable(),
+  sender: z.object({ name: z.string().max(200).nullable(), email: z.string().max(200).nullable() }).nullable(),
+  currentMessage: z.string().max(6_000).nullable(),
+  // The rounds before it, most recent first. Two or three rounds are what tells a
+  // reply what "as I said earlier" refers to; everything older is cost without
+  // signal (@see §14 of the PRD). An extraction that cannot tell the rounds apart
+  // returns an empty list, which is why this is required rather than optional.
+  previousMessages: z.array(z.string().max(4_000)).max(3),
+  // The model's confidence, lowered by how much of the result could be traced
+  // back to the collected text. The client's accept threshold applies to this
+  // number, never to the model's own claim (@see reliabilityOf in extraction.ts).
+  confidence: z.number().min(0).max(1),
+  validation: z.object({ grounded: z.boolean(), warnings: z.array(extractionWarningSchema) }),
+  usage: z.object({ inputTokens: z.number().int().optional(), outputTokens: z.number().int().optional() }).optional(),
+  latencyMs: z.number().nonnegative()
+});
+
 export const VOICE_LANGUAGE_OPTIONS = [
   { value: "auto", label: "Auto (follow browser)" },
   { value: "en-US", label: "English" },
@@ -168,6 +220,10 @@ export const apiErrorSchema = z.object({
 export type ContextEnvelope = z.infer<typeof contextEnvelopeSchema>;
 export type GenerateReplyRequest = z.infer<typeof generateReplyRequestSchema>;
 export type GenerateReplyResponse = z.infer<typeof generateReplyResponseSchema>;
+export type ExtractionTask = z.infer<typeof extractionTaskSchema>;
+export type ExtractionWarning = z.infer<typeof extractionWarningSchema>;
+export type ContextExtractionRequest = z.infer<typeof contextExtractionRequestSchema>;
+export type ContextExtractionResponse = z.infer<typeof contextExtractionResponseSchema>;
 export type ApiError = z.infer<typeof apiErrorSchema>;
 export type StagedContext = z.infer<typeof stagedContextSchema>;
 export type Tone = z.infer<typeof toneSchema>;

@@ -34,9 +34,9 @@ describe("QQ Mail context adapter", () => {
     expect(context.target?.body).toBe("帮我说一句收到");
   });
 
-  // The composer is empty and carries no quote: the message on screen is what the
-  // user is answering. The app's own controls inside that block must not travel
-  // with it.
+  // The composer is empty and carries no quote: the region around it is what the
+  // user is answering, and the app's own controls inside that region must not
+  // travel with it.
   it("falls back to the message on screen and drops the app chrome", async () => {
     document.body.innerHTML = `<div class="xmail-app">
       <div role="toolbar"><button>删除</button></div>
@@ -85,11 +85,13 @@ describe("QQ Mail context adapter", () => {
     expect(header.length).toBeGreaterThan(120); // the header really is the longer block
   });
 
-  // Reported from a real reply: an Alibaba Cloud billing notice. Its footer —
+  // Reported from a real reply: an Alibaba Cloud billing notice whose footer —
   // branding, QR codes, "Copyright © 阿里云 2009-2026 All Rights Reserved" — sits
-  // between the message and the reply box, and being the block nearest above the
-  // composer it was read as the message being answered.
-  it("steps over the footer and reads the message above it", async () => {
+  // between the message and the reply box. Picking "the block nearest above the
+  // composer" read that footer as the message being answered; the region read
+  // hands over the whole area above the box instead, so the message is *in* the
+  // context rather than replaced by its own footer.
+  it("hands over the region above the reply box, footer included", async () => {
     const body = "尊敬的ambitious98：您的账户ambitious98已产生欠费，您的按量付费商品延期停服的额度为10.00元，目前已使用0.06元。延停额度用尽后按量付费产品出账后将立即进入停服处理流程，请您尽快结清欠费账单，以免免费停服给您带来不必要的损失。欠费详情请至用户中心首页查询。如有任何问题，您可登录我司网站获得在线售后支持。我们将竭诚为您服务。本邮件为系统发出，请勿回复。";
     document.body.innerHTML = `<div class="xmail-app"><div class="xmail-read-detail">
       <div class="xmail-read-body">${body}</div>
@@ -102,14 +104,19 @@ describe("QQ Mail context adapter", () => {
     const context = await new QqMailAdapter().extractContext(toTarget(document.querySelector(EDITOR)!));
     expect(context.relation).toBe("reply_to_email");
     expect(context.target?.body).toContain("已产生欠费");
-    expect(context.target?.body).not.toContain("Copyright");
-    expect(context.target?.body).not.toContain("公众号");
+    expect(context.target?.body).toContain("尊敬的ambitious98");
+    // The footer rides along: that is the accepted cost of not picking a block.
+    // It is a neighbour the model can ignore, where a pick had replaced the
+    // message with it.
+    expect(context.target?.body).toContain("Copyright");
+    // Read off the page rather than handed over by the app: the panel has to say
+    // it is not sure, and that is the signal a correction path hangs off.
+    expect(context.confidence).toBe("low");
   });
 
-  // The phrases that mark a tail are the ones a message rarely carries itself.
-  // Disclaimers are deliberately not among them: this notice says "请勿回复" in
-  // its *body*, and reading the block above it instead would be worse than
-  // reading the notice.
+  // A short notice is still a message, and nothing in its own text disqualifies
+  // it: this one says "请勿回复" in its body. A region read has no phrase list
+  // that could get that wrong.
   it("reads a short notice whose own text says 请勿回复", async () => {
     document.body.innerHTML = `<div class="xmail-app"><div class="xmail-read-detail">
       <div class="xmail-read-body">尊敬的客户：您的账户已开通自动续费，系统将在到期前24小时自动扣款。本邮件为系统发出，请勿回复。</div>
@@ -118,12 +125,12 @@ describe("QQ Mail context adapter", () => {
     </div></div>`;
     const context = await new QqMailAdapter().extractContext(toTarget(document.querySelector(EDITOR)!));
     expect(context.target?.body).toContain("自动续费");
-    expect(context.target?.body).not.toContain("Copyright");
+    expect(context.confidence).toBe("low");
   });
 
-  // Everything above the reply box is a tail: there is no message on screen to
-  // read, and reading the tail still beats reporting a reply as a new email.
-  it("keeps the tail when it is the only block on screen", async () => {
+  // A footer is all the region holds: it is still something the user is looking
+  // at while answering, and reading it beats reporting a reply as a new email.
+  it("still reads the region when a footer is all it holds", async () => {
     document.body.innerHTML = `<div class="xmail-app"><div class="xmail-read-detail">
       <div class="xmail-footer-legal">Copyright © 阿里云 2009-2026 All Rights Reserved</div>
       <div class="xmail-cmp"><div contenteditable="true" aria-label="输入正文"></div></div>

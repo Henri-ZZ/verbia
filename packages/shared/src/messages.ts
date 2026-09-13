@@ -1,4 +1,4 @@
-import type { ContextEnvelope, GenerateReplyRequest, GenerateReplyResponse, UserSettings } from "./schema";
+import type { ContextEnvelope, ContextExtractionRequest, ContextExtractionResponse, GenerateReplyRequest, GenerateReplyResponse, UserSettings } from "./schema";
 
 // The part of a staged right-click selection that travels to the content
 // script. The full record (with pageUrl/updatedAt) stays in session storage.
@@ -29,6 +29,11 @@ export type AuthState = {
 
 export type ExtensionRequest =
   | { type: "GENERATE_REPLY"; payload: GenerateReplyRequest }
+  // Sent only from the panel's "identify this email" button. The request carries
+  // trigger:"explicit_user_click", which is the same gate the server enforces
+  // (@see contextExtractionRequestSchema), so a caller that skips the button
+  // still cannot spend a model call.
+  | { type: "EXTRACT_CONTEXT"; payload: ContextExtractionRequest }
   | { type: "CANCEL_GENERATION"; requestId: string }
   | { type: "GET_SETTINGS" }
   | { type: "SAVE_SETTINGS"; settings: UserSettings }
@@ -46,7 +51,7 @@ export type ExtensionRequest =
   | { type: "SIGN_OUT" };
 
 export type ExtensionResponse =
-  | { ok: true; data?: GenerateReplyResponse | UserSettings | { reset: true } | AuthState }
+  | { ok: true; data?: GenerateReplyResponse | ContextExtractionResponse | UserSettings | { reset: true } | AuthState }
   | { ok: false; error: { code: string; userMessage: string; retryable: boolean; detail?: string } };
 
 export type EditableKind = "textarea" | "input" | "contenteditable";

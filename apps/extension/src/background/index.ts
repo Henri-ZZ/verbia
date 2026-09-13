@@ -1,4 +1,4 @@
-import { DEFAULT_SETTINGS, UI_STRINGS, generateReplyRequestSchema, generateReplyResponseSchema, resolveUiLang, type AccountUsage, type AuthState, type ExtensionRequest, type ExtensionResponse, type StagedContext, type StagedSelection, type UiLang, type UserSettings } from "@verbia/shared";
+import { DEFAULT_SETTINGS, UI_STRINGS, contextExtractionRequestSchema, contextExtractionResponseSchema, generateReplyRequestSchema, generateReplyResponseSchema, resolveUiLang, type AccountUsage, type AuthState, type ExtensionRequest, type ExtensionResponse, type StagedContext, type StagedSelection, type UiLang, type UserSettings } from "@verbia/shared";
 import { SUPABASE_URL, WEB_AUTH_ORIGIN, authBearer, authEnabled, authSnapshot, clearSession, establishSessionFromTokenHash, getSupabase, refreshStoredSession, signOut } from "../auth/supabase";
 import { ACTION_NOTICE_KEY } from "../runtime";
 import { migrateOpenTabs, reloadContentScript } from "./migrate";
@@ -331,6 +331,10 @@ chrome.runtime.onMessage.addListener((message: ExtensionRequest, sender, sendRes
     void generate(message.payload).then(data => sendResponse({ ok: true, data })).catch(error => sendResponse(failure(error)));
     return true;
   }
+  if (message.type === "EXTRACT_CONTEXT") {
+    void extractContext(message.payload).then(data => sendResponse({ ok: true, data })).catch(error => sendResponse(failure(error)));
+    return true;
+  }
   if (message.type === "GET_AUTH_STATE") {
     void accountSnapshot().then(data => sendResponse({ ok: true, data })).catch(error => sendResponse(failure(error)));
     return true;
@@ -426,6 +430,32 @@ async function generate(payload: unknown) {
     if (session.cancelledRequestId === request.requestId) throw Object.assign(new Error("Generation cancelled."), { code: "CANCELLED" });
     await chrome.storage.session.set({ activeRequestId: undefined, phase: "draft_ready", updatedAt: Date.now() });
     return result;
+  } finally { clearTimeout(timeout); }
+}
+
+// The panel's "identify this email" button. Mirrors generate() — same gateway,
+// same bearer, same error shape — but with no quota bookkeeping and no session
+// state: nothing is being generated here, the answer only replaces the context
+// this one panel is working from.
+async function extractContext(payload: unknown) {
+  const request = contextExtractionRequestSchema.parse(payload);
+  const settings = await getSettings();
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15_000);
+  try {
+    const bearer = await authBearer();
+    const response = await fetch(`${apiBaseUrl(settings)}/v1/context:extract`, {
+      method: "POST",
+      headers: { "content-type": "application/json", ...(bearer ? { authorization: bearer } : {}) },
+      body: JSON.stringify(request),
+      signal: controller.signal
+    });
+    const body: unknown = await response.json().catch(() => null);
+    if (!response.ok) {
+      const serverError = body as { userMessage?: string; code?: string; retryable?: boolean; detail?: string } | null;
+      throw Object.assign(new Error(serverError?.userMessage ?? `Context identification returned ${response.status}.`), { code: serverError?.code, retryable: serverError?.retryable, detail: serverError?.detail });
+    }
+    return contextExtractionResponseSchema.parse(body);
   } finally { clearTimeout(timeout); }
 }
 

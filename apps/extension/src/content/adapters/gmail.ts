@@ -38,6 +38,16 @@ function clean(value?: string | null, max = 6_000): { text: string; truncated: b
   return { text: text.slice(0, max), truncated: text.length > max };
 }
 
+// The same cap, keeping the end instead of the start. It is for the one read that
+// runs in document order, oldest message first: when a long thread has to be cut,
+// what survives must be the newest text — the message being answered — and not
+// the round from five replies ago. The quoted block the client inserts is the
+// other way round (newest first), which is why `clean` keeps its head.
+function cleanTail(value?: string | null, max = 6_000): { text: string; truncated: boolean } {
+  const text = (value ?? "").replace(/\s+/g, " ").trim();
+  return { text: text.length > max ? text.slice(-max) : text, truncated: text.length > max };
+}
+
 // The text the user actually typed into the editor. Gmail renders smart-compose
 // prompts and other ghost text inside the editable region itself; those nodes
 // are non-editable decorations and must not be treated as user content. Read a
@@ -239,21 +249,22 @@ export class GmailAdapter implements SiteAdapter {
     const visible = visibleEmailBody();
     if (visible) {
       const body = clean(nodeText(visible), 6_000);
-      // visibleEmailBody only returns genuinely-expanded emails (filtered
-      // for length), so the body is a real thread message and we can call
-      // this a high-confidence reply context.
+      // The length floor keeps inbox snippets out, but the pick itself is
+      // "longest .a3s in the pane": a guess about which message in the thread is
+      // the one being answered. Claiming `high` for it was over-claiming — a
+      // guess is reported as `low`, like the other picked-not-handed reads.
       return {
         relation: "reply_to_email",
         target: { body: body.text },
         truncated: body.truncated,
         extractorVersion: this.version,
-        confidence: "high"
+        confidence: "low"
       };
     }
     // Nothing matched by name: read the thread text itself. Heavy HTML mail
     // (tables, buttons, images) is where Gmail most often leaves the composer
     // without a quoted block, so this is the path that still carries it.
-    const thread = clean(threadBody(editor), 6_000);
+    const thread = cleanTail(threadBody(editor), 6_000);
     if (thread.text.length >= MIN_EXPANDED_BODY_LENGTH) {
       return {
         relation: "reply_to_email",

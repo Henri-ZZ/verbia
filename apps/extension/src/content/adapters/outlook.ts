@@ -113,32 +113,41 @@ function pickParagraphContainer(root: ParentNode): HTMLElement | null {
   return best;
 }
 
-// Resolve the visible original message the user is replying to, as text.
+// Resolve the visible original message the user is replying to, as text plus
+// how it was obtained.
 // Order: known Outlook container selectors -> structural scan of the top
 // document -> same-origin iframes (Outlook embeds some bodies in a frame) ->
 // base64 round-trip of an HTML preview blob.
-function visibleEmailText(): string | null {
+//
+// Only the first step reads something the app names; the rest *pick* a
+// container by structure and line length, which is a guess about which block is
+// the message being answered. Guesses come back as `low` so the panel can say
+// it is not sure.
+type VisibleEmail = { text: string; confidence: "medium" | "low" };
+
+function visibleEmailText(): VisibleEmail | null {
   // 1) Known container attributes.
   for (const node of document.querySelectorAll<HTMLElement>(READING_PANE_SELECTORS.join(","))) {
     const t = textOf(node);
-    if (t.length >= MIN_TEXT_LENGTH) return t.slice(0, 6_000);
+    if (t.length >= MIN_TEXT_LENGTH) return { text: t.slice(0, 6_000), confidence: "medium" };
   }
   // 2) Structural scan of the top document. Scans the whole body — in some
   //    Outlook reply layouts the original message sits outside [role="main"]
   //    (e.g. in the conversation / message-list pane), and the icon-font and
   //    header-label filters already keep nav and ribbons out.
   const fromTop = pickParagraphContainer(document.body);
-  if (fromTop) return textOf(fromTop).slice(0, 6_000);
+  if (fromTop) return { text: textOf(fromTop).slice(0, 6_000), confidence: "low" };
   // 3) Same-origin iframes (cross-origin / sandbox-blocked throw and skip).
   for (const iframe of Array.from(document.querySelectorAll<HTMLIFrameElement>("iframe"))) {
     let innerDoc: Document | null = null;
     try { innerDoc = iframe.contentDocument; } catch { continue; }
     if (!innerDoc?.body) continue;
     const fromIframe = pickParagraphContainer(innerDoc.body);
-    if (fromIframe) return textOf(fromIframe).slice(0, 6_000);
+    if (fromIframe) return { text: textOf(fromIframe).slice(0, 6_000), confidence: "low" };
   }
   // 4) Base64-encoded HTML preview ("show original" payload).
-  return visibleEmailBase64Text();
+  const decoded = visibleEmailBase64Text();
+  return decoded ? { text: decoded, confidence: "low" } : null;
 }
 
 // Outlook's HTML reply preview can encode the original as a base64 text node.
@@ -215,14 +224,14 @@ export class OutlookAdapter implements SiteAdapter {
     //    message in the reading pane / conversation area.
     const visible = visibleEmailText();
     if (visible) {
-      const visibleBody = clean(visible, 6_000);
+      const visibleBody = clean(visible.text, 6_000);
       if (visibleBody.text) {
         return {
           relation: "reply_to_email",
           target: { body: visibleBody.text },
           truncated: visibleBody.truncated,
           extractorVersion: this.version,
-          confidence: "high"
+          confidence: visible.confidence
         };
       }
     }

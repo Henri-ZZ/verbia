@@ -80,10 +80,10 @@
 
 #### 1B. `/how-to-ask-for-payment-politely/`
 
-- [ ] `未开始` 填写完整 Page Specification。
-- [ ] `未开始` 区分首次付款请求、逾期提醒和后续催款的页面范围。
-- [ ] `未开始` 设计不伤害客户关系的 contextual demo。
-- [ ] `未开始` 实现页面与完整 QA。
+- [x] `已完成` 填写完整 [`Page Specification`](./specs/how-to-ask-for-payment-politely.md)。
+- [x] `已完成` 区分首次付款请求、到期提醒、短期逾期和深度催收的页面范围。
+- [x] `已完成` 设计包含发票、金额、到期状态、母语 intent 和自然回复的 contextual demo。
+- [x] `已完成` 实现页面、metadata、canonical、FAQ schema、双向内链、页脚入口、sitemap 与完整 QA。
 
 **批次停止点：** 两页完成后汇报差异、验证结果和待决策项，等待用户指令。
 
@@ -91,15 +91,17 @@
 
 #### 2A. `/how-to-respond-to-a-job-offer-email/`
 
-- [ ] `未开始` 覆盖接受、请求考虑时间、澄清条款和初步协商。
-- [ ] `未开始` 将明确拒绝留给独立 decline 页面。
-- [ ] `未开始` 实现页面与完整 QA。
+- [x] `已完成` 填写完整 [`Page Specification`](./specs/how-to-respond-to-a-job-offer-email.md)。
+- [x] `已完成` 覆盖接受、请求考虑时间、澄清条款和初步协商。
+- [x] `已完成` 将明确拒绝留给独立 decline 页面。
+- [x] `已完成` 实现页面、交互 demo、metadata、FAQ schema、内链、sitemap 与完整 QA。
 
 #### 2B. `/reply-to-email-confirmation/`
 
-- [ ] `未开始` 先确认混合 SERP 下的主要 communication job。
-- [ ] `未开始` 检查与 RSVP、confirm participation 和 interview confirmation 的边界。
-- [ ] `未开始` 实现页面与完整 QA。
+- [x] `已完成` 填写完整 [`Page Specification`](./specs/reply-to-email-confirmation.md)。
+- [x] `已完成` 将混合 SERP 的 owner 限定为“回应已成立的 confirmation”。
+- [x] `已完成` 排除 RSVP、confirm participation 和 interview invitation，避免 cannibalization。
+- [x] `已完成` 实现页面、交互 demo、metadata、FAQ schema、内链、sitemap 与完整 QA。
 
 **批次停止点：** 两页完成后检查 query 覆盖和潜在 cannibalization，等待用户指令。
 
@@ -107,8 +109,9 @@
 
 #### 3A. `/how-to-remind-someone-politely-in-an-email/`
 
-- [ ] `未开始` 定义 reminder 与 follow-up 的内容边界。
-- [ ] `未开始` 实现页面与完整 QA。
+- [x] `已完成` 填写完整 [`Page Specification`](./specs/how-to-remind-someone-politely-in-an-email.md)。
+- [x] `已完成` 定义 reminder 与 generic follow-up、no-response 和 payment reminder 的内容边界。
+- [x] `已完成` 实现三个时间阶段 demo、metadata、FAQ schema、内链、页脚、sitemap 与完整 QA。
 
 #### 3B. `/how-to-reply-to-a-recruiter-on-linkedin/`
 
@@ -221,6 +224,10 @@
 | 2026-09-13 | 阶段 0 | 建立 URL registry、Page Specification 模板、生产架构和技术基线；完成产品事实校准 | 已完成；类型检查和生产构建通过 | 等待用户指示是否进入阶段 1A |
 | 2026-09-13 | 阶段 1A · Specification | 完成 no-response follow-up 页的 intent、证据、内容、demo、metadata、内链和 QA 方案 | 待用户确认 | 确认后实现页面 |
 | 2026-09-13 | 阶段 1A · Implementation | 实现页面、三种情境切换、FAQ schema、sitemap 与产品页反向内链 | 本地完成；类型检查、构建及桌面/390px 视觉检查通过 | 等待用户审阅页面 |
+| 2026-09-13 | 阶段 1B · Specification | 完成 polite payment request 页的 intent、证据、边界、内容、demo、metadata、内链和 QA 方案 | 待用户确认 | 确认后实现页面 |
+| 2026-09-13 | 阶段 1B · Implementation | 实现付款请求页、三种付款阶段切换、FAQ schema、sitemap、页脚入口及相邻页面双向内链 | 本地完成；类型检查、生产构建、桌面/390px 视觉与交互检查通过 | 等待用户审阅页面 |
+| 2026-09-13 | 阶段 2A/2B · Implementation | 完成 job offer response 与 email confirmation 两页规格；实现共享情境组件、7 个真实场景、FAQ schema、sitemap、页脚及相邻页内链 | 本地完成；类型检查、生产构建、桌面/390px 视觉与交互检查通过 | 等待用户审阅两页 |
+| 2026-09-13 | 阶段 3A · Implementation | 完成 polite email reminder 规格与页面；实现截止日前、当天、逾期三个场景及相关 owner 内链 | 本地完成；类型检查、生产构建、320/390px 与桌面视觉和交互检查通过 | 等待用户审阅页面 |
 
 ## 8. 决策日志
 
@@ -234,4 +241,4 @@
 
 ## 9. 当前下一步
 
-`阶段 1A 已实现，等待用户审阅`。本地页面：`http://localhost:3000/follow-up-email-after-no-response`。确认后再按指令进入阶段 1B。
+`阶段 3A 已本地完成`。等待用户审阅新页面；收到下一阶段指令后直接进入实现。
