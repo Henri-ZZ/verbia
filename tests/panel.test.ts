@@ -215,6 +215,26 @@ describe("identifying the context", () => {
   // The server words its failures in English; the panel words them in the
   // interface language, by the code — the server's own sentence goes to the
   // console.
+  // The adapter knows its site better than the collector does: when it hands over
+  // a region, that is what goes to the model — not the collector's own read.
+  it("prefers the region the adapter hands over", async () => {
+    const sent: Sent[] = [];
+    class HintedAdapter extends QqMailAdapter {
+      identifyRegion() { return { text: "Thread text handed over by the adapter, long enough to count as prose.", truncated: false }; }
+    }
+    vi.stubGlobal("chrome", fakeChrome(async message => { sent.push(message); return { ok: true, data: identified }; }));
+    document.body.innerHTML = REGION;
+    const editor = document.querySelector<HTMLElement>('[contenteditable="true"]')!;
+    const panel = new VerbiaPanel(new HintedAdapter(), toTarget(editor), context("low"), () => {});
+    panel.mountAfter(editor);
+    await panel.open(false);
+
+    pressIdentify();
+    await vi.waitFor(() => expect(identifyStatus()).toBe(UI_STRINGS.en["context.identified"]));
+    const payload = sent.find(message => message.type === "EXTRACT_CONTEXT")?.payload as { collected: { text: string } };
+    expect(payload.collected.text).toContain("handed over by the adapter");
+  });
+
   it("words a server failure in the interface language", async () => {
     await buildPanel(REGION, async () => ({ ok: false, error: { code: "PROVIDER_ERROR", userMessage: "Verbia could not identify the context on this page. Select the text you are answering instead.", retryable: true } }));
     pressIdentify();

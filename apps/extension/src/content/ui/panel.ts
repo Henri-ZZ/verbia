@@ -1,7 +1,7 @@
 import type { ContextEnvelope, ContextExtractionRequest, ContextExtractionResponse, EditableTarget, GenerateReplyRequest, GenerateReplyResponse, SiteAdapter, UiLang, UserSettings } from "@verbia/shared";
 import { DEFAULT_SETTINGS, LENGTH_VALUES, REPLY_LANGUAGE_OPTIONS, TONE_VALUES, UI_STRINGS, resolveUiLang } from "@verbia/shared";
 import { readEditable } from "../editor/editable";
-import { COLLECTOR_VERSION, collectLocalContext, regionFingerprint } from "../context/collector";
+import { COLLECTOR_VERSION, collectLocalContext, collectProvidedRegion, regionFingerprint } from "../context/collector";
 import { contextFromExtraction } from "../context/mapping";
 import { extensionVersion, runtimeUrl, sendToBackground, uiLanguage } from "../../runtime";
 import { msgColor, msgIcon, type MsgKind } from "../../ui/message";
@@ -618,10 +618,18 @@ export class VerbiaPanel {
 
   private async identifyContext() {
     if (this.identify === "loading") return;
-    const collected = collectLocalContext(this.target.element);
+    // The adapter knows its site's shape better than the generic collector does:
+    // when it can name the region (Gmail reads its thread), its read wins.
+    const hinted = this.adapter.identifyRegion?.(this.target.element) ?? null;
+    const collected = hinted
+      ? collectProvidedRegion(hinted.text, hinted.truncated)
+      : collectLocalContext(this.target.element);
     // Nothing above the reply box reads as a conversation: there is no email to
     // identify, and asking a model about a compose form would only invent one.
+    // Logged, because a silent no-request failure is indistinguishable from a
+    // broken endpoint.
     if (!collected.replyDetected) {
+      console.warn("[verbia] no conversation found above the reply box");
       this.setIdentify("failed", this.t("context.identifyFailed"));
       return;
     }

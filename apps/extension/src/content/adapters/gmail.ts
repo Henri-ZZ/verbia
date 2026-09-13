@@ -282,5 +282,16 @@ export class GmailAdapter implements SiteAdapter {
     };
   }
 
+  // The region an identification should read. The generic collector draws its
+  // boundary by geometry, and Gmail's nesting defeats it — the thread sits beside
+  // the composer behind landmarks and class names only Gmail knows, so the
+  // collector came back with a sliver of compose chrome and the model, correctly,
+  // reported that there was no message in it. This hands over the read the
+  // adapter already trusts for replies (@see threadBody).
+  identifyRegion(editor: HTMLElement): { text: string; truncated: boolean } | null {
+    const thread = cleanTail(threadBody(editor), 6_000);
+    return thread.text ? { text: thread.text, truncated: thread.truncated } : null;
+  }
+
   insertDraft(target: EditableTarget, text: string, mode: "replace" | "append") { return insertText(target, text, mode, "html"); }
 }

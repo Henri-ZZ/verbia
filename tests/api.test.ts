@@ -64,12 +64,13 @@ describe("API fetch handler", () => {
     expect(await response.json()).toMatchObject({ requestId: validRequest.requestId, draft: validRequest.intent.text, modelRoute: "baseline" });
   });
 
-  it("determines plan and consumes quota with one Supabase RPC before generation", async () => {
+  it("checks the quota before generating and records the success afterwards", async () => {
     const projectUrl = "https://generate-quota.supabase.co";
     const upstream = vi.spyOn(globalThis, "fetch").mockImplementation(async input => {
       const url = String(input);
       if (url.includes("/.well-known/jwks.json")) return jwksResponse();
-      if (url.includes("/rest/v1/rpc/consume_generation_quota")) return Response.json({ plan: "premium", remaining: 99 });
+      if (url.includes("/rest/v1/rpc/check_generation_quota")) return Response.json({ plan: "premium", remaining: 99 });
+      if (url.includes("/rest/v1/rpc/record_generation_quota")) return Response.json({ count: 1 });
       return new Response(null, { status: 404 });
     });
     const generateHandler = createApiHandler({
@@ -92,17 +93,20 @@ describe("API fetch handler", () => {
     expect(response.headers.get("server-timing")).toMatch(/auth;dur=.*quota;dur=.*model;dur=/);
     expect(response.headers.get("server-timing")).not.toContain("plan;dur=");
     const urls = upstream.mock.calls.map(([input]) => String(input));
-    expect(urls.filter(url => url.includes("/rest/v1/"))).toEqual([`${projectUrl}/rest/v1/rpc/consume_generation_quota`]);
-    const quotaCall = upstream.mock.calls.find(([input]) => String(input).includes("consume_generation_quota"));
+    // Check before the model call, record after it — nothing in between or after.
+    expect(urls.filter(url => url.includes("/rest/v1/"))).toEqual([`${projectUrl}/rest/v1/rpc/check_generation_quota`, `${projectUrl}/rest/v1/rpc/record_generation_quota`]);
+    const quotaCall = upstream.mock.calls.find(([input]) => String(input).includes("check_generation_quota"));
     expect(JSON.parse(String(quotaCall?.[1]?.body))).toEqual({ p_free_limit: 10, p_premium_limit: 100 });
   });
 
-  it("does not call a model after the combined quota RPC rejects the request", async () => {
+  it("does not call a model or record usage after the quota check refuses the request", async () => {
     const projectUrl = "https://generate-exceeded.supabase.co";
     const upstream = vi.spyOn(globalThis, "fetch").mockImplementation(async input => {
       const url = String(input);
       if (url.includes("/.well-known/jwks.json")) return jwksResponse();
-      if (url.includes("/rest/v1/rpc/consume_generation_quota")) return Response.json({ message: "QUOTA_EXCEEDED" }, { status: 400 });
+      // At the limit: remaining 0. Concurrent requests may push the count past
+      // the limit, so the check can also see negative remainings — both refuse.
+      if (url.includes("/rest/v1/rpc/check_generation_quota")) return Response.json({ plan: "free", remaining: 0 });
       return new Response(null, { status: 404 });
     });
     const generateHandler = createApiHandler({
@@ -133,8 +137,8 @@ describe("API fetch handler", () => {
       if (url.includes("/.well-known/jwks.json")) return jwksResponse();
       // Exactly what PostgREST answers when a database is still on an older
       // docs/supabase-schema.sql: the RPC was never created.
-      if (url.includes("/rest/v1/rpc/consume_generation_quota")) {
-        return Response.json({ code: "PGRST202", message: "Could not find the function public.consume_generation_quota" }, { status: 404 });
+      if (url.includes("/rest/v1/rpc/check_generation_quota")) {
+        return Response.json({ code: "PGRST202", message: "Could not find the function public.check_generation_quota" }, { status: 404 });
       }
       return new Response(null, { status: 404 });
     });
@@ -157,7 +161,7 @@ describe("API fetch handler", () => {
     expect(upstream).toHaveBeenCalled();
     // ...but it is never silent either: the operator gets a named cause on the
     // request log instead of a reply that quietly was not counted.
-    expect(warnings).toHaveBeenCalledWith(expect.stringContaining("consume_generation_quota is missing"));
+    expect(warnings).toHaveBeenCalledWith(expect.stringContaining("check_generation_quota is missing"));
     const requestLog = logs.mock.calls.map(([line]) => String(line)).find(line => line.includes('"event":"api_request"'));
     expect(JSON.parse(requestLog ?? "{}")).toMatchObject({ quota: "unavailable" });
   });
@@ -189,12 +193,13 @@ describe("API fetch handler", () => {
 
   // Each identification is a model call, so it spends the same daily counter a
   // reply does — one press, one entry.
-  it("spends the same daily counter before identifying", async () => {
+  it("checks the daily counter before identifying and records the success", async () => {
     const projectUrl = "https://identify-quota.supabase.co";
     const upstream = vi.spyOn(globalThis, "fetch").mockImplementation(async input => {
       const url = String(input);
       if (url.includes("/.well-known/jwks.json")) return jwksResponse();
-      if (url.includes("/rest/v1/rpc/consume_generation_quota")) return Response.json({ plan: "premium", remaining: 98 });
+      if (url.includes("/rest/v1/rpc/check_generation_quota")) return Response.json({ plan: "premium", remaining: 98 });
+      if (url.includes("/rest/v1/rpc/record_generation_quota")) return Response.json({ count: 2 });
       return new Response(null, { status: 404 });
     });
     const extractHandler = createApiHandler({
@@ -215,8 +220,9 @@ describe("API fetch handler", () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get("server-timing")).toMatch(/auth;dur=.*quota;dur=.*model;dur=/);
-    const quotaCall = upstream.mock.calls.find(([input]) => String(input).includes("consume_generation_quota"));
+    const quotaCall = upstream.mock.calls.find(([input]) => String(input).includes("check_generation_quota"));
     expect(JSON.parse(String(quotaCall?.[1]?.body))).toEqual({ p_free_limit: 10, p_premium_limit: 100 });
+    expect(upstream.mock.calls.some(([input]) => String(input).includes("record_generation_quota"))).toBe(true);
   });
 
   it("identifies nothing once the daily counter is spent", async () => {
@@ -224,7 +230,7 @@ describe("API fetch handler", () => {
     const upstream = vi.spyOn(globalThis, "fetch").mockImplementation(async input => {
       const url = String(input);
       if (url.includes("/.well-known/jwks.json")) return jwksResponse();
-      if (url.includes("/rest/v1/rpc/consume_generation_quota")) return Response.json({ message: "QUOTA_EXCEEDED" }, { status: 400 });
+      if (url.includes("/rest/v1/rpc/check_generation_quota")) return Response.json({ plan: "free", remaining: 0 });
       return new Response(null, { status: 404 });
     });
     const extractHandler = createApiHandler({
@@ -243,8 +249,38 @@ describe("API fetch handler", () => {
 
     expect(response.status).toBe(429);
     expect(await response.json()).toMatchObject({ code: "QUOTA_EXCEEDED" });
-    // jwks + the quota RPC: no model was paid for.
+    // jwks + the quota check: no model was paid for, nothing recorded.
     expect(upstream).toHaveBeenCalledTimes(2);
+  });
+
+  // Failed calls are free: the check happens before, the record only after a
+  // usable answer — so an identification that never reaches a model spends
+  // nothing.
+  it("records nothing when the identification fails", async () => {
+    const projectUrl = "https://identify-failure.supabase.co";
+    const upstream = vi.spyOn(globalThis, "fetch").mockImplementation(async input => {
+      const url = String(input);
+      if (url.includes("/.well-known/jwks.json")) return jwksResponse();
+      if (url.includes("/rest/v1/rpc/check_generation_quota")) return Response.json({ plan: "free", remaining: 5 });
+      return new Response(null, { status: 404 });
+    });
+    const extractHandler = createApiHandler({
+      LLM_PROVIDER: "none",
+      SUPABASE_URL: projectUrl,
+      SUPABASE_PUBLISHABLE_KEY: "public-key",
+      AUTH_REQUIRED: "1",
+      ENFORCE_QUOTA: "1"
+    });
+    const token = await userToken(projectUrl, "11111111-1111-4111-8111-111111111111", "user@example.com");
+    const response = await extractHandler(new Request("https://api.verbia.henriz.dev/v1/context:extract", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify(validExtraction)
+    }));
+
+    expect(response.status).toBe(503);
+    const urls = upstream.mock.calls.map(([input]) => String(input));
+    expect(urls.some(url => url.includes("record_generation_quota"))).toBe(false);
   });
 
   it("rejects malformed and oversized bodies", async () => {

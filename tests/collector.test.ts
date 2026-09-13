@@ -128,6 +128,24 @@ describe("local context collector", () => {
     expect(regionFingerprint(editor())).not.toBe(before);
   });
 
+  // Gmail's shape: the reply box is a sibling of the expanded message it answers,
+  // nested a level below the thread, with the older rounds above it collapsed.
+  it("finds the conversation around Gmail's nested reply box", () => {
+    document.body.innerHTML = `<div role="main">
+      <div class="aia">
+        <div class="gE">Inbox — Project timeline</div>
+        <div class="aHu">
+          <div class="adn"><div class="a3s">Earlier: the first message of the thread, long enough to count as prose.</div></div>
+          <div class="adn"><div class="a3s">Latest: can you confirm the final version is ready by Friday?</div></div>
+        </div>
+        <div class="aDg"><div class="aDj"><div aria-label="Message Body" contenteditable="true"></div></div></div>
+      </div>
+    </div>`;
+    const collected = collectLocalContext(editor());
+    expect(collected.replyDetected).toBe(true);
+    expect(collected.text).toContain("confirm the final version");
+  });
+
   it("keeps the newest end of a long region when it has to cut", () => {
     document.body.innerHTML = `<div class="read">
       <div class="first">第一轮：${"旧内容。".repeat(30)}</div>

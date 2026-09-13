@@ -115,15 +115,16 @@
 
 #### 3B. `/how-to-reply-to-a-recruiter-on-linkedin/`
 
-- [ ] `未开始` 复核 LinkedIn 未专用适配时的产品承接与 CTA 真相。
-- [ ] `未开始` 避免暗示 LinkedIn 自动模式或 auto-reply。
+- [ ] `已暂停` 等待 LinkedIn 专用支持完成后重新复核产品承接与 CTA。
+- [ ] `未开始` 根据上线后的真实能力编写 Page Specification。
 - [ ] `未开始` 实现页面与完整 QA。
 
 #### 3C. `/how-to-respond-to-an-interview-invitation-email/`
 
-- [ ] `未开始` 限定为收到邀请后的接受、确认与排期。
-- [ ] `未开始` 排除 interview thank-you 和 post-interview follow-up。
-- [ ] `未开始` 实现页面与完整 QA。
+- [x] `已完成` 填写完整 [`Page Specification`](./specs/how-to-respond-to-an-interview-invitation-email.md)。
+- [x] `已完成` 限定为收到邀请后的接受、确认与排期。
+- [x] `已完成` 排除 interview thank-you、post-interview follow-up 与 decline interview。
+- [x] `已完成` 实现三个排期场景、metadata、FAQ schema、内链、页脚、sitemap 与完整 QA。
 
 **批次停止点：** 三页完成后复核 Career cluster 骨架，等待用户指令。
 
@@ -228,6 +229,8 @@
 | 2026-09-13 | 阶段 1B · Implementation | 实现付款请求页、三种付款阶段切换、FAQ schema、sitemap、页脚入口及相邻页面双向内链 | 本地完成；类型检查、生产构建、桌面/390px 视觉与交互检查通过 | 等待用户审阅页面 |
 | 2026-09-13 | 阶段 2A/2B · Implementation | 完成 job offer response 与 email confirmation 两页规格；实现共享情境组件、7 个真实场景、FAQ schema、sitemap、页脚及相邻页内链 | 本地完成；类型检查、生产构建、桌面/390px 视觉与交互检查通过 | 等待用户审阅两页 |
 | 2026-09-13 | 阶段 3A · Implementation | 完成 polite email reminder 规格与页面；实现截止日前、当天、逾期三个场景及相关 owner 内链 | 本地完成；类型检查、生产构建、320/390px 与桌面视觉和交互检查通过 | 等待用户审阅页面 |
+| 2026-09-13 | 阶段 3B · Paused | 用户决定先开发 LinkedIn 专用支持 | 已撤回尚未完成的 3B 页面、规格、样式、sitemap、页脚与反向内链 | LinkedIn 支持完成后重新实现 |
+| 2026-09-13 | 阶段 3C · Implementation | 完成 interview invitation response 规格与页面；实现接受、选时、请求替代时间三个场景 | 本地完成；类型检查、生产构建、320/390px 与桌面视觉和交互检查通过 | 等待用户审阅页面 |
 
 ## 8. 决策日志
 
@@ -241,4 +244,4 @@
 
 ## 9. 当前下一步
 
-`阶段 3A 已本地完成`。等待用户审阅新页面；收到下一阶段指令后直接进入实现。
+`阶段 3C 已本地完成；阶段 3B 暂停`。等待用户审阅 3C；LinkedIn 专用支持完成后再重新开始 3B。

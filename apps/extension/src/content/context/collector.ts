@@ -97,6 +97,21 @@ function regionAround(editor: HTMLElement): { region: HTMLElement; found: boolea
   return { region: editor.parentElement ?? document.body, found: false };
 }
 
+// Wraps a region an adapter handed over in the same shape the collector returns,
+// so the panel does not have to know which of the two it got. The text is capped
+// the same way — keeping the end, where the newest text is — and the adapter's
+// own truncation flag is carried through.
+export function collectProvidedRegion(text: string, truncated: boolean): CollectedContext {
+  const clean = text.replace(/\s+/g, " ").trim();
+  return {
+    text: clean.length > MAX_CHARS ? clean.slice(-MAX_CHARS) : clean,
+    truncated: clean.length > MAX_CHARS || truncated,
+    replyDetected: clean.length >= MESSAGE_FLOOR,
+    nodeCount: 0,
+    stripped: 0
+  };
+}
+
 function stripNoise(scope: HTMLElement): number {
   let stripped = 0;
   scope.querySelectorAll(NOISE_SELECTOR).forEach(node => {

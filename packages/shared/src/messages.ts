@@ -65,4 +65,9 @@ export interface SiteAdapter {
   findComposers(root?: ParentNode): EditableTarget[];
   extractContext(target: EditableTarget): Promise<ContextEnvelope>;
   insertDraft(target: EditableTarget, text: string, mode: "replace" | "append"): Promise<InsertResult>;
+  // The text an identification should read around this composer, when the adapter
+  // knows a better boundary than the generic collector's geometric one. Return
+  // null (or nothing) to let the collector draw it. Optional: only the adapters
+  // with a site-specific read of their own implement it.
+  identifyRegion?(editor: HTMLElement): { text: string; truncated: boolean } | null;
 }

@@ -23,6 +23,7 @@ export function SiteFooter({ locale = "en" }: { locale?: SiteLocale }) {
     ["/how-to-respond-to-a-job-offer-email", zh ? "回复工作录用邮件" : "Respond to a Job Offer Email"],
     ["/reply-to-email-confirmation", zh ? "回复确认邮件" : "Reply to Email Confirmation"],
     ["/how-to-remind-someone-politely-in-an-email", zh ? "礼貌邮件提醒" : "Send a Polite Email Reminder"],
+    ["/how-to-respond-to-an-interview-invitation-email", zh ? "回复面试邀请" : "Respond to an Interview Invitation"],
     ["/gmail-ai-reply-assistant", zh ? "Gmail AI 回复助手" : "Gmail AI Reply Assistant"],
     ["/outlook-ai-reply-assistant", zh ? "Outlook AI 回复助手" : "Outlook AI Reply Assistant"],
   ] as const;

@@ -69,7 +69,7 @@ select id, email from auth.users
 on conflict (id) do update set email = excluded.email;
 
 -- ---------------------------------------------------------------------------
--- 2. quota_usage + atomic plan/quota RPC
+-- 2. quota_usage + plan/quota RPCs (check before, record after success)
 -- ---------------------------------------------------------------------------
 create table if not exists public.quota_usage (
   user_id uuid not null references auth.users (id) on delete cascade,
@@ -122,8 +122,9 @@ $$;
 revoke execute on function public.consume_quota(integer) from public, anon;
 grant execute on function public.consume_quota(integer) to authenticated;
 
--- Generation hot path: determine the effective plan and consume its quota in
--- one database transaction and one HTTP round trip from the Worker.
+-- Legacy hot path, kept while older deployed Workers still call it. The current
+-- Worker uses check_generation_quota + record_generation_quota below, so that a
+-- failed call does not spend the daily counter.
 create or replace function public.consume_generation_quota(
   p_free_limit integer default 10,
   p_premium_limit integer default 0
@@ -195,6 +196,102 @@ $$;
 
 revoke execute on function public.consume_generation_quota(integer,integer) from public, anon;
 grant execute on function public.consume_generation_quota(integer,integer) to authenticated;
+
+-- Read-only pre-flight check for the current Worker: "may this user start
+-- another generation right now?" Writes nothing. Returns the effective plan and
+-- remaining = limit - used; remaining = -1 means unlimited. It can go negative
+-- when concurrent requests slip past the check — the next check refuses them,
+-- which is an accepted approximation for a one-press-per-request product.
+create or replace function public.check_generation_quota(
+  p_free_limit integer default 10,
+  p_premium_limit integer default 0
+) returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_user_id uuid := auth.uid();
+  v_period text := to_char(now() at time zone 'utc', 'YYYY-MM-DD');
+  v_plan text := 'free';
+  v_limit integer;
+  v_used integer := 0;
+  v_has_billing boolean := false;
+begin
+  if v_user_id is null then
+    raise exception 'UNAUTHENTICATED' using errcode = '28000';
+  end if;
+
+  select coalesce(p.plan, 'free'), p.billing_provider is not null
+  into v_plan, v_has_billing
+  from public.profiles p
+  where p.id = v_user_id;
+  v_plan := coalesce(v_plan, 'free');
+  v_has_billing := coalesce(v_has_billing, false);
+
+  -- Same effective-plan rule as consume_generation_quota above.
+  if v_plan = 'premium' and v_has_billing and not exists (
+    select 1 from public.billing_subscriptions s
+    where s.user_id = v_user_id
+      and (
+        s.status = 'active'
+        or (s.status = 'canceling' and (s.current_period_end is null or s.current_period_end > now()))
+      )
+  ) then
+    v_plan := 'free';
+  end if;
+
+  v_limit := case when v_plan = 'premium'
+    then greatest(coalesce(p_premium_limit, 0), 0)
+    else greatest(coalesce(p_free_limit, 0), 0)
+  end;
+  if v_limit = 0 then
+    return jsonb_build_object('plan', v_plan, 'remaining', -1);
+  end if;
+
+  select count into v_used
+  from public.quota_usage
+  where user_id = v_user_id and period = v_period;
+
+  return jsonb_build_object('plan', v_plan, 'remaining', v_limit - coalesce(v_used, 0));
+end;
+$$;
+
+revoke execute on function public.check_generation_quota(integer,integer) from public, anon;
+grant execute on function public.check_generation_quota(integer,integer) to authenticated;
+
+-- Records one generation that produced a usable result. Deliberately
+-- unconditional: whether the new count exceeds the limit is decided by the next
+-- check_generation_quota, not here, so a success that raced past the limit is
+-- still counted instead of failing after the work was already done. Failed
+-- calls simply never reach this function — that is what keeps them free.
+create or replace function public.record_generation_quota()
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_user_id uuid := auth.uid();
+  v_period text := to_char(now() at time zone 'utc', 'YYYY-MM-DD');
+  v_count integer := 0;
+begin
+  if v_user_id is null then
+    return 0;
+  end if;
+
+  insert into public.quota_usage (user_id, period, count)
+  values (v_user_id, v_period, 1)
+  on conflict (user_id, period)
+  do update set count = public.quota_usage.count + 1
+  returning count into v_count;
+
+  return v_count;
+end;
+$$;
+
+revoke execute on function public.record_generation_quota() from public, anon;
+grant execute on function public.record_generation_quota() to authenticated;
 
 -- ---------------------------------------------------------------------------
 -- 3. provider-neutral billing state + idempotent webhook application

@@ -89,18 +89,18 @@ pnpm api            # 网关 127.0.0.1:8787（tsx --env-file=.env.local）
 ```env
 ENFORCE_QUOTA=1
 FREE_DAILY_QUOTA=10      # 免费版每天 10 次，超出返回 429 QUOTA_EXCEEDED
-PREMIUM_DAILY_QUOTA=0    # 付费版；0 表示不限次数，也可设置独立限额
+PREMIUM_DAILY_QUOTA=100  # 付费版每天 100 次；0 表示不限次数
 ```
 
 - 匿名请求始终放行（与产品决策一致）。
-- 已登录请求每起草一次调用 `consume_generation_quota` RPC，在同一事务里判断套餐并 +1；超限返回 429。
+- 已登录请求发起前调用 `check_generation_quota`（只读）判断套餐与剩余额度，超限返回 429；成功产出可用结果后才由 `record_generation_quota` 计数。接口失败或没有可用内容不扣额度。
 - 配额数值/周期与付费层级的正式策略，等定价后再调（`profiles.plan` 已预留
   `free | premium` 与 `customer_id`）。
 
 ### 4.1 数据库必须比 Worker 新（重要）
 
-额度写入发生在**数据库里的函数**，不在 Worker 里：`consume_generation_quota` 由
-`docs/supabase-schema.sql` 第 2 节定义。所以升级 Worker 时如果只部署代码、
+额度写入发生在**数据库里的函数**，不在 Worker 里：`check_generation_quota` 与
+`record_generation_quota` 由 `docs/supabase-schema.sql` 第 2 节定义。所以升级 Worker 时如果只部署代码、
 没重跑第 2 节，会出现一种很难察觉的故障：
 
 - 起草**照常成功**（网关对基础设施故障一律放行，不阻塞用户）；

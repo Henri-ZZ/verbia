@@ -70,6 +70,23 @@ describe("Gmail context adapter", () => {
     expect(context.target?.body).not.toContain("Old round:");
   });
 
+  // The identification reads what the adapter hands over rather than drawing its
+  // own boundary: Gmail's nesting defeats the generic collector.
+  it("hands the adapter's thread read to the identification", async () => {
+    const adapter = new GmailAdapter();
+    document.body.innerHTML = `<div role="main"><div><p>${THREAD_BODY}</p></div><div contenteditable="true"></div></div>`;
+    expect(adapter.identifyRegion!(toTarget(document.querySelector(COMPOSER)!).element)).toEqual({
+      text: expect.stringContaining("The whole original message."),
+      truncated: false
+    });
+  });
+
+  it("offers no region when the composer is outside the thread", async () => {
+    const adapter = new GmailAdapter();
+    document.body.innerHTML = `<div><div contenteditable="true"></div></div>`;
+    expect(adapter.identifyRegion!(toTarget(document.querySelector('[contenteditable="true"]')!).element)).toBeNull();
+  });
+
   // A docked compose window sits outside the message landmark: whatever is on
   // screen behind it is not the message being answered.
   it("ignores the message list when the composer is outside the thread", async () => {
