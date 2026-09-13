@@ -53,6 +53,17 @@ describe("panel context warnings", () => {
     const html = await render("low");
     expect(html).not.toContain("${");
     expect(html).toContain(UI_STRINGS.en["panel.warningLow"]);
+    // The low that is a guess at the page, not the low of an answer the user
+    // asked for (@see the identification tests).
+    expect(html).not.toContain(UI_STRINGS.en["panel.warningLowIdentified"]);
+  });
+
+  // The button is the one path to a model the user starts by hand. It has to be
+  // obvious that it is AI doing the reading, and that the press costs a reply.
+  it("says what the identify button does and what it costs", async () => {
+    const html = await render("low");
+    expect(html).toContain(UI_STRINGS.en["context.identify"]);
+    expect(html).toContain(UI_STRINGS.en["context.identifyHint"]);
   });
 
   // A low-confidence context is the case a correction path exists for, and the
@@ -204,6 +215,18 @@ describe("identifying the context", () => {
     await vi.waitFor(() => expect(shadowHtml()).toContain(UI_STRINGS.en["context.identifyFailed"]));
     expect(shadowHtml()).toContain("请尽快结清");
     expect(shadowHtml()).not.toContain("按量付费商品延期停服");
+  });
+
+  // A grounded answer can still come back with a low confidence — the server caps
+  // the model's own number by what it could trace back to the region. That low is
+  // not the adapter's guess, so its wording does not point back at the button that
+  // just produced it.
+  it("tells a low-confidence identification apart from the adapter's guess", async () => {
+    await buildPanel(REGION, async () => ({ ok: true, data: { ...identified, confidence: 0.3 } }));
+    expect(shadowHtml()).toContain(UI_STRINGS.en["panel.warningLow"]);
+    pressIdentify();
+    await vi.waitFor(() => expect(shadowHtml()).toContain(UI_STRINGS.en["panel.warningLowIdentified"]));
+    expect(shadowHtml()).not.toContain(UI_STRINGS.en["panel.warningLow"]);
   });
 
   it("reports a failed call instead of pretending", async () => {
