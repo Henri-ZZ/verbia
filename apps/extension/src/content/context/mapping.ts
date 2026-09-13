@@ -8,9 +8,11 @@ import type { ContextEnvelope, ContextExtractionResponse, ExtractionTask } from 
 // read and tested on its own — and so it is obvious that nothing else in the
 // product learns about the extractor.
 //
-// `sender` is deliberately not mapped: the envelope has nowhere to put it, and
-// adding a field would change the reply request schema and the server prompt for
-// a line of UI text. The panel shows it in its own summary instead.
+// `sender` rides along in the envelope: the panel shows it as the first line of
+// the context, and the reply prompt receives it with everything else, so the
+// model knows who the message came from. The adapters leave it out — their read
+// carries the raw header text inside the message instead, and parsing a name out
+// of that is the kind of guessing this path exists to avoid.
 
 // The PRD's thresholds, applied to the number the server already capped by
 // grounding: accept from 0.80, warn between 0.60 and 0.79, refuse below that.
@@ -39,6 +41,7 @@ export function contextFromExtraction(
   if (!result.validation.grounded || !result.currentMessage) return null;
   return {
     relation: relationFor(result.task),
+    ...(result.sender ? { sender: result.sender } : {}),
     ...(result.subject ? { post: { title: result.subject } } : {}),
     // The earlier rounds ride along as ancestors: the envelope has carried that
     // shape — "what came before this message", depth 1 being the one right before
@@ -56,15 +59,3 @@ export function contextFromExtraction(
   };
 }
 
-// What the panel shows above the context so the user can check the answer at a
-// glance: who sent it, and what it is about. Either may be missing — a model that
-// found the message but no sender is still useful.
-export function extractionSummary(result: ContextExtractionResponse): { from: string | null; subject: string | null; mode: ContextEnvelope["relation"] } {
-  const name = result.sender?.name ?? null;
-  const email = result.sender?.email ?? null;
-  return {
-    from: name && email ? `${name} <${email}>` : name ?? email,
-    subject: result.subject,
-    mode: relationFor(result.task)
-  };
-}

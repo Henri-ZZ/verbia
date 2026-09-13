@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ContextExtractionResponse } from "@verbia/shared";
-import { contextFromExtraction, extractionSummary } from "../apps/extension/src/content/context/mapping";
+import { contextFromExtraction } from "../apps/extension/src/content/context/mapping";
 
 // The extractor answers a JSON shape of its own; the rest of Verbia speaks
 // ContextEnvelope. This is the seam, and these are its rules.
@@ -68,6 +68,17 @@ describe("extraction to context envelope", () => {
     expect(map({ subject: null })!.post).toBeUndefined();
   });
 
+  // The sender travels with the envelope: the panel shows it as the first line of
+  // the context, and the reply prompt receives it with everything else, so the
+  // model knows who it is writing to.
+  it("carries the sender when the reader found one", () => {
+    expect(map()!.sender).toEqual({ name: "阿里云", email: "system@notice.aliyun.com" });
+  });
+
+  it("leaves the sender out when the reader found none", () => {
+    expect(map({ sender: null })!.sender).toBeUndefined();
+  });
+
   // The earlier rounds ride along as ancestors — the envelope's shape for "what
   // came before this message", depth 1 being the one right before it — so the
   // reply prompt keeps the conversation without a schema change.
@@ -85,19 +96,3 @@ describe("extraction to context envelope", () => {
   });
 });
 
-describe("identification summary", () => {
-  it("shows a name and an address together", () => {
-    expect(extractionSummary(extraction()).from).toBe("阿里云 <system@notice.aliyun.com>");
-  });
-
-  it("shows whichever half of the sender it has", () => {
-    expect(extractionSummary(extraction({ sender: { name: "阿里云", email: null } })).from).toBe("阿里云");
-    expect(extractionSummary(extraction({ sender: { name: null, email: "system@notice.aliyun.com" } })).from).toBe("system@notice.aliyun.com");
-    expect(extractionSummary(extraction({ sender: null })).from).toBeNull();
-  });
-
-  it("reports the mode in the same words as the chip", () => {
-    expect(extractionSummary(extraction({ task: "reply" })).mode).toBe("reply_to_email");
-    expect(extractionSummary(extraction({ task: "compose" })).mode).toBe("compose_new");
-  });
-});

@@ -130,9 +130,15 @@ export function createApiHandler(env: ApiEnv) {
         const auth = await measure("auth", timings, () => verifyBearer(request.headers.get("authorization"), env));
         if (auth.status === "invalid") return apiError(401, requestId, "UNAUTHENTICATED", false, "Sign-in expired. Sign in again from Verbia settings.");
         if (auth.status === "none" && env.AUTH_REQUIRED === "1") return apiError(401, requestId, "UNAUTHENTICATED", false, "Sign in from Verbia settings to identify the context.");
-        // Deliberately not counted against the daily reply quota: this repairs a
-        // read the user is about to generate from, and charging for it would make
-        // the honest path the expensive one.
+        // Each identification is a model call, so it spends the same daily counter
+        // a reply does — one press, one entry — and is refused the same way when
+        // that counter is spent (@see consumeGenerationQuota). Without this, the
+        // repair button is the one unlimited path to the model.
+        if (auth.status === "ok") {
+          const quota = await measure("quota", timings, () => consumeGenerationQuota(auth.token, env));
+          logQuota = quota;
+          if (quota === "exceeded") return withServerTiming(apiError(429, requestId, "QUOTA_EXCEEDED", false, "You have used your daily replies. Try again tomorrow."), timings);
+        }
         const extractor = createExtractor(env);
         if (!extractor) return apiError(503, requestId, "NOT_CONFIGURED", false, "Context identification is not configured.");
         const started = performance.now();
@@ -141,6 +147,13 @@ export function createApiHandler(env: ApiEnv) {
         try {
           const result = await measure("model", timings, () => extractEmailContext(extractor, parsed.data, controller.signal));
           logProvider = extractor.id;
+          // The model answered but nothing in it survived grounding: without this
+          // line the likeliest failure of the whole feature leaves no trace. The
+          // warning codes name the claim that did not trace back — no mail text
+          // is logged.
+          if (!result.validation.grounded) {
+            console.warn(`[verbia-api] identification not grounded: ${result.validation.warnings.join(", ") || "no message"}`, { requestId });
+          }
           const value = contextExtractionResponseSchema.parse({ requestId, ...result, latencyMs: Math.round(performance.now() - started) });
           return withServerTiming(json(200, value), timings);
         } finally { clearTimeout(timer); }

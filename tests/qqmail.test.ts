@@ -50,6 +50,21 @@ describe("QQ Mail context adapter", () => {
     expect(context.target?.body).not.toContain("字体");
   });
 
+  // Reported from a real reply: a draft had been generated and inserted, and the
+  // panel then handed the user's own sentence back as "Original message" — the
+  // text sitting in the box outranked the mail above it. What the user typed is
+  // not the conversation; a box with text in it is still a reply.
+  it("keeps reading the mail above a box that already holds a draft", async () => {
+    document.body.innerHTML = `<div class="xmail-app"><div class="xmail-read-detail">
+      <div class="xmail-read-body">${MESSAGE}</div>
+      <div class="xmail-cmp"><div contenteditable="true" aria-label="输入正文">Thank you, I am very happy.</div></div>
+    </div></div>`;
+    const context = await new QqMailAdapter().extractContext(toTarget(document.querySelector(EDITOR)!));
+    expect(context.relation).toBe("reply_to_email");
+    expect(context.target?.body).toContain("Daily report: 1 change");
+    expect(context.target?.body).not.toContain("Thank you");
+  });
+
   // Reported from a real reply: a short message (an activation code, a one-line
   // confirmation) is still a message, and the longer list beside it must not be
   // read in its place. The composer sits inside the reading pane, which is what

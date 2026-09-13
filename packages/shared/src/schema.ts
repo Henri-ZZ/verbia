@@ -8,6 +8,11 @@ export const confidenceSchema = z.enum(["high", "medium", "low"]);
 export const contextEnvelopeSchema = z.object({
   relation: relationSchema,
   post: z.object({ title: z.string().max(500).optional(), body: z.string().max(8_000).optional() }).optional(),
+  // Who sent the message being answered, when whoever read the page knows it.
+  // Only the AI identification reports it — an adapter reads the raw header text
+  // along with the message instead — and it travels to the reply prompt with the
+  // rest of the envelope, so the model knows who it is writing to.
+  sender: z.object({ name: z.string().max(200).nullable(), email: z.string().max(200).nullable() }).optional(),
   ancestors: z.array(z.object({ depth: z.number().int().min(1).max(10), body: z.string().max(4_000) })).max(3).optional(),
   target: z.object({ body: z.string().max(6_000) }).optional(),
   selectedText: z.string().max(8_000).optional(),

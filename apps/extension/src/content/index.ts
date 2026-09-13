@@ -140,9 +140,11 @@ if (!window.__verbiaLoaded) {
         if (focusIntent) void panel.unfoldIfCollapsed();
         // An identification is an answer about the conversation that was on
         // screen when the user asked for it, and this panel outlives a switch to
-        // the next message. Keeping that answer would be worse than the read it
-        // replaced, so the page is read again and the answer dropped.
-        if (panel.dropsStaleIdentification()) {
+        // the next message. Only an explicit summon looks again — folding,
+        // unfolding and clicking back into the editor are the panel being kept
+        // rather than opened, and the context must not move under the user at
+        // those moments.
+        if (panel.dropsStaleIdentification(focusIntent)) {
           panel.update(target, await adapter.extractContext(target), anchorFor());
           await panel.open(false);
           return true;

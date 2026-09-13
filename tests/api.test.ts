@@ -27,6 +27,15 @@ async function userToken(projectUrl: string, userId: string, email: string) {
 function jwksResponse() { return Response.json({ keys: [publicJwk] }); }
 
 const handler = createApiHandler({ LLM_PROVIDER: "mock" });
+const validExtraction = {
+  requestId: "22222222-2222-4222-8222-222222222222",
+  schemaVersion: "1",
+  trigger: "explicit_user_click",
+  platform: "qqmail",
+  page: { urlOrigin: "https://wx.mail.qq.com" },
+  collected: { text: "Your invoice is overdue and the account will be suspended tomorrow.", truncated: false, nodeCount: 3 },
+  client: { extensionVersion: "0.1.4", collectorVersion: "1.0.0" }
+};
 const validRequest = {
   requestId: "11111111-1111-4111-8111-111111111111",
   schemaVersion: "1",
@@ -151,6 +160,91 @@ describe("API fetch handler", () => {
     expect(warnings).toHaveBeenCalledWith(expect.stringContaining("consume_generation_quota is missing"));
     const requestLog = logs.mock.calls.map(([line]) => String(line)).find(line => line.includes('"event":"api_request"'));
     expect(JSON.parse(requestLog ?? "{}")).toMatchObject({ quota: "unavailable" });
+  });
+
+  it("identifies the context of a collected region", async () => {
+    const response = await handler(new Request("https://api.verbia.henriz.dev/v1/context:extract", {
+      method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(validExtraction)
+    }));
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      requestId: validExtraction.requestId,
+      task: "reply",
+      currentMessage: validExtraction.collected.text,
+      previousMessages: [],
+      confidence: 0.9,
+      validation: { grounded: true, warnings: [] }
+    });
+  });
+
+  // The server-side half of the explicit-click gate: a request that did not come
+  // from the button is refused before a model is paid for.
+  it("refuses an identification that did not come from the button", async () => {
+    const response = await handler(new Request("https://api.verbia.henriz.dev/v1/context:extract", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ ...validExtraction, trigger: "adapter_error" })
+    }));
+    expect(response.status).toBe(400);
+  });
+
+  // Each identification is a model call, so it spends the same daily counter a
+  // reply does — one press, one entry.
+  it("spends the same daily counter before identifying", async () => {
+    const projectUrl = "https://identify-quota.supabase.co";
+    const upstream = vi.spyOn(globalThis, "fetch").mockImplementation(async input => {
+      const url = String(input);
+      if (url.includes("/.well-known/jwks.json")) return jwksResponse();
+      if (url.includes("/rest/v1/rpc/consume_generation_quota")) return Response.json({ plan: "premium", remaining: 98 });
+      return new Response(null, { status: 404 });
+    });
+    const extractHandler = createApiHandler({
+      LLM_PROVIDER: "mock",
+      SUPABASE_URL: projectUrl,
+      SUPABASE_PUBLISHABLE_KEY: "public-key",
+      AUTH_REQUIRED: "1",
+      ENFORCE_QUOTA: "1",
+      FREE_DAILY_QUOTA: "10",
+      PREMIUM_DAILY_QUOTA: "100"
+    });
+    const token = await userToken(projectUrl, "11111111-1111-4111-8111-111111111111", "user@example.com");
+    const response = await extractHandler(new Request("https://api.verbia.henriz.dev/v1/context:extract", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify(validExtraction)
+    }));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("server-timing")).toMatch(/auth;dur=.*quota;dur=.*model;dur=/);
+    const quotaCall = upstream.mock.calls.find(([input]) => String(input).includes("consume_generation_quota"));
+    expect(JSON.parse(String(quotaCall?.[1]?.body))).toEqual({ p_free_limit: 10, p_premium_limit: 100 });
+  });
+
+  it("identifies nothing once the daily counter is spent", async () => {
+    const projectUrl = "https://identify-exceeded.supabase.co";
+    const upstream = vi.spyOn(globalThis, "fetch").mockImplementation(async input => {
+      const url = String(input);
+      if (url.includes("/.well-known/jwks.json")) return jwksResponse();
+      if (url.includes("/rest/v1/rpc/consume_generation_quota")) return Response.json({ message: "QUOTA_EXCEEDED" }, { status: 400 });
+      return new Response(null, { status: 404 });
+    });
+    const extractHandler = createApiHandler({
+      LLM_PROVIDER: "mock",
+      SUPABASE_URL: projectUrl,
+      SUPABASE_PUBLISHABLE_KEY: "public-key",
+      AUTH_REQUIRED: "1",
+      ENFORCE_QUOTA: "1"
+    });
+    const token = await userToken(projectUrl, "11111111-1111-4111-8111-111111111111", "user@example.com");
+    const response = await extractHandler(new Request("https://api.verbia.henriz.dev/v1/context:extract", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify(validExtraction)
+    }));
+
+    expect(response.status).toBe(429);
+    expect(await response.json()).toMatchObject({ code: "QUOTA_EXCEEDED" });
+    // jwks + the quota RPC: no model was paid for.
+    expect(upstream).toHaveBeenCalledTimes(2);
   });
 
   it("rejects malformed and oversized bodies", async () => {

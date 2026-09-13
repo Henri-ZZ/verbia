@@ -113,23 +113,15 @@ export class QqMailAdapter implements SiteAdapter {
         confidence: body.text ? "high" : "medium"
       };
     }
-    // No quote in the composer: either the user typed something (their own words
-    // are then the context, same as the other mail adapters), or the composer is
-    // empty and the message on screen is what they are answering.
-    const typed = clean(userTypedBody(editor));
-    if (typed.text) {
-      return {
-        relation: "reply_to_email",
-        target: { body: typed.text },
-        truncated: typed.truncated,
-        extractorVersion: this.version,
-        confidence: "medium"
-      };
-    }
-    // Nothing the app handed over: take the region around the reply box. The
-    // boundary is ours rather than the app's, so the read is reported as `low` —
-    // the panel says so and opens the preview, which is the signal a correction
-    // path hangs off.
+    // No quote in the composer: the region around the reply box is what the user
+    // is answering. The boundary is ours rather than the app's, so the read is
+    // reported as `low` — the panel says so and opens the preview, which is the
+    // signal a correction path hangs off.
+    //
+    // This comes before reading what the user typed, and deliberately so: their
+    // own draft is not the conversation. Reported from a real reply — a draft was
+    // generated, inserted, and then handed back as "Original message" because the
+    // text in the box outranked the mail above it.
     const collected = collectLocalContext(editor);
     if (collected.replyDetected) {
       return {
@@ -138,6 +130,18 @@ export class QqMailAdapter implements SiteAdapter {
         truncated: collected.truncated,
         extractorVersion: this.version,
         confidence: "low"
+      };
+    }
+    // Nothing above the box reads as a conversation: a new message. What the user
+    // typed is then the only context there is (same as the other mail adapters).
+    const typed = clean(userTypedBody(editor));
+    if (typed.text) {
+      return {
+        relation: "reply_to_email",
+        target: { body: typed.text },
+        truncated: typed.truncated,
+        extractorVersion: this.version,
+        confidence: "medium"
       };
     }
     return {

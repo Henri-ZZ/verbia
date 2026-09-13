@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it } from "vitest";
-import { collectLocalContext } from "../apps/extension/src/content/context/collector";
+import { collectLocalContext, regionFingerprint } from "../apps/extension/src/content/context/collector";
 
 // The collector replaces "pick the block that is the message" with "hand over the
 // region around it", so what these test is the *boundary*: how far the region
@@ -108,6 +108,24 @@ describe("local context collector", () => {
     expect(collected.text).toContain("message being answered");
     expect(collected.text).not.toContain("toolbar noise");
     expect(collected.text).not.toContain("Collapsed quote");
+  });
+
+  // What the user types — and any draft inserted into the box — is not part of
+  // the conversation. Counting it made a fresh identification look stale as soon
+  // as the user's own text changed, which is how an answer about the mail got
+  // thrown away one click after it was applied.
+  it("ignores the reply box's own text when telling conversations apart", () => {
+    document.body.innerHTML = `<div class="read">
+      <div class="body">Your invoice is overdue and the account will be suspended tomorrow.</div>
+      ${EDITOR}
+    </div>`;
+    const before = regionFingerprint(editor());
+    editor().textContent = "Thank you, I am very happy.";
+    expect(regionFingerprint(editor())).toBe(before);
+
+    // The conversation itself still counts.
+    document.querySelector(".body")!.textContent = "A different message entirely, long enough to count as prose.";
+    expect(regionFingerprint(editor())).not.toBe(before);
   });
 
   it("keeps the newest end of a long region when it has to cut", () => {

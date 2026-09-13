@@ -141,6 +141,9 @@ const shadowHtml = () => shadow().innerHTML;
 // its way into the markup, so "name <address>" is not findable in the HTML.
 const shadowText = () => shadow().textContent ?? "";
 const identifyButton = () => shadow().querySelector<HTMLButtonElement>('[data-action="identify"]');
+// The line under the button. Kept separate from the rest of the panel text so an
+// assertion about the status message cannot be satisfied by the context preview.
+const identifyStatus = () => shadow().querySelector(".identify-status")?.textContent ?? "";
 const pressIdentify = () => identifyButton()!.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
 
 describe("identifying the context", () => {
@@ -150,10 +153,13 @@ describe("identifying the context", () => {
     pressIdentify();
     await vi.waitFor(() => expect(shadowHtml()).toContain(UI_STRINGS.en["context.identified"]));
 
-    // The summary carries the two things the chip cannot say: who, and what about.
-    expect(shadowText()).toContain(UI_STRINGS.en["context.summaryFrom"]);
+    // The status line says what happened and nothing else — no sender, no subject,
+    // no body. That content is the context itself, which just opened below it.
+    expect(identifyStatus()).toBe(UI_STRINGS.en["context.identified"]);
+    expect(detailsTag(shadowHtml())).toContain("open");
+    // The sender leads the context, so the user can check who they are answering.
+    expect(shadowText()).toContain(UI_STRINGS.en["context.from"]);
     expect(shadowText()).toContain("阿里云 <system@notice.aliyun.com>");
-    expect(shadowText()).toContain(UI_STRINGS.en["context.summarySubject"]);
     // The context is now the identified message, not the read it replaced, and
     // the round before it arrives under the mail heading rather than Reddit's.
     expect(shadowHtml()).toContain("按量付费商品延期停服");
@@ -206,6 +212,21 @@ describe("identifying the context", () => {
     await vi.waitFor(() => expect(shadowHtml()).toContain(UI_STRINGS.en["context.identifyFailed"]));
   });
 
+  // The server words its failures in English; the panel words them in the
+  // interface language, by the code — the server's own sentence goes to the
+  // console.
+  it("words a server failure in the interface language", async () => {
+    await buildPanel(REGION, async () => ({ ok: false, error: { code: "PROVIDER_ERROR", userMessage: "Verbia could not identify the context on this page. Select the text you are answering instead.", retryable: true } }));
+    pressIdentify();
+    await vi.waitFor(() => expect(identifyStatus()).toBe(UI_STRINGS.en["context.identifyFailed"]));
+  });
+
+  it("words a busy model by its code, not by the server's English", async () => {
+    await buildPanel(REGION, async () => ({ ok: false, error: { code: "RATE_LIMITED", userMessage: "The model is busy or quota-limited. Try again shortly.", retryable: true } }));
+    pressIdentify();
+    await vi.waitFor(() => expect(identifyStatus()).toBe(UI_STRINGS.en["error.busy"]));
+  });
+
   // A compose form has no conversation above it, and a model asked about one
   // would only invent it.
   it("does not spend a call when there is nothing to identify", async () => {
@@ -216,17 +237,24 @@ describe("identifying the context", () => {
     expect(sent).toHaveLength(0);
   });
 
-  // The answer is about the conversation that was on screen when it was asked
-  // for; the panel outlives a switch to the next message.
-  it("drops the answer once the page moves on to another message", async () => {
+  // The rule the user asked for: the context only moves when the panel is
+  // *opened*. Folding it, unfolding it, clicking back into the editor — all of
+  // those keep it, even when the page has moved on. The preview shows what is
+  // being used, and the button re-reads on demand.
+  it("leaves the answer alone until an explicit summon", async () => {
     const panel = await buildPanel(REGION, async () => ({ ok: true, data: identified }));
     pressIdentify();
     await vi.waitFor(() => expect(shadowHtml()).toContain(UI_STRINGS.en["context.identified"]));
-    expect(panel.dropsStaleIdentification()).toBe(false);
+    expect(panel.dropsStaleIdentification(true)).toBe(false);
 
+    // Another message opened while the panel stayed mounted.
     document.querySelector(".body")!.textContent = "这是完全另一封邮件的内容，和刚才那封没有任何关系，长度也足够构成一段正文。";
-    expect(panel.dropsStaleIdentification()).toBe(true);
+    // None of these opens the panel, so none of them may drop the answer.
+    expect(panel.dropsStaleIdentification(false)).toBe(false);
+    expect(panel.dropsStaleIdentification(false)).toBe(false);
+    // The shortcut is the user asking Verbia to look again — that one does.
+    expect(panel.dropsStaleIdentification(true)).toBe(true);
     // Already forgotten: a second call has nothing left to compare against.
-    expect(panel.dropsStaleIdentification()).toBe(false);
+    expect(panel.dropsStaleIdentification(true)).toBe(false);
   });
 });

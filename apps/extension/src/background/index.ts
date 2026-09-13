@@ -434,9 +434,9 @@ async function generate(payload: unknown) {
 }
 
 // The panel's "identify this email" button. Mirrors generate() — same gateway,
-// same bearer, same error shape — but with no quota bookkeeping and no session
-// state: nothing is being generated here, the answer only replaces the context
-// this one panel is working from.
+// same bearer, same error shape, and the daily counter is spent server-side the
+// same way. There is no session state here: nothing is being generated, the
+// answer only replaces the context this one panel is working from.
 async function extractContext(payload: unknown) {
   const request = contextExtractionRequestSchema.parse(payload);
   const settings = await getSettings();

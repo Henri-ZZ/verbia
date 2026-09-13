@@ -112,10 +112,22 @@ function stripNoise(scope: HTMLElement): number {
 // region: its size plus how its text opens. An AI answer is about the
 // conversation that was on screen when the button was clicked, and the panel
 // outlives a switch to the next message.
+//
+// The composer's own block is left out on purpose. It is not part of the
+// conversation — the user's typing and an inserted draft live there — and reading
+// it made an identification look stale the moment the user's own text changed,
+// which is how a freshly identified context got thrown away after a reply had
+// been inserted into the box.
 export function regionFingerprint(editor: HTMLElement): string {
   const { region } = regionAround(editor);
-  const text = (region.textContent ?? "").replace(/\s+/g, " ").trim();
-  return `${region.childElementCount}:${text.length}:${text.slice(0, 60)}`;
+  const composer = composerBlock(region, editor);
+  let text = "";
+  for (const child of Array.from(region.children)) {
+    if (child === composer) continue;
+    text += ` ${child.textContent ?? ""}`;
+  }
+  const normalised = text.replace(/\s+/g, " ").trim();
+  return `${normalised.length}:${normalised.slice(0, 60)}`;
 }
 
 function composerBlock(region: HTMLElement, editor: HTMLElement): HTMLElement | null {
