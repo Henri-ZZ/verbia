@@ -132,9 +132,10 @@
 
 #### 4A. `/how-to-follow-up-on-an-email-politely/`
 
-- [ ] `未开始` 作为 generic follow-up intent owner。
-- [ ] `未开始` 明确导向 no-response、client、meeting、interview 和 payment 子场景的内链。
-- [ ] `未开始` 实现页面与完整 QA。
+- [x] `已完成` 填写完整 [`Page Specification`](./specs/how-to-follow-up-on-an-email-politely.md)。
+- [x] `已完成` 作为 generic follow-up intent owner，并与 no-response、reminder 和 payment 保持边界。
+- [x] `已完成` 实现补充资料、active review、agreed reconnect 三个场景与双向内链。
+- [x] `已完成` 实现 metadata、FAQ schema、页脚、sitemap 与完整 QA。
 
 #### 4B. `/how-to-politely-decline-a-job-offer/`
 
@@ -231,6 +232,7 @@
 | 2026-09-13 | 阶段 3A · Implementation | 完成 polite email reminder 规格与页面；实现截止日前、当天、逾期三个场景及相关 owner 内链 | 本地完成；类型检查、生产构建、320/390px 与桌面视觉和交互检查通过 | 等待用户审阅页面 |
 | 2026-09-13 | 阶段 3B · Paused | 用户决定先开发 LinkedIn 专用支持 | 已撤回尚未完成的 3B 页面、规格、样式、sitemap、页脚与反向内链 | LinkedIn 支持完成后重新实现 |
 | 2026-09-13 | 阶段 3C · Implementation | 完成 interview invitation response 规格与页面；实现接受、选时、请求替代时间三个场景 | 本地完成；类型检查、生产构建、320/390px 与桌面视觉和交互检查通过 | 等待用户审阅页面 |
+| 2026-09-13 | 阶段 4A · Implementation | 完成 generic polite follow-up 规格与页面；实现补充资料、active review、agreed reconnect 三个场景及 owner 双向内链 | 本地完成；类型检查、生产构建、320/390px 与桌面视觉和交互检查通过 | 等待用户审阅页面 |
 
 ## 8. 决策日志
 
@@ -244,4 +246,4 @@
 
 ## 9. 当前下一步
 
-`阶段 3C 已本地完成；阶段 3B 暂停`。等待用户审阅 3C；LinkedIn 专用支持完成后再重新开始 3B。
+`阶段 4A 已本地完成；阶段 3B 暂停`。等待用户审阅 4A；LinkedIn 专用支持完成后再重新开始 3B。

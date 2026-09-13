@@ -47,7 +47,7 @@
 | 5 | `/how-to-remind-someone-politely-in-an-email/` | Send a polite reminder about an expected action | C1/C3 | semrush_keyword_demand + competitor_ranking | ready_local | Reminder 有明确 expected action；generic follow-up 归 #8；[Page Specification](./specs/how-to-remind-someone-politely-in-an-email.md) |
 | 6 | `/how-to-reply-to-a-recruiter-on-linkedin/` | Reply to a LinkedIn recruiter | C2 | semrush_keyword_demand + competitor_ranking | planned_top10 | 暂停：等待 LinkedIn 专用支持完成后再实现 |
 | 7 | `/how-to-respond-to-an-interview-invitation-email/` | Accept, confirm or schedule an interview invitation | C2 | semrush_keyword_demand + competitor_ranking | ready_local | 不覆盖 thank-you 或 interview 后 follow-up；[Page Specification](./specs/how-to-respond-to-an-interview-invitation-email.md) |
-| 8 | `/how-to-follow-up-on-an-email-politely/` | Generic polite email follow-up | C1 | semrush_keyword_demand + competitor_ranking | planned_top10 | 不以“未回复”为必要触发条件；no-response 归 #1 |
+| 8 | `/how-to-follow-up-on-an-email-politely/` | Generic polite email follow-up | C1 | semrush_keyword_demand + competitor_ranking | ready_local | 不以“未回复”为必要触发条件；no-response 归 #1；[Page Specification](./specs/how-to-follow-up-on-an-email-politely.md) |
 | 9 | `/how-to-politely-decline-a-job-offer/` | Decline/reject/turn down a job offer | C2/C3 | semrush_keyword_demand + competitor_ranking | planned_top10 | 与仍在考虑的 offer response 分开 |
 | 10 | `/ai-email-reply-generator/` | Generate a contextual email reply | C1 | semrush_keyword_demand + inference_to_validate | live | 使用现有 URL；后续增强，不创建 `/email-reply-generator/` |
 

@@ -19,6 +19,7 @@ export function SiteFooter({ locale = "en" }: { locale?: SiteLocale }) {
     ["/ai-reddit-assistant", zh ? "AI Reddit 助手" : "AI Reddit Assistant"],
     ["/ai-email-reply-generator", zh ? "AI 邮件回复生成器" : "AI Email Reply Generator"],
     ["/follow-up-email-after-no-response", zh ? "未回复邮件跟进" : "Follow Up After No Response"],
+    ["/how-to-follow-up-on-an-email-politely", zh ? "礼貌跟进邮件" : "Follow Up on an Email Politely"],
     ["/how-to-ask-for-payment-politely", zh ? "礼貌请求付款" : "Ask for Payment Politely"],
     ["/how-to-respond-to-a-job-offer-email", zh ? "回复工作录用邮件" : "Respond to a Job Offer Email"],
     ["/reply-to-email-confirmation", zh ? "回复确认邮件" : "Reply to Email Confirmation"],
