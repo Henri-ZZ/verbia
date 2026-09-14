@@ -283,6 +283,24 @@ describe("API fetch handler", () => {
     expect(urls.some(url => url.includes("record_generation_quota"))).toBe(false);
   });
 
+  // A body the schema refuses used to be a dead end for whoever had to debug it:
+  // the user saw one sentence and the log said nothing about which field failed.
+  // Names only — the payload holds the page's text and the user's own words.
+  it("names the rejected field without logging what was in it", async () => {
+    const warned = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const response = await handler(new Request("https://api.verbia.henriz.dev/v1/context:extract", {
+      method: "POST", headers: { "content-type": "application/json" },
+      // A value the closed enum does not know — the case that shipped once as an
+      // unexplained 400 (@see siteMode for how a new mode is meant to travel).
+      body: JSON.stringify({ ...validExtraction, platform: "email" })
+    }));
+    expect(response.status).toBe(400);
+    const line = warned.mock.calls.map(([entry]) => String(entry)).find(entry => entry.includes("context:extract rejected")) ?? "";
+    expect(line).toContain("platform");
+    expect(line).not.toContain("email");
+    expect(line).not.toContain("Your invoice is overdue");
+  });
+
   it("rejects malformed and oversized bodies", async () => {
     const malformed = await handler(new Request("https://api.verbia.henriz.dev/v1/replies:generate", { method: "POST", body: "{" }));
     expect(malformed.status).toBe(400);

@@ -5,6 +5,7 @@ import { OutlookAdapter } from "./adapters/outlook";
 import { QqMailAdapter } from "./adapters/qqmail";
 import { isSafeEditable, toTarget } from "./editor/editable";
 import { claimPage, dropPanelRoots, ownsPage, PANEL_ROOT_SELECTOR } from "./page-claim";
+import { resolveSiteMode } from "./site-mode";
 import { extensionAlive, uiLanguage } from "../runtime";
 import { VerbiaPanel } from "./ui/panel";
 import { msgIcon, type MsgKind } from "../ui/message";
@@ -62,6 +63,9 @@ if (!window.__verbiaLoaded) {
   function bootActive() {
     const site: SiteAdapter = onQqMailHost ? qqmail : onOutlookHost ? outlook : onGmailHost ? gmail : reddit.matches(url) ? reddit : universal;
     const autoAdapter = site === reddit || site === gmail || site === outlook || site === qqmail ? site : null;
+    // Which of the three behaviours this page gets (@see SiteMode). Resolved once
+    // per page: it follows the host and the adapter, never the contents.
+    const mode = resolveSiteMode(site, url);
 
     let lastEditable: HTMLElement | null = isSafeEditable(document.activeElement) ? document.activeElement : null;
     let panel: VerbiaPanel | undefined;
@@ -126,7 +130,10 @@ if (!window.__verbiaLoaded) {
       // so it never becomes part of the outgoing message. Park it next to the
       // editor so the eye doesn't have to jump to the opposite corner of the
       // page. Everywhere else the panel is inlined right after the reply box.
-      const floating = adapter === gmail || adapter === outlook || adapter === qqmail;
+      // Generalized mail mode floats for the same reason: those pages put the
+      // reply box inside a long reading view, where an inline panel is far from
+      // what the user is looking at.
+      const floating = adapter === gmail || adapter === outlook || adapter === qqmail || mode === "email";
       const anchorFor = () => (floating ? element : findReplyAnchor(element));
       // Already open for this editor and still on the page: nothing to rebuild.
       // The check goes through the panel, not the document: host pages re-render
@@ -197,7 +204,7 @@ if (!window.__verbiaLoaded) {
           currentRef = "";
           panel = undefined;
           void notifyDismissedOnce();
-        });
+        }, mode);
         if (floating) panel.mountFloating(element);
         else panel.mountAfter(mountAnchor);
       }

@@ -32,6 +32,10 @@ export type CollectedContext = {
   /** Elements dropped as chrome — the composer's own block included — so the
    *  cleaning is visible in a report. */
   stripped: number;
+  /** Same-origin frames whose own body text was read into the region. A webmail
+   *  that renders the message in a frame is the ordinary case, and this is the
+   *  count that says whether the region had one (@see frameText). */
+  frames: number;
 };
 
 const MAX_CHARS = 6_000;
@@ -63,6 +67,41 @@ function textOf(node: HTMLElement): string {
   return (node.textContent ?? "").replace(/\s+/g, " ").trim();
 }
 
+// The frame's own document, when the browser lets us read it. A cross-origin frame
+// throws on access and has nothing we could ever have shown the model: it stays
+// empty, and the noise pass deletes it like any other control.
+//
+// The frame's text is cleaned exactly like any other: it is a document, so it
+// carries script, style and controls of its own — and `textContent` would hand
+// their source to the model as if it were the mail. A webmail's message frame is
+// where that hurts most: it usually opens with the stylesheet that lays the message
+// out, which buries the message itself under a wall of CSS.
+function frameText(frame: Element): string {
+  if (!(frame instanceof HTMLIFrameElement)) return "";
+  try {
+    const body = frame.contentDocument?.body;
+    if (!body) return "";
+    const scope = body.cloneNode(true) as HTMLElement;
+    stripNoise(scope);
+    return textOf(scope);
+  } catch {
+    return "";
+  }
+}
+
+// What a subtree actually reads as. `textContent` cannot see into a frame, and a
+// webmail that renders the message in a same-origin one is the ordinary case (163
+// among them). Without this, a mail whose body lives in a frame reads as "the
+// region above this composer holds a header" — the boundary test passes on the
+// header, the frame is deleted as noise, and the model is handed a region with
+// nothing in it to answer (@see the `no_current_message` failure).
+function readableText(node: Element): string {
+  const frames = node instanceof HTMLIFrameElement ? [node] : Array.from(node.querySelectorAll("iframe"));
+  let text = node.textContent ?? "";
+  for (const frame of frames) text += ` ${frameText(frame)}`;
+  return text.replace(/\s+/g, " ").trim();
+}
+
 function precedingSiblings(node: HTMLElement): HTMLElement[] {
   const before: HTMLElement[] = [];
   for (let sibling = node.previousElementSibling; sibling; sibling = sibling.previousElementSibling) {
@@ -70,6 +109,14 @@ function precedingSiblings(node: HTMLElement): HTMLElement[] {
   }
   return before;
 }
+
+// How much more text a widened pass has to bring in before it is worth a second
+// model call: a wrapper's own chrome is not a reason to ask again.
+const WIDEN_MIN_CHARS = 60;
+// How far a widened pass will climb, counted in ancestors. A page that nests ten
+// wrappers between the message and the box stops here rather than walking to the
+// top of the document.
+const WIDEN_MAX_LEVELS = 6;
 
 // The region, and whether one was actually found. The boundary is the smallest
 // ancestor whose siblings above the composer already contain a real block of
@@ -80,21 +127,68 @@ function precedingSiblings(node: HTMLElement): HTMLElement[] {
 // The page itself is never a region: an editor with nothing above it belongs to
 // no conversation, and answering with the whole document is worse than
 // answering with nothing.
-function regionAround(editor: HTMLElement): { region: HTMLElement; found: boolean } {
+//
+// `widen` asks for the second pass of an identification that came back with
+// nothing usable. It climbs until the region reads as meaningfully more than the
+// narrow one did, because a boundary drawn on "the row above the box holds text"
+// can land on a reply area that has a hint of its own while the message itself
+// sits in a wrapper beside it — the shape that produced a region of mail header
+// and an empty answer.
+function regionAround(editor: HTMLElement, widen = false): { region: HTMLElement; found: boolean } {
   let node: HTMLElement | null = editor;
+  let region: HTMLElement | null = null;
   while (node && node !== document.body) {
     const parent: HTMLElement | null = node.parentElement;
     if (!parent) break;
     const above = precedingSiblings(node);
-    if (above.some(sibling => textOf(sibling).length >= MESSAGE_FLOOR)
+    // Readable, not just textContent: a message sitting in a frame is exactly the
+    // case that used to make this test answer "no conversation here" and keep
+    // climbing past the mail.
+    if (above.some(sibling => readableText(sibling).length >= MESSAGE_FLOOR)
       && parent !== document.body && parent !== document.documentElement) {
-      return { region: parent, found: true };
+      region = parent;
+      break;
     }
     node = parent;
   }
-  // Stay next to the composer: whatever the caller does with a text-free region
-  // beats reaching for the page around it.
-  return { region: editor.parentElement ?? document.body, found: false };
+  if (!region) {
+    // Stay next to the composer: whatever the caller does with a text-free region
+    // beats reaching for the page around it.
+    return { region: editor.parentElement ?? document.body, found: false };
+  }
+  if (!widen) return { region, found: true };
+  const target = readableText(region).length + WIDEN_MIN_CHARS;
+  for (let level = 0; level < WIDEN_MAX_LEVELS; level += 1) {
+    const parent: HTMLElement | null = region.parentElement;
+    if (!parent || parent === document.body || parent === document.documentElement) break;
+    region = parent;
+    if (readableText(region).length >= target) break;
+  }
+  return { region, found: true };
+}
+
+// The chain of child indices from `ancestor` down to `node`, or null when the node
+// is not inside it. It is what lets a widened clone find the narrower region the
+// composer's block was located in (@see collectLocalContext).
+function childPath(ancestor: HTMLElement, node: HTMLElement): number[] | null {
+  const path: number[] = [];
+  for (let current: HTMLElement | null = node; current && current !== ancestor; current = current.parentElement) {
+    const parent: HTMLElement | null = current.parentElement;
+    if (!parent) return null;
+    path.unshift(Array.prototype.indexOf.call(parent.children, current));
+  }
+  return path.length ? path : null;
+}
+
+function nodeAtPath(base: HTMLElement, path: number[] | null): HTMLElement | null {
+  if (!path) return null;
+  let node: HTMLElement = base;
+  for (const index of path) {
+    const child = node.children[index];
+    if (!(child instanceof HTMLElement)) return null;
+    node = child;
+  }
+  return node;
 }
 
 // Wraps a region an adapter handed over in the same shape the collector returns,
@@ -108,8 +202,27 @@ export function collectProvidedRegion(text: string, truncated: boolean): Collect
     truncated: clean.length > MAX_CHARS || truncated,
     replyDetected: clean.length >= MESSAGE_FLOOR,
     nodeCount: 0,
-    stripped: 0
+    stripped: 0,
+    // The adapter read the text itself; there is no frame in this path.
+    frames: 0
   };
+}
+
+// Same-origin frame bodies, moved into the clone at the position the frame held.
+// Order is what tells the messages apart — the newest runs last, next to the reply
+// box — so the text has to land in place rather than be appended at the end. Frames
+// with nothing readable (cross-origin, empty) are left for the noise pass.
+function inlineFrameText(scope: HTMLElement, region: HTMLElement): number {
+  const frames = Array.from(scope.querySelectorAll("iframe"));
+  const live = Array.from(region.querySelectorAll("iframe"));
+  let inlined = 0;
+  frames.forEach((frame, index) => {
+    const text = live[index] ? frameText(live[index]) : "";
+    if (!text) return;
+    frame.replaceWith(scope.ownerDocument.createTextNode(text));
+    inlined += 1;
+  });
+  return inlined;
 }
 
 function stripNoise(scope: HTMLElement): number {
@@ -139,7 +252,7 @@ export function regionFingerprint(editor: HTMLElement): string {
   let text = "";
   for (const child of Array.from(region.children)) {
     if (child === composer) continue;
-    text += ` ${child.textContent ?? ""}`;
+    text += ` ${readableText(child)}`;
   }
   const normalised = text.replace(/\s+/g, " ").trim();
   return `${normalised.length}:${normalised.slice(0, 60)}`;
@@ -182,11 +295,20 @@ function countTextCarriers(scope: HTMLElement): number {
 // user is typing into; the composer's own subtree is dropped as noise along with
 // the rest of the chrome, so the text that comes back is what the message area
 // holds and nothing that belongs to the box being written in.
-export function collectLocalContext(editor: HTMLElement, options: { maxChars?: number } = {}): CollectedContext {
+export function collectLocalContext(editor: HTMLElement, options: { maxChars?: number; widen?: boolean } = {}): CollectedContext {
   const maxChars = options.maxChars ?? MAX_CHARS;
-  const { region, found } = regionAround(editor);
+  const narrow = regionAround(editor);
+  const { region, found } = options.widen ? regionAround(editor, true) : narrow;
   const scope = region.cloneNode(true) as HTMLElement;
-  let stripped = dropComposer(scope, region, editor);
+  // The composer's own block is dropped as seen from the *narrow* region: in a
+  // widened clone the child holding the editor can be the whole reading area, and
+  // dropping that would leave nothing of the page behind. Nested at the same place
+  // in the widened clone, the narrow region keeps the drop exact.
+  const composerScope = region === narrow.region ? scope : nodeAtPath(scope, childPath(region, narrow.region));
+  let stripped = composerScope ? dropComposer(composerScope, narrow.region, editor) : 0;
+  // Read the frames first: the noise pass deletes the ones it finds, and a message
+  // that lives in one would be deleted with it.
+  const frames = inlineFrameText(scope, region);
   stripped += stripNoise(scope);
   const text = textOf(scope);
   return {
@@ -199,6 +321,7 @@ export function collectLocalContext(editor: HTMLElement, options: { maxChars?: n
     truncated: text.length > maxChars,
     replyDetected: found && text.length >= MESSAGE_FLOOR,
     nodeCount: countTextCarriers(scope),
-    stripped
+    stripped,
+    frames
   };
 }

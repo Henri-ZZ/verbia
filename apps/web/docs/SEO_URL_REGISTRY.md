@@ -31,10 +31,10 @@
 
 | URL | Intent owner | 状态 | 首期内容范围 |
 |---|---|---|---|
-| `/situations/` | Communication situation library | planned_top10 | Reply/respond、follow-up/remind、ask/request、decline/say no、apologize/repair 的入口和选择路径 |
-| `/career/` | Career & workplace communication | planned_top10 | Interview、job offer、recruiter、payment/workplace 的入口和阶段关系 |
+| `/situations/` | Communication situation library | ready_local | 按 follow-up/remind、confirm/coordinate、career decisions 组织当前 8 个英文邮件场景 |
+| `/career/` | Career & workplace communication | ready_local | 按 interview invitation、job offer response、decline 的阶段关系组织当前职业页 |
 
-子 Hub 暂不提前创建。只有相关页面数量和独立导航价值足够时，才考虑 `/situations/follow-up-and-remind/`、`/career/interview/` 等 URL。
+子 Hub 暂不提前创建。当前页面数量用两个高质量根 Hub 已能清楚组织；只有相关页面数量和独立导航价值足够时，才考虑 `/situations/follow-up-and-remind/`、`/career/interview/` 等 URL。
 
 ## Top 10 生产队列
 
@@ -48,8 +48,8 @@
 | 6 | `/how-to-reply-to-a-recruiter-on-linkedin/` | Reply to a LinkedIn recruiter | C2 | semrush_keyword_demand + competitor_ranking | planned_top10 | 暂停：等待 LinkedIn 专用支持完成后再实现 |
 | 7 | `/how-to-respond-to-an-interview-invitation-email/` | Accept, confirm or schedule an interview invitation | C2 | semrush_keyword_demand + competitor_ranking | ready_local | 不覆盖 thank-you 或 interview 后 follow-up；[Page Specification](./specs/how-to-respond-to-an-interview-invitation-email.md) |
 | 8 | `/how-to-follow-up-on-an-email-politely/` | Generic polite email follow-up | C1 | semrush_keyword_demand + competitor_ranking | ready_local | 不以“未回复”为必要触发条件；no-response 归 #1；[Page Specification](./specs/how-to-follow-up-on-an-email-politely.md) |
-| 9 | `/how-to-politely-decline-a-job-offer/` | Decline/reject/turn down a job offer | C2/C3 | semrush_keyword_demand + competitor_ranking | planned_top10 | 与仍在考虑的 offer response 分开 |
-| 10 | `/ai-email-reply-generator/` | Generate a contextual email reply | C1 | semrush_keyword_demand + inference_to_validate | live | 使用现有 URL；后续增强，不创建 `/email-reply-generator/` |
+| 9 | `/how-to-politely-decline-a-job-offer/` | Decline/reject/turn down a job offer | C2/C3 | semrush_keyword_demand + competitor_ranking | ready_local | 与仍在考虑的 offer response 分开；[Page Specification](./specs/how-to-politely-decline-a-job-offer.md) |
+| 10 | `/ai-email-reply-generator/` | Generate a contextual email reply | C1 | semrush_keyword_demand + inference_to_validate | ready_local | 已增强现有 URL 并承接全部邮件场景；不创建 `/email-reply-generator/`；[Page Specification](./specs/ai-email-reply-generator.md) |
 
 ## Batch 2
 

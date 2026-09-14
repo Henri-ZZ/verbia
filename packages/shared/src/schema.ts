@@ -22,10 +22,20 @@ export const contextEnvelopeSchema = z.object({
   missingFields: z.array(z.string().max(60)).max(12).optional()
 });
 
+// How Verbia behaved on the page that produced a request. It travels beside
+// `platform` and not inside it, and that is deliberate: a closed enum on the wire
+// cannot grow. The extension updates on its own schedule, so the day a client
+// sends a value an already-deployed Worker does not know is the day that request
+// is not degraded but rejected — an extension sending `platform: "email"` to a
+// server with five known values answered 400 INVALID_REQUEST. New values go in
+// as new *optional* fields, which an older server simply strips.
+export const siteModeSchema = z.enum(["auto", "email", "universal"]);
+
 export const generateReplyRequestSchema = z.object({
   requestId: z.string().uuid(),
   schemaVersion: z.literal("1"),
   platform: z.enum(["reddit", "gmail", "outlook", "universal"]),
+  siteMode: siteModeSchema.optional(),
   page: z.object({ urlOrigin: z.string().url().max(300), locale: z.string().max(30).optional() }),
   context: contextEnvelopeSchema,
   intent: z.object({
@@ -78,6 +88,7 @@ export const contextExtractionRequestSchema = z.object({
   schemaVersion: z.literal("1"),
   trigger: z.literal("explicit_user_click"),
   platform: z.enum(["reddit", "gmail", "outlook", "qqmail", "universal"]),
+  siteMode: siteModeSchema.optional(),
   page: z.object({ urlOrigin: z.string().url().max(300), locale: z.string().max(30).optional() }),
   collected: z.object({
     // The region text, already cleaned in the browser. Never the page: the

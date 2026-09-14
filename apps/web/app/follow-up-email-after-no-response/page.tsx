@@ -4,6 +4,7 @@ import { EmailPlatformLogos, GmailLogo, OutlookLogo } from "../../components/ema
 import { Faq, type FaqItem } from "../../components/faq";
 import { InstallLink } from "../../components/install-link";
 import { FollowUpScenarioDemo } from "../../components/seo/follow-up-scenario-demo";
+import { TopicHubLinks } from "../../components/seo/topic-hub-links";
 import { SiteFooter } from "../../components/site-footer";
 import { SiteHeader } from "../../components/site-header";
 
@@ -57,6 +58,7 @@ export default function FollowUpEmailAfterNoResponsePage() {
 
     <section className="email-platforms followup-platforms shell" aria-labelledby="followup-platforms-title"><div className="seo-heading"><p className="eyebrow">USE THE EMAIL ALREADY IN FRONT OF YOU</p><h2 id="followup-platforms-title">Draft the follow-up with the original context.</h2><p>Verbia uses relevant visible email text in supported Gmail and Outlook web reply flows. Tell it what outcome you need in any language, then review the draft before you send it.</p></div><div><article><GmailLogo size={50}/><span>GMAIL ON THE WEB</span><h3>Keep the earlier message in the thread.</h3><p>Use the visible email and your intent to prepare a follow-up inside Gmail.</p><Link href="/gmail-ai-reply-assistant">Use Verbia in Gmail <span aria-hidden="true">→</span></Link></article><article><OutlookLogo size={50}/><span>OUTLOOK ON THE WEB</span><h3>Connect the pending request to your next step.</h3><p>Draft from relevant visible message context in supported Outlook web editors.</p><Link href="/outlook-ai-reply-assistant">Use Verbia in Outlook on the web <span aria-hidden="true">→</span></Link></article></div></section>
 
+    <TopicHubLinks/>
     <section className="related-pages shell" aria-labelledby="followup-related-title"><div><p className="eyebrow">RELATED VERBIA GUIDES</p><h2 id="followup-related-title">Build the reply from context and intent.</h2></div><nav aria-label="Related Verbia guides"><Link href="/how-to-follow-up-on-an-email-politely">Follow Up on an Email Politely <span>Continue an active conversation →</span></Link><Link href="/how-to-remind-someone-politely-in-an-email">Send a Polite Email Reminder <span>Remind someone about an expected action →</span></Link><Link href="/how-to-ask-for-payment-politely">Ask for Payment Politely <span>Write a clear payment request →</span></Link><Link href="/ai-email-reply-generator">AI Email Reply Generator <span>Generate from the email context →</span></Link></nav></section>
 
     <section className="seo-faq shell" aria-labelledby="followup-faq-title"><div className="seo-heading"><p className="eyebrow">QUESTIONS & ANSWERS</p><h2 id="followup-faq-title">Follow-up email after no response FAQ</h2></div><Faq items={faqItems}/></section>

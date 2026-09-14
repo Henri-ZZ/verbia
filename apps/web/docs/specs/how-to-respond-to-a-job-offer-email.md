@@ -65,7 +65,7 @@
 - `/reply-to-email-confirmation/`：offer 后续确认的相邻任务。
 - `/follow-up-email-after-no-response/`：等待 offer 决定或条款回复后的跟进。
 - `/gmail-ai-reply-assistant/`、`/outlook-ai-reply-assistant/`：已上线自动模式。
-- 未来 `/how-to-politely-decline-a-job-offer/` 上线后增加双向链接。
+- `/how-to-politely-decline-a-job-offer/`：已建立双向链接，承接最终拒绝决定。
 
 ## 7. Product Truth 与 QA
 

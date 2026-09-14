@@ -4,6 +4,7 @@ import { EmailPlatformLogos, GmailLogo, OutlookLogo } from "../../components/ema
 import { Faq, type FaqItem } from "../../components/faq";
 import { InstallLink } from "../../components/install-link";
 import { PaymentRequestScenarioDemo } from "../../components/seo/payment-request-scenario-demo";
+import { TopicHubLinks } from "../../components/seo/topic-hub-links";
 import { SiteFooter } from "../../components/site-footer";
 import { SiteHeader } from "../../components/site-header";
 
@@ -57,6 +58,7 @@ export default function HowToAskForPaymentPolitelyPage() {
 
     <section className="email-platforms followup-platforms shell" aria-labelledby="payment-platforms-title"><div className="seo-heading"><p className="eyebrow">USE THE EMAIL ALREADY IN FRONT OF YOU</p><h2 id="payment-platforms-title">Draft the request with the invoice conversation in view.</h2><p>In supported Gmail and Outlook web reply flows, Verbia can use relevant visible email text as context. Describe the outcome you want in any language, review the result, and send it yourself.</p></div><div><article><GmailLogo size={50}/><span>GMAIL ON THE WEB</span><h3>Keep the invoice details in the thread.</h3><p>Turn the visible conversation and your intent into a clear payment request inside Gmail.</p><Link href="/gmail-ai-reply-assistant">Use Verbia in Gmail <span aria-hidden="true">→</span></Link></article><article><OutlookLogo size={50}/><span>OUTLOOK ON THE WEB</span><h3>Ask for the next payment step.</h3><p>Draft from relevant visible message context in supported Outlook web editors.</p><Link href="/outlook-ai-reply-assistant">Use Verbia in Outlook on the web <span aria-hidden="true">→</span></Link></article></div></section>
 
+    <TopicHubLinks/>
     <section className="related-pages shell" aria-labelledby="payment-related-title"><div><p className="eyebrow">RELATED VERBIA GUIDES</p><h2 id="payment-related-title">Keep the message connected to its context.</h2></div><nav aria-label="Related Verbia guides"><Link href="/follow-up-email-after-no-response">Follow Up After No Response <span>Send a clear next message →</span></Link><Link href="/ai-email-reply-generator">AI Email Reply Generator <span>Generate from the email context →</span></Link><Link href="/multilingual-reply-generator">Multilingual Reply Generator <span>Describe your intent in any language →</span></Link></nav></section>
 
     <section className="seo-faq shell" aria-labelledby="payment-faq-title"><div className="seo-heading"><p className="eyebrow">QUESTIONS & ANSWERS</p><h2 id="payment-faq-title">Asking for payment politely FAQ</h2></div><Faq items={faqItems}/></section>

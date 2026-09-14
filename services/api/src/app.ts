@@ -21,6 +21,13 @@ export function createApiHandler(env: ApiEnv) {
     let logProvider: string | undefined;
     let logModelRoute: string | undefined;
     let logQuota: QuotaOutcome | undefined;
+    // Reported by the client and carried into the request log: `platform` is the
+    // prompt's own label, `siteMode` is how the client behaved on the page
+    // (auto / email / universal). Together with `page.urlOrigin` they are what
+    // make "the model cannot read this provider" separable from "our adapter
+    // cannot" — which decides where the next adapter is worth writing.
+    let logPlatform: string | undefined;
+    let logSiteMode: string | undefined;
     let response: Response | undefined;
     try {
       response = await (async (): Promise<Response> => {
@@ -124,9 +131,14 @@ export function createApiHandler(env: ApiEnv) {
         // `trigger` is part of the schema and must be "explicit_user_click", so
         // a missing gate in the UI costs a 400 here instead of a silent call.
         const parsed = contextExtractionRequestSchema.safeParse(body);
-        if (!parsed.success) return apiError(400, requestId, "INVALID_REQUEST", false, "Verbia could not read the page text it collected.");
+        if (!parsed.success) {
+          logRejected(path, parsed.error);
+          return apiError(400, requestId, "INVALID_REQUEST", false, "Verbia could not read the page text it collected.");
+        }
         requestId = parsed.data.requestId;
         logRequestId = requestId;
+        logPlatform = parsed.data.platform;
+        logSiteMode = parsed.data.siteMode;
         const auth = await measure("auth", timings, () => verifyBearer(request.headers.get("authorization"), env));
         if (auth.status === "invalid") return apiError(401, requestId, "UNAUTHENTICATED", false, "Sign-in expired. Sign in again from Verbia settings.");
         if (auth.status === "none" && env.AUTH_REQUIRED === "1") return apiError(401, requestId, "UNAUTHENTICATED", false, "Sign in from Verbia settings to identify the context.");
@@ -155,7 +167,7 @@ export function createApiHandler(env: ApiEnv) {
           if (!result.validation.grounded) {
             // Nothing usable came out, so nothing is recorded: failed
             // identifications are free.
-            console.warn(`[verbia-api] identification not grounded: ${result.validation.warnings.join(", ") || "no message"}`, { requestId });
+            console.warn(`[verbia-api] identification not grounded: ${result.validation.warnings.join(", ") || "no message"}`, { requestId, platform: parsed.data.platform });
           } else if (auth.status === "ok") {
             await measure("record", timings, () => recordGenerationQuota(auth.token, env));
           }
@@ -179,9 +191,14 @@ export function createApiHandler(env: ApiEnv) {
     try {
       const body = await readJson(request, maxBodyBytes);
       const parsed = generateReplyRequestSchema.safeParse(body);
-      if (!parsed.success) return apiError(400, requestId, "INVALID_REQUEST", false, "Check the intent and generation settings.");
+      if (!parsed.success) {
+        logRejected(path, parsed.error);
+        return apiError(400, requestId, "INVALID_REQUEST", false, "Check the intent and generation settings.");
+      }
       requestId = parsed.data.requestId;
       logRequestId = requestId;
+      logPlatform = parsed.data.platform;
+      logSiteMode = parsed.data.siteMode;
       const auth = await measure("auth", timings, () => verifyBearer(request.headers.get("authorization"), env));
       if (auth.status === "invalid") return apiError(401, requestId, "UNAUTHENTICATED", false, "Sign-in expired. Sign in again from Verbia settings.");
       if (auth.status === "none" && env.AUTH_REQUIRED === "1") return apiError(401, requestId, "UNAUTHENTICATED", false, "Sign in from Verbia settings to generate a reply.");
@@ -225,7 +242,7 @@ export function createApiHandler(env: ApiEnv) {
       })();
       return response;
     } finally {
-      logRequest(request, path, response, requestStarted, { requestId: logRequestId, provider: logProvider, modelRoute: logModelRoute, quota: logQuota });
+      logRequest(request, path, response, requestStarted, { requestId: logRequestId, provider: logProvider, modelRoute: logModelRoute, quota: logQuota, platform: logPlatform, siteMode: logSiteMode });
     }
   };
 }
@@ -498,7 +515,18 @@ function withServerTiming(response: Response, timings: TimingMetric[]): Response
   return response;
 }
 
-function logRequest(request: Request, path: string, response: Response | undefined, started: number, details: { requestId?: string; provider?: string; modelRoute?: string; quota?: QuotaOutcome } = {}) {
+// A body the schema refused is answered with one sentence the user can read and
+// nothing an operator can act on. That is how a rejection with a perfectly good
+// cause — a client shipping a platform value the server did not know yet — arrived
+// as a screenshot instead of a log line. Field paths and issue codes only: the
+// payload holds the page's own text and the user's own words, and neither belongs
+// in a log.
+function logRejected(path: string, error: z.ZodError): void {
+  const issues = error.issues.map(issue => `${issue.path.join(".") || "<body>"}: ${issue.code}`).join(", ");
+  console.warn(`[verbia-api] ${path} rejected: ${issues}`);
+}
+
+function logRequest(request: Request, path: string, response: Response | undefined, started: number, details: { requestId?: string; provider?: string; modelRoute?: string; quota?: QuotaOutcome; platform?: string; siteMode?: string } = {}) {
   const cf = (request as Request & { cf?: { colo?: string; country?: string } }).cf;
   const timing = Object.fromEntries((response?.headers.get("server-timing") ?? "").split(",").map(value => {
     const [name, duration] = value.trim().split(";dur=");
@@ -516,6 +544,8 @@ function logRequest(request: Request, path: string, response: Response | undefin
     // Present on every signed-in generation, so logs answer "was this reply
     // counted?" without a second lookup.
     ...(details.quota ? { quota: details.quota } : {}),
+    ...(details.platform ? { platform: details.platform } : {}),
+    ...(details.siteMode ? { siteMode: details.siteMode } : {}),
     ...(Object.keys(timing).length ? { timing } : {}),
     ...(cf?.colo ? { colo: cf.colo } : {}),
     ...(cf?.country ? { country: cf.country } : {})

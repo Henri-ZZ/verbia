@@ -139,26 +139,26 @@
 
 #### 4B. `/how-to-politely-decline-a-job-offer/`
 
-- [ ] `未开始` 聚合 decline/reject/turn down/refuse 同义需求。
-- [ ] `未开始` 与 job-offer response 父级页保持清晰边界。
-- [ ] `未开始` 实现页面与完整 QA。
+- [x] `已完成` 聚合 decline/reject/turn down/refuse 同义需求并填写 [`Page Specification`](./specs/how-to-politely-decline-a-job-offer.md)。
+- [x] `已完成` 与 job-offer response 父级页保持清晰边界和双向内链。
+- [x] `已完成` 实现三个拒绝场景、metadata、FAQ schema、页脚、sitemap 与完整 QA。
 
 #### 4C. Email Reply Generator 产品入口
 
-- [ ] `未开始` 按阶段 0 决策增强现有 `/ai-email-reply-generator/`，不创建或迁移到近义 URL。
-- [ ] `未开始` 让产品页承接全部 email situation 页面，避免与 how-to 页面竞争同一 intent。
-- [ ] `未开始` 实现页面与完整 QA。
+- [x] `已完成` 按阶段 0 决策增强现有 `/ai-email-reply-generator/`，不创建或迁移到近义 URL；规格见 [`Page Specification`](./specs/ai-email-reply-generator.md)。
+- [x] `已完成` 让产品页承接全部已上线 email situation 页面，并将产品能力链接独立成组。
+- [x] `已完成` 补齐免费额度表达、内链结构与完整 QA。
 
-**批次停止点：** Top 10 完成后不直接进入 Batch 2；先等待真实数据和用户确认。
+**批次停止点：** 4B、4C 已完成；3B 因等待 LinkedIn 专用支持仍暂停。未收到用户指令前不进入 Batch 2。
 
 ### 阶段 5：Hub 与全站内链
 
-- [ ] `未开始` 实现 `/situations/` Hub 及必要的高质量子 Hub。
-- [ ] `未开始` 实现 `/career/` Hub 及必要的高质量子 Hub。
-- [ ] `未开始` 从首页和页脚提供清晰入口。
-- [ ] `未开始` 为每个 situation 页补齐父 Hub、兄弟场景、产品页和已支持平台页链接。
-- [ ] `未开始` 检查 anchor 自然度，避免全站机械重复 exact-match anchor。
-- [ ] `未开始` 更新 sitemap，并确认所有 intended indexable 页均可被发现。
+- [x] `已完成` 实现 `/situations/` Hub；当前内容规模不创建价值不足的子 Hub。
+- [x] `已完成` 实现 `/career/` Hub，以 invitation、offer response、decline 组织现有职业场景。
+- [x] `已完成` 从英文首页和页脚提供两个 Hub 的清晰入口。
+- [x] `已完成` 为每个已上线 email situation 页补齐父 Hub；保留已有的相邻场景、产品页和 Gmail/Outlook 链接。
+- [x] `已完成` 检查并使用场景化、自然且多样的 anchor，未机械重复 exact-match anchor。
+- [x] `已完成` 更新 sitemap，并确认所有 intended indexable 页均可被发现。
 
 ### 阶段 6：Batch 2（仅在用户确认后）
 
@@ -233,6 +233,8 @@
 | 2026-09-13 | 阶段 3B · Paused | 用户决定先开发 LinkedIn 专用支持 | 已撤回尚未完成的 3B 页面、规格、样式、sitemap、页脚与反向内链 | LinkedIn 支持完成后重新实现 |
 | 2026-09-13 | 阶段 3C · Implementation | 完成 interview invitation response 规格与页面；实现接受、选时、请求替代时间三个场景 | 本地完成；类型检查、生产构建、320/390px 与桌面视觉和交互检查通过 | 等待用户审阅页面 |
 | 2026-09-13 | 阶段 4A · Implementation | 完成 generic polite follow-up 规格与页面；实现补充资料、active review、agreed reconnect 三个场景及 owner 双向内链 | 本地完成；类型检查、生产构建、320/390px 与桌面视觉和交互检查通过 | 等待用户审阅页面 |
+| 2026-09-14 | 阶段 4B/4C · Implementation | 完成 decline job offer 页面并增强 Email Reply Generator 产品入口，建立 offer 决策边界和完整邮件场景目录 | 本地完成；类型检查、生产构建、320/390px 与桌面视觉和交互检查通过 | 进入阶段 5 |
+| 2026-09-14 | 阶段 5 · Hub & Internal Linking | 实现 Situations 与 Career Hub；补齐首页、页脚、8 个场景页和 sitemap 的发现路径 | 本地完成；完整 QA 通过 | 等待用户审阅；3B 仍等待 LinkedIn 支持 |
 
 ## 8. 决策日志
 
@@ -246,4 +248,4 @@
 
 ## 9. 当前下一步
 
-`阶段 4A 已本地完成；阶段 3B 暂停`。等待用户审阅 4A；LinkedIn 专用支持完成后再重新开始 3B。
+`阶段 5 已本地完成；阶段 3B 暂停`。等待用户审阅 Hub 与内链；LinkedIn 专用支持完成后再重新开始 3B。未收到用户指令前不进入 Batch 2。

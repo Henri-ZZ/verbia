@@ -22,6 +22,7 @@ export function SiteFooter({ locale = "en" }: { locale?: SiteLocale }) {
     ["/how-to-follow-up-on-an-email-politely", zh ? "礼貌跟进邮件" : "Follow Up on an Email Politely"],
     ["/how-to-ask-for-payment-politely", zh ? "礼貌请求付款" : "Ask for Payment Politely"],
     ["/how-to-respond-to-a-job-offer-email", zh ? "回复工作录用邮件" : "Respond to a Job Offer Email"],
+    ["/how-to-politely-decline-a-job-offer", zh ? "礼貌拒绝工作录用" : "Politely Decline a Job Offer"],
     ["/reply-to-email-confirmation", zh ? "回复确认邮件" : "Reply to Email Confirmation"],
     ["/how-to-remind-someone-politely-in-an-email", zh ? "礼貌邮件提醒" : "Send a Polite Email Reminder"],
     ["/how-to-respond-to-an-interview-invitation-email", zh ? "回复面试邀请" : "Respond to an Interview Invitation"],
@@ -40,6 +41,8 @@ export function SiteFooter({ locale = "en" }: { locale?: SiteLocale }) {
           <h2>{zh ? "产品" : "Product"}</h2>
           <Link href={`${home}#features`}>{zh ? "功能" : "Features"}</Link>
           <Link href={`${prefix}/getting-started`}>{zh ? "使用教程" : "Getting started"}</Link>
+          {!zh && <Link href="/situations">Email situations</Link>}
+          {!zh && <Link href="/career">Career guides</Link>}
           <Link href={`${home}#pricing`}>{zh ? "价格" : "Pricing"}</Link>
           <Link href={`${home}#faq`}>{zh ? "常见问题" : "FAQ"}</Link>
         </nav>

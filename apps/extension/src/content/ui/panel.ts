@@ -1,7 +1,8 @@
 import type { ContextEnvelope, ContextExtractionRequest, ContextExtractionResponse, EditableTarget, GenerateReplyRequest, GenerateReplyResponse, SiteAdapter, UiLang, UserSettings } from "@verbia/shared";
 import { DEFAULT_SETTINGS, LENGTH_VALUES, REPLY_LANGUAGE_OPTIONS, TONE_VALUES, UI_STRINGS, resolveUiLang } from "@verbia/shared";
 import { readEditable } from "../editor/editable";
-import { COLLECTOR_VERSION, collectLocalContext, collectProvidedRegion, regionFingerprint } from "../context/collector";
+import { COLLECTOR_VERSION, collectLocalContext, collectProvidedRegion, regionFingerprint, type CollectedContext } from "../context/collector";
+import { isMailSite, type SiteMode } from "../site-mode";
 import { contextFromExtraction } from "../context/mapping";
 import { extensionVersion, runtimeUrl, sendToBackground, uiLanguage } from "../../runtime";
 import { msgColor, msgIcon, type MsgKind } from "../../ui/message";
@@ -28,6 +29,10 @@ type Phase = "idle" | "context_ready" | "recording" | "generating" | "draft_read
 // A context with nothing to send: a fresh compose box, or a page read that ran
 // before the composer had rendered what it is answering. Distinguishes "the page
 // has nothing for us" from "we looked too early" (see refreshContextIfEmpty).
+// How much new text the widened second pass has to bring in before it is worth
+// another model call: a wrapper's own chrome is not a reason to ask again.
+const WIDEN_MIN_GAIN = 60;
+
 const hasContextBody = (context: ContextEnvelope): boolean =>
   Boolean(context.selectedText || context.target?.body || context.post?.body || context.post?.title || context.ancestors?.length);
 
@@ -74,9 +79,15 @@ export class VerbiaPanel {
   // reads, what the last answer said, and the region that answer was about.
   private identify: "idle" | "loading" | "done" | "failed" = "idle";
   private identifyMessage = "";
+  // True while the second, wider read is in flight: the same wait, labelled as
+  // reading further out (@see identifyContext).
+  private identifyWidening = false;
   private aiFingerprint = "";
 
-  constructor(private adapter: SiteAdapter, target: EditableTarget, context: ContextEnvelope, private onRemove: () => void) {
+  // `mode` defaults to "auto" — an adapter-backed page, which is what every
+  // constructed-with-an-adapter panel is. Only the generalized mail mode passes
+  // something else (@see SiteMode).
+  constructor(private adapter: SiteAdapter, target: EditableTarget, context: ContextEnvelope, private onRemove: () => void, private mode: SiteMode = "auto") {
     this.target = target;
     this.context = context;
     this.host.dataset.verbiaRoot = "true";
@@ -342,20 +353,40 @@ export class VerbiaPanel {
   }
 
   private contextLabel() {
+    // A task the model could not classify still left a message on screen. On a mail
+    // site the chip says exactly that instead of "unknown context", which reads as a
+    // contradiction over a mail the reader can see — and since the label names the
+    // mail itself, the usual "Email ·" in front of it would only stutter.
+    if (isMailSite(this.mode, this.adapter.id) && this.context.relation === "unknown" && hasContextBody(this.context)) {
+      return this.t("context.rel.identified");
+    }
     // Brand names that read the same in every language stay inline (Reddit, QQ
     // Mail); only labels that need translating live in the string table.
-    const source = this.adapter.id === "reddit" ? "Reddit" : this.adapter.id === "qqmail" ? "QQ Mail" : this.adapter.id === "gmail" ? this.t("context.gmail") : this.adapter.id === "outlook" ? this.t("context.outlook") : this.t("context.universal");
+    const source = this.mode === "email" ? this.t("context.email") : this.mode === "universal" ? this.t("context.universal") : this.adapter.id === "reddit" ? "Reddit" : this.adapter.id === "qqmail" ? "QQ Mail" : this.adapter.id === "gmail" ? this.t("context.gmail") : this.adapter.id === "outlook" ? this.t("context.outlook") : this.t("context.universal");
     const relation = this.t(`context.rel.${this.context.relation}`);
     return `${source} · ${relation}`;
+  }
+
+  // What a request reports as its platform. Kept to values every deployed Worker
+  // already knows: `platform` is a closed enum on the wire, so a client that ships
+  // a new value before the API does gets a 400, not a degraded answer. The mode
+  // travels beside it in `siteMode`, an optional field an older server strips —
+  // and the provider itself is already in `page.urlOrigin`, so the per-host
+  // grounding failure rate is readable without widening anything.
+  private requestPlatform(): GenerateReplyRequest["platform"] {
+    const adapter = this.adapter.id;
+    return adapter === "reddit" || adapter === "gmail" || adapter === "outlook" ? adapter : "universal";
   }
 
   private contextText() {
     // `target` and `ancestors` hold different things across sites: Reddit uses
     // them for the comment being replied to and its parents, mail for the message
     // being answered and the rounds before it (the extraction mapping is what
-    // fills the latter in). The headings follow the relation so neither site reads
-    // the other's words.
-    const isMailReply = this.context.relation === "reply_to_email";
+    // fills the latter in). The headings follow the *site* rather than the relation
+    // the model reported, because the relation is one of the things the reader is
+    // checking: an identification that came back with task "unknown" on a mail page
+    // is still a subject and a message, not a post title and a target comment.
+    const mail = isMailSite(this.mode, this.adapter.id) || this.context.relation === "reply_to_email";
     const parts: string[] = [];
     // Who it came from, when the reader knows. It comes first because it is what
     // makes the context verifiable at a glance: the message text alone does not
@@ -363,17 +394,17 @@ export class VerbiaPanel {
     const sender = this.context.sender;
     const from = sender ? (sender.name && sender.email ? `${sender.name} <${sender.email}>` : sender.name ?? sender.email) : null;
     if (from) parts.push(`${this.t("context.from")}\n${from}`);
-    if (this.context.post?.title) parts.push(`${this.t("context.postTitle")}\n${this.context.post.title}`);
+    if (this.context.post?.title) parts.push(`${this.t(mail ? "context.subject" : "context.postTitle")}\n${this.context.post.title}`);
     if (this.context.post?.body) parts.push(`${this.t("context.post")}\n${this.context.post.body}`);
     const earlier = this.context.ancestors ?? [];
     // Oldest first in mail: the list arrives newest-first (depth 1 is the round
     // right before this message) and reads better ending on what is being
     // answered.
-    for (const item of isMailReply ? [...earlier].reverse() : earlier) {
-      parts.push(`${this.t(isMailReply ? "context.earlierMessages" : "context.parentComment")}\n${item.body}`);
+    for (const item of mail ? [...earlier].reverse() : earlier) {
+      parts.push(`${this.t(mail ? "context.earlierMessages" : "context.parentComment")}\n${item.body}`);
     }
     if (this.context.target?.body) {
-      const label = isMailReply ? this.t("context.originalMessage") : this.t("context.targetComment");
+      const label = this.t(mail ? "context.originalMessage" : "context.targetComment");
       parts.push(`${label}\n${this.context.target.body}`);
     }
     if (this.context.selectedText) parts.push(`${this.t("context.selectedText")}\n${this.context.selectedText}`);
@@ -435,8 +466,13 @@ export class VerbiaPanel {
     // asked for — where pointing at the same button again would be advice, not a
     // fix. The wording follows whichever one this context is.
     const lowWarning = this.identify === "done" ? "panel.warningLowIdentified" : "panel.warningLow";
+    // Email mode starts with nothing at all: no adapter read the mail, and the
+    // user has not asked for an identification yet. Saying so — and pointing at
+    // the button — is the whole onboarding of this mode; a draft generated from an
+    // empty context is worse than no draft.
+    const needsIdentification = this.mode === "email" && this.identify !== "done" && !hasContextBody(this.context);
     const showContext = this.settings.contextPreviewExpanded || low || this.identify === "done";
-    this.root.innerHTML = `<style>${styles}</style><div class="inline-shell"><section class="panel" role="region" aria-labelledby="verbia-title"><header class="head"><div><h2 class="brand" id="verbia-title"><img src="${runtimeUrl("icons/verbia-horizontal-logo.svg")}" alt="Verbia" class="wordmark"></h2><p class="slogan">${this.t("brand.slogan")}</p></div><button class="icon" data-action="collapse" type="button" aria-expanded="true" aria-label="${this.t("panel.collapseAria")}"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 10l4-4 4 4"/></svg></button></header><div class="panel-body"><div class="chip">${escapeHtml(this.contextLabel())}</div>${low ? `<p class="warning">${this.t(lowWarning)}</p>` : ""}${this.context.truncated ? `<p class="warning">${this.t("panel.warningTruncated")}</p>` : ""}<details class="context" ${showContext ? "open" : ""}><summary>${this.t("panel.summaryContext")}</summary><div class="context-body">${escapeHtml(this.contextText())}</div><button class="remove-context" data-action="remove-context" type="button">${this.t("panel.removeContext")}</button></details>${this.identifyBlock()}<label for="intent">${this.t("brand.uxLine")}</label><textarea class="intent" id="intent" maxlength="2000" placeholder="${this.t("panel.intentPlaceholder")}">${escapeHtml(intent)}</textarea><div class="actions"><button class="secondary" data-action="record" type="button">${this.t("panel.speak")}</button><button class="secondary" data-action="clear" type="button">${this.t("panel.clear")}</button></div><div class="row">${this.rowCells(this.settings)}</div><div class="actions"><button class="primary" data-action="generate" type="button">${this.t("panel.generate")}</button><button class="danger hidden" data-action="cancel" type="button">${this.t("panel.cancel")}</button></div><p class="status" role="status" aria-live="polite"></p><section class="draft-area hidden"><label for="draft">${this.t("panel.draftLabel")}</label><textarea class="draft" id="draft"></textarea><div class="actions"><button class="primary" data-action="insert" type="button">${this.t("panel.insert")}</button><button class="secondary" data-action="regenerate" type="button">${this.t("panel.regenerate")}</button><button class="secondary" data-action="copy" type="button">${this.t("panel.copy")}</button></div><div class="insert-choice hidden"><strong>${this.t("panel.editorHasText")}</strong><div class="actions"><button class="secondary" data-action="append" type="button">${this.t("panel.append")}</button><button class="danger" data-action="replace" type="button">${this.t("panel.replace")}</button><button class="secondary" data-action="choice-cancel" type="button">${this.t("panel.cancel")}</button></div></div></section><p class="foot">${this.t("panel.foot")}</p></div></section></div>`;
+    this.root.innerHTML = `<style>${styles}</style><div class="inline-shell"><section class="panel" role="region" aria-labelledby="verbia-title"><header class="head"><div><h2 class="brand" id="verbia-title"><img src="${runtimeUrl("icons/verbia-horizontal-logo.svg")}" alt="Verbia" class="wordmark"></h2><p class="slogan">${this.t("brand.slogan")}</p></div><button class="icon" data-action="collapse" type="button" aria-expanded="true" aria-label="${this.t("panel.collapseAria")}"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 10l4-4 4 4"/></svg></button></header><div class="panel-body"><div class="chip">${escapeHtml(this.contextLabel())}</div>${needsIdentification ? `<p class="warning">${this.t("panel.warningNoContext")}</p>` : ""}${low ? `<p class="warning">${this.t(lowWarning)}</p>` : ""}${this.context.truncated ? `<p class="warning">${this.t("panel.warningTruncated")}</p>` : ""}<details class="context" ${showContext ? "open" : ""}><summary>${this.t("panel.summaryContext")}</summary><div class="context-body">${escapeHtml(this.contextText())}</div><button class="remove-context" data-action="remove-context" type="button">${this.t("panel.removeContext")}</button></details>${this.identifyBlock()}<label for="intent">${this.t("brand.uxLine")}</label><textarea class="intent" id="intent" maxlength="2000" placeholder="${this.t("panel.intentPlaceholder")}">${escapeHtml(intent)}</textarea><div class="actions"><button class="secondary" data-action="record" type="button">${this.t("panel.speak")}</button><button class="secondary" data-action="clear" type="button">${this.t("panel.clear")}</button></div><div class="row">${this.rowCells(this.settings)}</div><div class="actions"><button class="primary" data-action="generate" type="button">${this.t("panel.generate")}</button><button class="danger hidden" data-action="cancel" type="button">${this.t("panel.cancel")}</button></div><p class="status" role="status" aria-live="polite"></p><section class="draft-area hidden"><label for="draft">${this.t("panel.draftLabel")}</label><textarea class="draft" id="draft"></textarea><div class="actions"><button class="primary" data-action="insert" type="button">${this.t("panel.insert")}</button><button class="secondary" data-action="regenerate" type="button">${this.t("panel.regenerate")}</button><button class="secondary" data-action="copy" type="button">${this.t("panel.copy")}</button></div><div class="insert-choice hidden"><strong>${this.t("panel.editorHasText")}</strong><div class="actions"><button class="secondary" data-action="append" type="button">${this.t("panel.append")}</button><button class="danger" data-action="replace" type="button">${this.t("panel.replace")}</button><button class="secondary" data-action="choice-cancel" type="button">${this.t("panel.cancel")}</button></div></div></section><p class="foot">${this.t("panel.foot")}</p></div></section></div>`;
     this.renderHeadActions();
     this.setSelect("language", this.settings.outputLanguage);
     this.setSelect("tone", this.settings.defaultTone);
@@ -468,7 +504,7 @@ export class VerbiaPanel {
     this.setBusy(true);
     this.status(this.t("panel.status.writing"));
     const request: GenerateReplyRequest = {
-      requestId: this.requestId, schemaVersion: "1", platform: this.adapter.id === "reddit" || this.adapter.id === "gmail" || this.adapter.id === "outlook" ? this.adapter.id : "universal",
+      requestId: this.requestId, schemaVersion: "1", platform: this.requestPlatform(), siteMode: this.mode,
       page: { urlOrigin: location.origin, locale: document.documentElement.lang || undefined }, context: this.context,
       intent: { text: intent, source: this.voiceTranscript ? "voice_transcript" : "typed" },
       output: { language: this.value("language", this.settings.outputLanguage), tone: this.value("tone", this.settings.defaultTone) as GenerateReplyRequest["output"]["tone"], length: this.value("length", this.settings.defaultLength) as GenerateReplyRequest["output"]["length"] },
@@ -638,42 +674,82 @@ export class VerbiaPanel {
       this.setIdentify("failed", this.t("context.identifyFailed"));
       return;
     }
+    // Read before the request: the answer is about the page as it is right now.
+    const fingerprint = regionFingerprint(this.target.element);
+    this.setIdentify("loading", "");
+    const first = await this.requestIdentification(collected);
+    if (first.context) {
+      this.finishIdentification(first.context, fingerprint);
+      return;
+    }
+    // An answer that did not survive grounding is about what was handed over, not
+    // about the model giving up: the boundary can be drawn right around the reply
+    // box and still hold a mail header while the message sits in a wrapper beside
+    // it. One wider pass costs the reader a wait instead of a tutorial on selecting
+    // the text by hand, and costs nothing else — nothing is recorded until an answer
+    // survives grounding (@see record_generation_quota).
+    const wider = first.retryable && !hinted ? collectLocalContext(this.target.element, { widen: true }) : null;
+    if (!wider || wider.text.length < collected.text.length + WIDEN_MIN_GAIN) {
+      this.setIdentify("failed", first.message ?? this.t("context.identifyFailed"));
+      return;
+    }
+    // The wait stays a wait: the first pass is not reported as a failure on its way
+    // to the second one, it is reported as still reading — further out this time.
+    this.setIdentify("loading", "", true);
+    const second = await this.requestIdentification(wider);
+    if (second.context) this.finishIdentification(second.context, fingerprint);
+    else this.setIdentify("failed", second.message ?? this.t("context.identifyFailed"));
+  }
+
+  // One identification request, and the one distinction its caller needs: an answer
+  // that found no message in what we sent (worth sending more of the page) versus
+  // everything else, which asking the model again cannot fix.
+  private async requestIdentification(collected: CollectedContext): Promise<{ context?: ContextEnvelope; retryable: boolean; message?: string }> {
     const payload: ContextExtractionRequest = {
       requestId: crypto.randomUUID(),
       schemaVersion: "1",
       trigger: "explicit_user_click",
-      platform: this.adapter.id as ContextExtractionRequest["platform"],
+      platform: this.requestPlatform() as ContextExtractionRequest["platform"],
+      siteMode: this.mode,
       page: { urlOrigin: location.origin, locale: document.documentElement.lang || undefined },
       collected: { text: collected.text, truncated: collected.truncated, nodeCount: collected.nodeCount },
       client: { extensionVersion: extensionVersion(), collectorVersion: COLLECTOR_VERSION }
     };
-    // Read before the request: the answer is about the page as it is right now.
-    const fingerprint = regionFingerprint(this.target.element);
-    this.setIdentify("loading", "");
+    let response: Reply<ContextExtractionResponse> | undefined;
     try {
-      const response = await sendToBackground<Reply<ContextExtractionResponse>>({ type: "EXTRACT_CONTEXT", payload });
-      if (!response?.ok || !response.data) {
-        this.setIdentify("failed", this.localisedError(response?.error, "context.identifyFailed"));
-        return;
-      }
-      const next = contextFromExtraction(response.data, { regionTruncated: collected.truncated });
-      // Nothing usable came back (nothing grounded, or no message in it): the
-      // read this would replace is still the best thing on screen. Without a log
-      // this — the likeliest way for the feature to fail — leaves no trace at
-      // all; the warning codes say which claim did not trace back.
-      if (!next) {
-        console.warn(`[verbia] identification not grounded: ${response.data.validation.warnings.join(", ") || "no message"}`);
-        this.setIdentify("failed", this.t("context.identifyFailed"));
-        return;
-      }
-      this.context = next;
-      this.aiFingerprint = fingerprint;
-      this.setIdentify("done", "");
+      response = await sendToBackground<Reply<ContextExtractionResponse>>({ type: "EXTRACT_CONTEXT", payload });
     } catch {
-      // No answer at all — the tab closed, the context died mid-flight. The
-      // wording is the same as any other failure of this button.
-      this.setIdentify("failed", this.t("context.identifyFailed"));
+      // No answer at all — the tab closed, the context died mid-flight. The wording
+      // is the same as any other failure of this button.
+      return { retryable: false };
     }
+    if (!response?.ok || !response.data) return { retryable: false, message: this.localisedError(response?.error, "context.identifyFailed") };
+    const context = contextFromExtraction(response.data, { regionTruncated: collected.truncated });
+    if (context) return { context, retryable: false };
+    // Nothing usable came back (nothing grounded, or no message in it): the read
+    // this would replace is still the best thing on screen. What was handed over
+    // decides what happens next, so it gets a line of its own — a region holding a
+    // mail header with the message sitting somewhere else reads exactly like a model
+    // that gave up, and the two need opposite fixes. Numbers plus a bounded head, on
+    // the user's own console; the same text has just travelled to the model.
+    console.warn(`[verbia] identification not grounded: ${response.data.validation.warnings.join(", ") || "no message"}`, {
+      regionChars: collected.text.length,
+      frames: collected.frames,
+      stripped: collected.stripped,
+      truncated: collected.truncated,
+      // Both ends: the head shows what the page put first (often a header, often the
+      // stylesheet), the tail shows what the region actually ends on — the newest
+      // message, which is the part the answer has to come from.
+      head: collected.text.slice(0, 160),
+      tail: collected.text.slice(-160)
+    });
+    return { retryable: true };
+  }
+
+  private finishIdentification(context: ContextEnvelope, fingerprint: string) {
+    this.context = context;
+    this.aiFingerprint = fingerprint;
+    this.setIdentify("done", "");
   }
 
   // The button, and what the last press came back with, right below the context it
@@ -682,13 +758,19 @@ export class VerbiaPanel {
   // mail is from, and what it is about.
   private identifyBlock(): string {
     const loading = this.identify === "loading";
-    const label = loading ? this.t("context.identifying") : this.t("context.identify");
+    const label = loading
+      ? this.t(this.identifyWidening ? "context.identifyingWider" : "context.identifying")
+      : this.t("context.identify");
     const status = this.identifyStatus();
     const klass = this.identify === "failed" ? "identify-status error" : "identify-status";
+    // In mail mode with nothing read yet this button is the first thing to do, not
+    // a repair for something that went wrong: it is the only way this mode ever
+    // gets a context, so it carries the primary weight.
+    const primary = this.mode === "email" && !hasContextBody(this.context);
     // The hint under the button says what pressing it does and what it costs: it
     // is the one path to the model the user starts by hand, and the press has to
     // be informed (@see checkGenerationQuota — one press is one daily entry).
-    return `<div class="identify"><button class="secondary" data-action="identify" type="button"${loading ? " disabled" : ""}>${label}</button><p class="identify-hint">${this.t("context.identifyHint")}</p>${status ? `<p class="${klass}" role="status" aria-live="polite">${escapeHtml(status)}</p>` : ""}</div>`;
+    return `<div class="identify"><button class="${primary ? "primary" : "secondary"}" data-action="identify" type="button"${loading ? " disabled" : ""}>${label}</button><p class="identify-hint">${this.t("context.identifyHint")}</p>${status ? `<p class="${klass}" role="status" aria-live="polite">${escapeHtml(status)}</p>` : ""}</div>`;
   }
 
   // One line and no content. What was identified is shown by the context itself,
@@ -717,12 +799,13 @@ export class VerbiaPanel {
 
   // Re-renders around a state change, carrying the typed intent and a visible
   // draft across the rebuild exactly like mergeContextSelection does.
-  private setIdentify(state: "idle" | "loading" | "done" | "failed", message: string) {
+  private setIdentify(state: "idle" | "loading" | "done" | "failed", message: string, widening = false) {
     const intent = this.el<HTMLTextAreaElement>("intent")?.value ?? "";
     const draftText = this.el<HTMLTextAreaElement>("draft")?.value ?? "";
     const draftVisible = !this.el("draft-area")?.classList.contains("hidden");
     this.identify = state;
     this.identifyMessage = message;
+    this.identifyWidening = widening;
     this.renderPanel(intent);
     if (draftText) { const draft = this.el<HTMLTextAreaElement>("draft"); if (draft) draft.value = draftText; }
     if (draftVisible) this.el("draft-area")?.classList.remove("hidden");
@@ -752,6 +835,7 @@ export class VerbiaPanel {
     this.aiFingerprint = "";
     this.identify = "idle";
     this.identifyMessage = "";
+    this.identifyWidening = false;
     if (dropContext) this.context = { relation: "none", truncated: false, extractorVersion: this.context.extractorVersion, confidence: "high" };
   }
 

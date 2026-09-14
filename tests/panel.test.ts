@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { VerbiaPanel } from "../apps/extension/src/content/ui/panel";
 import { QqMailAdapter } from "../apps/extension/src/content/adapters/qqmail";
+import { UniversalAdapter } from "../apps/extension/src/content/adapters/universal";
 import { toTarget } from "../apps/extension/src/content/editor/editable";
 import { DEFAULT_SETTINGS, UI_STRINGS, type ContextEnvelope } from "@verbia/shared";
 
@@ -98,6 +99,17 @@ describe("panel context warnings", () => {
 const REGION = `<div class="read">
   <div class="body">尊敬的ambitious98：您的账户ambitious98已产生欠费，您的按量付费商品延期停服的额度为10.00元。欠费详情请至用户中心首页查询。</div>
   <div class="cmp"><div contenteditable="true" aria-label="输入正文"></div></div>
+</div>`;
+
+// The shape a widened pass exists for: the message sits in a wrapper beside a reply
+// area that has a hint of its own above the box, so the narrow boundary stops at the
+// hint and the first read finds no message in it.
+const WIDENABLE_REGION = `<div class="read">
+  <div class="body">${"尊敬的用户，您的账户存在异常登录风险，请尽快修改密码并完成身份验证。".repeat(4)}</div>
+  <div class="reply">
+    <div class="tip">温馨提示：请勿泄露验证码及密码等信息，客服人员不会以任何理由向您索要验证码，请提高警惕。</div>
+    <div class="cmp"><div contenteditable="true" aria-label="输入正文"></div></div>
+  </div>
 </div>`;
 
 const IDENTIFIED_MESSAGE = "尊敬的ambitious98：您的账户ambitious98已产生欠费，您的按量付费商品延期停服的额度为10.00元。";
@@ -235,6 +247,7 @@ describe("identifying the context", () => {
     await vi.waitFor(() => expect(shadowHtml()).toContain(UI_STRINGS.en["context.identifyFailed"]));
   });
 
+
   // The server words its failures in English; the panel words them in the
   // interface language, by the code — the server's own sentence goes to the
   // console.
@@ -299,5 +312,130 @@ describe("identifying the context", () => {
     expect(panel.dropsStaleIdentification(true)).toBe(true);
     // Already forgotten: a second call has nothing left to compare against.
     expect(panel.dropsStaleIdentification(true)).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Email mode: a webmail host with no adapter of its own. Nothing reads the page
+// for the user, so the panel's job is to say so and make the one useful action
+// the obvious one.
+// ---------------------------------------------------------------------------
+
+const NOTHING_READ: ContextEnvelope = { relation: "none", truncated: false, extractorVersion: "1.0.0", confidence: "medium" };
+
+async function buildEmailPanel(reply: (message: Sent) => Promise<unknown>) {
+  vi.stubGlobal("chrome", fakeChrome(reply));
+  document.body.innerHTML = REGION;
+  const editor = document.querySelector<HTMLElement>('[contenteditable="true"]');
+  if (!editor) throw new Error("fixture has no editor");
+  const panel = new VerbiaPanel(new UniversalAdapter(), toTarget(editor), NOTHING_READ, () => {}, "email");
+  panel.mountAfter(editor);
+  await panel.open(false);
+  return panel;
+}
+
+describe("email mode", () => {
+  // A first answer that found no message in the region gets one wider read before
+  // the user is told to select the text by hand: the boundary can sit right around
+  // the reply box and still hold a hint instead of the mail. The wait is relabelled
+  // rather than reported as a failure — it is the same press, reading further out.
+  it("reads a wider region once when the first answer finds no message", async () => {
+    const sent: Sent[] = [];
+    let attempt = 0;
+    await buildPanel(WIDENABLE_REGION, async message => {
+      sent.push(message);
+      attempt += 1;
+      return attempt === 1
+        ? { ok: true, data: { ...identified, currentMessage: null, validation: { grounded: false, warnings: ["no_current_message"] } } }
+        : { ok: true, data: identified };
+    });
+    pressIdentify();
+    await vi.waitFor(() => expect(shadowHtml()).toContain(UI_STRINGS.en["context.identified"]));
+    const texts = sent.map(message => (message.payload?.collected as { text: string }).text);
+    expect(texts).toHaveLength(2);
+    // The second request carries more of the page: that is the whole of the retry.
+    expect(texts[1]!.length).toBeGreaterThan(texts[0]!.length);
+  });
+
+  it("labels the wider read instead of reporting a failure on the way", async () => {
+    let release: (value: unknown) => void = () => {};
+    const pending = new Promise(resolve => { release = resolve; });
+    let attempt = 0;
+    await buildPanel(WIDENABLE_REGION, async () => {
+      attempt += 1;
+      return attempt === 1
+        ? { ok: true, data: { ...identified, currentMessage: null, validation: { grounded: false, warnings: ["no_current_message"] } } }
+        : pending;
+    });
+    pressIdentify();
+    await vi.waitFor(() => expect(shadowHtml()).toContain(UI_STRINGS.en["context.identifyingWider"]));
+    // The first answer is not the user's business: it is one press, still working.
+    expect(shadowHtml()).not.toContain(UI_STRINGS.en["context.identifyFailed"]);
+    expect(identifyButton()?.hasAttribute("disabled")).toBe(true);
+
+    release({ ok: true, data: identified });
+    await vi.waitFor(() => expect(shadowHtml()).toContain(UI_STRINGS.en["context.identified"]));
+  });
+
+  // Widening is only worth a second call when it actually brings in more text: a
+  // region that cannot grow is a page with nothing further to read, and asking
+  // again would spend a model call to get the same answer.
+  it("does not ask twice when a wider read adds nothing", async () => {
+    const sent: Sent[] = [];
+    await buildPanel(REGION, async message => {
+      sent.push(message);
+      return { ok: true, data: { ...identified, currentMessage: null, validation: { grounded: false, warnings: ["no_current_message"] } } };
+    });
+    pressIdentify();
+    await vi.waitFor(() => expect(shadowHtml()).toContain(UI_STRINGS.en["context.identifyFailed"]));
+    expect(sent).toHaveLength(1);
+  });
+
+  it("labels the host as mail and asks for an identification", async () => {
+    await buildEmailPanel(async () => ({ ok: true, data: identified }));
+    expect(shadowText()).toContain(UI_STRINGS.en["context.email"]);
+    expect(shadowHtml()).toContain(UI_STRINGS.en["panel.warningNoContext"]);
+    // Nothing was read, so the only way to get a context leads with the primary
+    // weight — the reverse of a site whose adapter already read the page.
+    expect(identifyButton()?.classList.contains("primary")).toBe(true);
+  });
+
+  // The telemetry story of this mode: `siteMode` separates "the model could not
+  // read this provider" from "our adapter could not", so it is what says where an
+  // adapter is worth writing next. It travels as its own optional field because
+  // `platform` is a closed enum — a client that ships a new value before the API
+  // does gets a 400, which is exactly what an `email` platform value cost.
+  it("reports the mode beside the platform, never inside it", async () => {
+    const sent: Sent[] = [];
+    await buildEmailPanel(async message => { sent.push(message); return { ok: true, data: identified }; });
+    pressIdentify();
+    await vi.waitFor(() => expect(identifyStatus()).toBe(UI_STRINGS.en["context.identified"]));
+    expect(sent[0]?.payload?.siteMode).toBe("email");
+    expect(sent[0]?.payload?.platform).toBe("universal");
+  });
+
+  // The reader is checking this very read, so its words must not change under them
+  // when the task came back unclassified: a subject is not a post title and a message
+  // is not a target comment just because the model could not name the task.
+  it("describes the read in mail words even when the task is unknown", async () => {
+    await buildEmailPanel(async () => ({ ok: true, data: { ...identified, task: "unknown" } }));
+    pressIdentify();
+    await vi.waitFor(() => expect(shadowHtml()).toContain(UI_STRINGS.en["context.identified"]));
+    expect(shadowText()).toContain(UI_STRINGS.en["context.subject"]);
+    expect(shadowText()).toContain(UI_STRINGS.en["context.originalMessage"]);
+    expect(shadowText()).not.toContain(UI_STRINGS.en["context.postTitle"]);
+    expect(shadowText()).not.toContain(UI_STRINGS.en["context.targetComment"]);
+    // The chip says what is on screen rather than "unknown context", which reads as a
+    // contradiction over a mail the reader can see.
+    expect(shadowText()).toContain(UI_STRINGS.en["context.rel.identified"]);
+    expect(shadowText()).not.toContain(UI_STRINGS.en["context.rel.unknown"]);
+  });
+
+  it("drops the prompt and the primary weight once the mail is read", async () => {
+    await buildEmailPanel(async () => ({ ok: true, data: identified }));
+    pressIdentify();
+    await vi.waitFor(() => expect(shadowHtml()).toContain(UI_STRINGS.en["context.identified"]));
+    expect(shadowHtml()).not.toContain(UI_STRINGS.en["panel.warningNoContext"]);
+    expect(identifyButton()?.classList.contains("secondary")).toBe(true);
   });
 });
