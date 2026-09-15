@@ -1,5 +1,5 @@
-import { DEFAULT_SETTINGS, LENGTH_VALUES, REPLY_LANGUAGE_OPTIONS, TONE_VALUES, UI_LANGUAGE_OPTIONS, UI_STRINGS, VOICE_LANGUAGE_OPTIONS, resolveUiLang, type AuthState, type UiLang, type UserSettings } from "@verbia/shared";
-import { AUTH_STORAGE_KEY, SUPABASE_SIGNIN_REDIRECT, authEnabled, getSupabase, signInWithGoogle } from "../auth/supabase";
+import { DEFAULT_SETTINGS, LENGTH_VALUES, REPLY_LANGUAGE_OPTIONS, TONE_VALUES, UI_LANGUAGE_OPTIONS, UI_STRINGS, VOICE_LANGUAGE_OPTIONS, isRtl, resolveUiLang, type AuthState, type UiLang, type UserSettings } from "@verbia/shared";
+import { AUTH_STORAGE_KEY, webSignInUrl } from "../auth/supabase";
 import { setStatusMessage, type MsgKind } from "../ui/message";
 import { renderShortcutKeys } from "../ui/shortcut";
 import { reviewUrl } from "../ui/stores";
@@ -43,9 +43,9 @@ function fill(id: string, items: ReadonlyArray<{ value: string; label: string }>
 function applyLanguage() {
   const strings = UI_STRINGS[lang];
   document.documentElement.lang = lang;
-  // Arabic reads right to left, and the form has to say so: without this the label
-  // sits on the wrong side of every field it belongs to.
-  document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
+  // Right-to-left languages read right to left, and the form has to say so:
+  // without this the label sits on the wrong side of every field it belongs to.
+  document.documentElement.dir = isRtl(lang) ? "rtl" : "ltr";
   for (const el of document.querySelectorAll<HTMLElement>("[data-i18n]")) {
     const key = el.dataset.i18n ?? "";
     const text = strings[key];
@@ -226,12 +226,12 @@ void load();
 // shortcut-settings page (it opens in a new tab; coming back refocuses here).
 window.addEventListener("focus", () => { void applyShortcuts(); void renderAccount(); });
 
-// ---- Account (Supabase sign-in) -------------------------------------------
-// Renders into #account-body. Google OAuth and Magic Link both redirect back
-// to the Supabase project root, where the background capture listener
-// exchanges the code (see signInWithGoogle / background/index.ts). Both
-// persist the session through the shared chrome.storage adapter, so this page
-// only needs to watch that key (storage.onChanged below) to re-render.
+// ---- Account ---------------------------------------------------------------
+// Renders into #account-body. The extension signs nobody in: the button opens the
+// website, which handles codes, passwords and Google, and the finished session
+// arrives through the bridge (see syncWebsiteSignIn in background/index.ts). That
+// write lands in the shared chrome.storage key, so this page only has to watch it
+// (storage.onChanged below) to re-render as signed in.
 
 async function renderAccount() {
   const body = document.querySelector<HTMLElement>("#account-body");
@@ -411,111 +411,19 @@ function renderSignedOut(body: HTMLElement) {
   desc.textContent = t("account.desc");
   intro.append(desc);
 
-  // ---- Google button (deep brand-dark block, white label, full-color G) -----
-  const googleButton = document.createElement("button");
-  googleButton.type = "button";
-  googleButton.className = "account-google";
-  const googleImg = document.createElement("img");
-  googleImg.src = "assets/google.svg";
-  googleImg.alt = "Google";
-  googleImg.width = 18;
-  googleImg.height = 18;
-  googleImg.decoding = "async";
-  googleButton.append(googleImg, document.createTextNode(t("account.signInGoogle")));
-  googleButton.addEventListener("click", () => {
-    googleButton.disabled = true;
-    void startGoogleSignIn(googleButton, msg);
-  });
-  intro.append(googleButton);
+  // One button, one destination. Sign-in lives on the website because that is the
+  // only surface that can render a CAPTCHA and hold every method (email code,
+  // password, Google) in one place — and the session comes back here on its own
+  // (@see webSignInUrl, and syncWebsiteSignIn in background/index.ts).
+  const signIn = document.createElement("button");
+  signIn.type = "button";
+  // account-magic is the legacy name of the full-width primary button this used
+  // to be; kept so the card keeps its existing look without a CSS change.
+  signIn.className = "account-magic";
+  signIn.textContent = t("account.signIn");
+  signIn.addEventListener("click", () => { void chrome.tabs.create({ url: webSignInUrl() }); });
 
-  // ---- OR divider -------------------------------------------------------
-  const divider = document.createElement("div");
-  divider.className = "account-divider";
-  divider.textContent = t("common.or");
-
-  // ---- Email magic-link form (matches the reference: label, row with mail
-  // icon + input, full-width primary submit) -------------------------------
-  const form = document.createElement("form");
-  form.className = "account-form";
-  form.append(divider);
-
-  const emailLabel = document.createElement("label");
-  emailLabel.htmlFor = "account-email-input";
-  emailLabel.textContent = t("account.emailLabel");
-
-  const emailRow = document.createElement("div");
-  emailRow.className = "account-email-row";
-  const mailIcon = document.createElement("span");
-  mailIcon.className = "mail-icon";
-  mailIcon.setAttribute("aria-hidden", "true");
-  mailIcon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M3 6h18v12H3z"/><path d="M3 6l9 7 9-7"/></svg>';
-  const emailInput = document.createElement("input");
-  emailInput.type = "email";
-  emailInput.id = "account-email-input";
-  emailInput.autocomplete = "email";
-  emailInput.required = true;
-  emailInput.placeholder = t("account.emailPlaceholder");
-  emailRow.append(mailIcon, emailInput);
-
-  const magic = document.createElement("button");
-  magic.type = "submit";
-  magic.className = "account-magic";
-  magic.textContent = t("account.sendMagicLink");
-
-  const msg = document.createElement("p");
-  msg.className = "account-msg";
-
-  form.append(emailLabel, emailRow, magic, msg);
-  body.append(intro, form);
-
-  form.addEventListener("submit", event => {
-    event.preventDefault();
-    const address = emailInput.value.trim();
-    if (!address) {
-      setAccountMessage(msg, t("account.fillForm"), "error");
-      return;
-    }
-    void sendMagicLink(msg, address);
-  });
-}
-
-async function startGoogleSignIn(button: HTMLButtonElement, msg: HTMLElement) {
-  if (!authEnabled) return;
-  setAccountMessage(msg, "");
-  try {
-    const result = await signInWithGoogle();
-    if (!result.ok) {
-      // Failures here are usually the sign-in tab being closed mid-flow or a
-      // network/Google-side issue; the generic message keeps it approachable.
-      console.error("Verbia Google sign-in failed", result.error);
-      setAccountMessage(msg, t("account.errorAuth"), "error");
-    }
-  } catch (error) {
-    console.error("Verbia Google sign-in failed", error);
-    setAccountMessage(msg, t("account.errorAuth"), "error");
-  } finally {
-    // Success re-renders into the signed-in card via storage.onChanged; on
-    // failure the button must become clickable again.
-    button.disabled = false;
-  }
-}
-
-async function sendMagicLink(msg: HTMLElement, email: string) {
-  try {
-    const { error } = await getSupabase().auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: SUPABASE_SIGNIN_REDIRECT }
-    });
-    if (error) throw error;
-    setAccountMessage(msg, t("account.sentEmail"));
-  } catch (error) {
-    console.error("Verbia magic link failed", error);
-    setAccountMessage(msg, t("account.errorAuth"), "error");
-  }
-}
-
-function setAccountMessage(msg: HTMLElement, text: string, kind: MsgKind = "success") {
-  setStatusMessage(msg, text, kind);
+  body.append(intro, signIn);
 }
 
 // Re-render when a session appears or disappears (popup sign-out, silent

@@ -39,7 +39,7 @@ SUPPORT
 
 A site where Verbia does not work yet, a bug, or an idea: use Contact in the extension settings, or write to henri@henriz.dev. Privacy policy: https://verbia.henriz.dev/privacy
 
-Verbia is available for Chrome and Microsoft Edge. Current version 0.1.5.
+Verbia is available for Chrome and Microsoft Edge; Firefox support is in the works.
 ```
 
 ## Chinese (Simplified) (zh-CN) — 简体中文
@@ -83,7 +83,7 @@ Verbia 只在你主动唤起后才读取页面内容，且只读取你正在操�
 
 遇到无法使用的站点、Bug 或建议：可通过扩展设置里的 Contact 联系我们，或发邮件至 henri@henriz.dev。隐私政策：https://verbia.henriz.dev/privacy
 
-Verbia 支持 Chrome 与 Microsoft Edge。当前版本 0.1.5。
+Verbia 支持 Chrome 与 Microsoft Edge，Firefox 版本正在计划中。
 ```
 
 ## Spanish (es) — Español
@@ -127,7 +127,7 @@ SOPORTE
 
 ¿Un sitio donde Verbia aún no funciona, un error o una idea? Usa Contacto en los ajustes de la extensión, o escribe a henri@henriz.dev. Política de privacidad: https://verbia.henriz.dev/privacy
 
-Verbia está disponible para Chrome y Microsoft Edge. Versión actual: 0.1.5.
+Verbia está disponible para Chrome y Microsoft Edge; la versión para Firefox está en preparación.
 ```
 
 ## Portuguese (Brazil) (pt-BR) — Português (Brasil)
@@ -171,7 +171,7 @@ SUPORTE
 
 Um site onde o Verbia ainda não funciona, um erro ou uma ideia? Use Contato nas configurações da extensão, ou escreva para henri@henriz.dev. Política de privacidade: https://verbia.henriz.dev/privacy
 
-O Verbia está disponível para Chrome e Microsoft Edge. Versão atual: 0.1.5.
+O Verbia está disponível para Chrome e Microsoft Edge; a versão para Firefox está em preparação.
 ```
 
 ## Japanese (ja) — 日本語
@@ -215,7 +215,7 @@ Verbia がページの内容を読み取るのは、あなたが呼び出した�
 
 Verbia がまだ動かないサイト、不具合、ご要望は、拡張機能の設定の「Contact」または henri@henriz.dev まで。プライバシーポリシー: https://verbia.henriz.dev/privacy
 
-Verbia は Chrome と Microsoft Edge で利用できます。現行バージョン 0.1.5。
+Verbia は Chrome と Microsoft Edge で利用できます。Firefox 版は準備中です。
 ```
 
 ## German (de) — Deutsch
@@ -259,7 +259,7 @@ SUPPORT
 
 Eine Seite, auf der Verbia noch nicht funktioniert, ein Fehler oder eine Idee? Nutze „Contact“ in den Einstellungen der Erweiterung oder schreib an henri@henriz.dev. Datenschutzerklärung: https://verbia.henriz.dev/privacy
 
-Verbia ist für Chrome und Microsoft Edge verfügbar. Aktuelle Version: 0.1.5.
+Verbia ist für Chrome und Microsoft Edge verfügbar; eine Firefox-Version ist in Planung.
 ```
 
 ## French (fr) — Français
@@ -303,7 +303,7 @@ ASSISTANCE
 
 Un site où Verbia ne fonctionne pas encore, un bug ou une idée ? Utilisez « Contact » dans les réglages de l’extension, ou écrivez à henri@henriz.dev. Politique de confidentialité : https://verbia.henriz.dev/privacy
 
-Verbia est disponible pour Chrome et Microsoft Edge. Version actuelle : 0.1.5.
+Verbia est disponible pour Chrome et Microsoft Edge ; une version pour Firefox est prévue.
 ```
 
 ## Korean (ko) — 한국어
@@ -347,7 +347,7 @@ Verbia는 사용자가 호출한 뒤에만, 그리고 지금 작업 중인 입�
 
 Verbia가 아직 동작하지 않는 사이트, 버그, 제안이 있다면 확장 프로그램 설정의 ‘Contact’ 또는 henri@henriz.dev로 알려 주세요. 개인정보 처리방침: https://verbia.henriz.dev/privacy
 
-Verbia는 Chrome과 Microsoft Edge에서 사용할 수 있습니다. 현재 버전 0.1.5.
+Verbia는 Chrome과 Microsoft Edge에서 사용할 수 있으며, Firefox 버전은 준비 중입니다.
 ```
 
 ## Italian (it) — Italiano
@@ -391,7 +391,7 @@ ASSISTENZA
 
 Un sito dove Verbia non funziona ancora, un bug o un’idea? Usa «Contatti» nelle impostazioni dell’estensione, oppure scrivi a henri@henriz.dev. Informativa sulla privacy: https://verbia.henriz.dev/privacy
 
-Verbia è disponibile per Chrome e Microsoft Edge. Versione attuale: 0.1.5.
+Verbia è disponibile per Chrome e Microsoft Edge; una versione per Firefox è in programma.
 ```
 
 ## Turkish (tr) — Türkçe
@@ -435,7 +435,7 @@ DESTEK
 
 Verbia’nın henüz çalışmadığı bir site, bir hata ya da öneri mi var? Eklenti ayarlarındaki “Contact”ı kullan ya da henri@henriz.dev adresine yaz. Gizlilik politikası: https://verbia.henriz.dev/privacy
 
-Verbia Chrome ve Microsoft Edge için kullanılabilir. Güncel sürüm: 0.1.5.
+Verbia Chrome ve Microsoft Edge için kullanılabilir; Firefox sürümü planlanıyor.
 ```
 
 ## Vietnamese (vi) — Tiếng Việt
@@ -479,7 +479,7 @@ HỖ TRỢ
 
 Trang mà Verbia chưa hoạt động, lỗi hoặc góp ý: dùng Contact trong phần cài đặt tiện ích, hoặc viết tới henri@henriz.dev. Chính sách quyền riêng tư: https://verbia.henriz.dev/privacy
 
-Verbia có cho Chrome và Microsoft Edge. Phiên bản hiện tại: 0.1.5.
+Verbia có cho Chrome và Microsoft Edge; phiên bản Firefox đang trong kế hoạch.
 ```
 
 ## Indonesian (id) — Bahasa Indonesia
@@ -523,7 +523,7 @@ DUKUNGAN
 
 Situs yang belum didukung, bug, atau ide? Pakai Contact di pengaturan ekstensi, atau kirim email ke henri@henriz.dev. Kebijakan privasi: https://verbia.henriz.dev/privacy
 
-Verbia tersedia untuk Chrome dan Microsoft Edge. Versi saat ini: 0.1.5.
+Verbia tersedia untuk Chrome dan Microsoft Edge; versi Firefox sedang direncanakan.
 ```
 
 ---
@@ -573,7 +573,7 @@ Verbia 只在你主動喚起後才讀取頁面內容，且只讀取你正在操�
 
 遇到 Verbia 還無法使用的網站、錯誤或建議：請使用擴充功能設定中的 Contact，或寄信至 henri@henriz.dev。隱私政策：https://verbia.henriz.dev/privacy
 
-Verbia 支援 Chrome 與 Microsoft Edge。目前版本 0.1.5。
+Verbia 支援 Chrome 與 Microsoft Edge，Firefox 版本正在規劃中。
 ```
 
 ## Polish (pl) — Polski
@@ -617,7 +617,7 @@ POMOC
 
 Strona, na której Verbia jeszcze nie działa, błąd lub pomysł? Użyj „Contact” w ustawieniach rozszerzenia albo napisz na henri@henriz.dev. Polityka prywatności: https://verbia.henriz.dev/privacy
 
-Verbia jest dostępna dla Chrome i Microsoft Edge. Aktualna wersja: 0.1.5.
+Verbia jest dostępna dla Chrome i Microsoft Edge; wersja na Firefoksa jest w planach.
 ```
 
 ## Dutch (nl) — Nederlands
@@ -661,7 +661,7 @@ ONDERSTEUNING
 
 Een site waar Verbia nog niet werkt, een fout of een idee? Gebruik Contact in de instellingen van de extensie, of mail henri@henriz.dev. Privacybeleid: https://verbia.henriz.dev/privacy
 
-Verbia is beschikbaar voor Chrome en Microsoft Edge. Huidige versie: 0.1.5.
+Verbia is beschikbaar voor Chrome en Microsoft Edge; een Firefox-versie is in de planning.
 ```
 
 ## Thai (th) — ไทย
@@ -705,7 +705,7 @@ Verbia อ่านเนื้อหาหน้าเว็บเมื่อ�
 
 หน้าเว็บที่ยังใช้ Verbia ไม่ได้ ปัญหา หรือข้อเสนอแนะ ใช้ Contact ในการตั้งค่าส่วนขยาย หรืออีเมลถึง henri@henriz.dev นโยบายความเป็นส่วนตัว: https://verbia.henriz.dev/privacy
 
-Verbia ใช้ได้บน Chrome และ Microsoft Edge เวอร์ชันปัจจุบัน 0.1.5
+Verbia ใช้ได้บน Chrome และ Microsoft Edge ส่วนเวอร์ชัน Firefox อยู่ระหว่างการวางแผน
 ```
 
 ## Arabic (ar) — العربية
@@ -749,7 +749,7 @@ Verbia ใช้ได้บน Chrome และ Microsoft Edge เวอร์�
 
 موقع لا يعمل فيه Verbia بعد، أو خطأ، أو فكرة؟ استخدم Contact في إعدادات الإضافة، أو راسل henri@henriz.dev. سياسة الخصوصية: https://verbia.henriz.dev/privacy
 
-Verbia متاح لمتصفح Chrome وMicrosoft Edge. الإصدار الحالي 0.1.5.
+Verbia متاح لمتصفح Chrome وMicrosoft Edge، وهناك نسخة لـFirefox قيد التخطيط.
 ```
 
 ## Russian (ru) — Русский
@@ -793,7 +793,7 @@ Verbia читает содержимое страницы только посл�
 
 Сайт, где Verbia пока не работает, ошибка или идея? Используйте Contact в настройках расширения или напишите на henri@henriz.dev. Политика конфиденциальности: https://verbia.henriz.dev/privacy
 
-Verbia доступна для Chrome и Microsoft Edge. Текущая версия: 0.1.5.
+Verbia доступна для Chrome и Microsoft Edge; версия для Firefox в планах.
 ```
 
 ## Ukrainian (uk) — Українська
@@ -837,7 +837,7 @@ Verbia читає вміст сторінки лише після вашого �
 
 Сайт, де Verbia ще не працює, помилка чи ідея? Скористайтеся Contact у налаштуваннях розширення або напишіть на henri@henriz.dev. Політика конфіденційності: https://verbia.henriz.dev/privacy
 
-Verbia доступна для Chrome і Microsoft Edge. Поточна версія: 0.1.5.
+Verbia доступна для Chrome і Microsoft Edge; версія для Firefox у планах.
 ```
 
 ## Hindi (hi) — हिन्दी
@@ -881,7 +881,7 @@ Verbia पेज की सामग्री आपके बुलाने �
 
 जहाँ Verbia अभी काम नहीं करता, कोई गड़बड़ी या सुझाव? एक्सटेंशन सेटिंग्स में Contact इस्तेमाल करें, या henri@henriz.dev पर लिखें। गोपनीयता नीति: https://verbia.henriz.dev/privacy
 
-Verbia Chrome और Microsoft Edge के लिए उपलब्ध है। मौजूदा संस्करण: 0.1.5.
+Verbia Chrome और Microsoft Edge के लिए उपलब्ध है; Firefox संस्करण की योजना है।
 ```
 
 ## Czech (cs) — Čeština
@@ -925,7 +925,7 @@ PODPORA
 
 Web, kde Verbia zatím nefunguje, chyba nebo nápad? Použijte Contact v nastavení rozšíření nebo napište na henri@henriz.dev. Zásady ochrany osobních údajů: https://verbia.henriz.dev/privacy
 
-Verbia je dostupná pro Chrome a Microsoft Edge. Aktuální verze: 0.1.5.
+Verbia je dostupná pro Chrome a Microsoft Edge; verze pro Firefox je v plánu.
 ```
 
 ## Malay (ms) — Bahasa Melayu
@@ -969,5 +969,5 @@ SOKONGAN
 
 Tapak yang belum disokong, pepijat atau idea? Guna Contact dalam tetapan sambungan, atau e-mel henri@henriz.dev. Dasar privasi: https://verbia.henriz.dev/privacy
 
-Verbia tersedia untuk Chrome dan Microsoft Edge. Versi semasa: 0.1.5.
+Verbia tersedia untuk Chrome dan Microsoft Edge; versi Firefox sedang dirancang.
 ```

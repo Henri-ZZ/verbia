@@ -4,7 +4,7 @@ Verbia 的账号体系：Google 第三方登录 + 邮箱 Magic Link（免密）�
 扩展在本地通过 PKCE 完成登录；`services/api` 网关校验 Bearer token，把用量归属到账号。
 **未登录完全不影响现有功能**（匿名照常起草），登录只提供云端身份，为额度与付费预留。
 
-官网与扩展的双向登录、独立 Session 和局部退出机制详见 `docs/auth-session-sync.md`。
+官网与扩展的双向登录、独立 Session 与共享登录状态（含退出同步）详见 `docs/auth-session-sync.md`。
 
 ## 一、已落地的代码侧配置
 
@@ -39,8 +39,19 @@ Verbia 的账号体系：Google 第三方登录 + 邮箱 Magic Link（免密）�
    https://verbia.henriz.dev/auth-complete
    ```
    该地址服务扩展发起的 **Google 登录与 Magic Link 两条链路**，必须在 Supabase 放行。Chrome 不允许服务端 302 跳进 `chrome-extension://` 页面，因此回跳先落到普通 HTTPS 页面；扩展后台截获 `?code=`、建立扩展 Session，再通过 Worker 的一次性交接 Token 让官网建立独立 Session。页面确认成功后停留在当前页，由用户选择“回到 Dashboard”或“回到首页”。官网登录还需要放行 `https://verbia.henriz.dev/account/callback`。
-4. **Auth → Providers → Email**：开启 Email 并**只保留 Magic Link**（关闭 password
-   登录——产品决策：账号只允许 Google 或邮箱免密链接，不设密码）。
+4. **Auth → Providers → Email**：开启 Email。**2026-09-15 起同时允许 OTP 验证码与密码登录**，
+   取代此前「只保留 Magic Link、不设密码」的决策——注册即“验证码登录 + 补设密码”，
+   密码可选（见 §七）。当前取值：
+
+   | 设置 | 值 | 为什么 |
+   |---|---|---|
+   | Minimum password length | **6** | 产品决定；`apps/web/app/account/verify/page.tsx` 的前端校验与文案必须与这个数字一致，改一处就要改三处（后台 + 前端校验 + 中英文案） |
+   | Password requirements | 不选 | 字符类别规则把人推向 `Password1!` 这类可预测模式，收益不如长度 |
+   | Secure password change | 开 | 要求 24 小时内近期登录；我们的主流程（刚验证完就设密码）不受影响 |
+   | Require current password when updating | **必须保持关闭** | 开启后无法给「还没有密码」的账号设第一个密码（Google 用户、刚注册用户） |
+   | Prevent use of leaked passwords | 未开 | Supabase 标注仅 Pro 及以上套餐可用 |
+   | Email OTP length | **6** | 界面输入框按 6 位设计（`maxLength`、占位符、中英文案都写 6）；改这个数字必须同步改界面，否则用户根本输不进去 |
+   | Email OTP expiration | 3600 秒 | 验证码与邮件链接共用同一有效期，链接容易被稍后才打开，留 1 小时更宽容 |
 5. **邮件发送：配 Resend 自定义 SMTP（上线必需）**。Supabase 默认代发仅限
    **2 封/h 且只发给组织团队成员**，官方定位为开发/测试用；换自定义 SMTP 后邮件
    才由你的发送商投递给真实用户：
@@ -131,7 +142,7 @@ pnpm db:check
 | 文件 | 内容 |
 |---|---|
 | `docs/supabase-schema.sql` | profiles / quota_usage / 账单表 / 原子套餐与额度 RPC / RLS |
-| `packages/shared/src/ui-strings.ts` | account.* 双语文案（en/zh 对称） |
+| `packages/shared/src/ui-strings.ts` | account.* 文案，31 种语言与 EN 逐键对称 |
 | `packages/shared/src/messages.ts` | `GET_AUTH_STATE` / `SIGN_OUT` 消息 |
 | `apps/extension/src/auth/supabase.ts` | PKCE client + chrome.storage 会话适配器 + `signInWithGoogle`（标签授权 + 等 session 落盘） |
 | `apps/extension/src/options/index.ts` | Account 登录卡片（Google / 邮箱 Magic Link / 登出） |

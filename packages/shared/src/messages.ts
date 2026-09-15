@@ -40,6 +40,13 @@ export type ExtensionRequest =
   | { type: "RESET_SETTINGS" }
   | { type: "OPEN_DASHBOARD" }
   | { type: "SYNC_WEB_SIGN_IN"; accessToken: string }
+  // Signing out is one state shared by both surfaces, so it travels both ways:
+  // the website tells the background it just signed out, and the background
+  // tells the website's open pages that the extension just signed out. Spoofing
+  // either direction can only sign a surface out, never in, but the background
+  // still checks the sender is one of our own auth pages.
+  | { type: "WEB_SIGNED_OUT" }
+  | { type: "WEB_SIGN_OUT" }
   | { type: "OPEN_VERBIA"; source: "action" | "shortcut"; stagedSelection?: StagedSelection }
   // Sent from the background to the page that owns a right-click selection.
   // The content script merges it into an open panel, or replies merged:false

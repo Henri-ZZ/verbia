@@ -1,5 +1,5 @@
 import type { ContextEnvelope, ContextExtractionRequest, ContextExtractionResponse, EditableTarget, GenerateReplyRequest, GenerateReplyResponse, SiteAdapter, UiLang, UserSettings } from "@verbia/shared";
-import { DEFAULT_SETTINGS, LENGTH_VALUES, REPLY_LANGUAGE_OPTIONS, TONE_VALUES, UI_STRINGS, resolveUiLang } from "@verbia/shared";
+import { DEFAULT_SETTINGS, LENGTH_VALUES, REPLY_LANGUAGE_OPTIONS, TONE_VALUES, UI_STRINGS, isRtl, resolveUiLang, voiceTagFor } from "@verbia/shared";
 import { readEditable } from "../editor/editable";
 import { COLLECTOR_VERSION, collectLocalContext, collectProvidedRegion, regionFingerprint, type CollectedContext } from "../context/collector";
 import { isMailSite, type SiteMode } from "../site-mode";
@@ -348,9 +348,9 @@ export class VerbiaPanel {
     this.lang = resolveUiLang(this.settings.uiLanguage, uiLanguage());
     // The panel lives in a closed shadow root whose host resets every property, so
     // the direction is carried on the host and re-read by one rule inside (@see the
-    // [dir="rtl"] rule in the styles): Arabic would otherwise be laid out left to
-    // right in the middle of a right-to-left page.
-    this.host.dir = this.lang === "ar" ? "rtl" : "ltr";
+    // [dir="rtl"] rule in the styles): a right-to-left language would otherwise be
+    // laid out left to right in the middle of a right-to-left page.
+    this.host.dir = isRtl(this.lang) ? "rtl" : "ltr";
     this.phase = "context_ready";
     this.renderPanel();
     if (this.floating) this.scheduleFloat();
@@ -597,7 +597,11 @@ export class VerbiaPanel {
     // sentences, so a short silence no longer ends the recording.
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = this.settings.voiceLanguage === "auto" ? navigator.language : this.settings.voiceLanguage;
+    // Recognition has no language detection: the browser loads one model, and this
+    // is the only thing telling it which. "Auto" uses the interface language the
+    // user is looking at (@see voiceTagFor) — it used to read navigator.language,
+    // which ignored a user who had picked a different interface language.
+    recognition.lang = this.settings.voiceLanguage === "auto" ? voiceTagFor(this.lang) : this.settings.voiceLanguage;
     recognition.onstart = () => { this.phase = "recording"; this.status(this.t("panel.status.listening"), "recording"); const button = this.action("record"); if (button) button.textContent = this.t("panel.stop"); };
     recognition.onresult = (event) => {
       this.hadSpeech = true;

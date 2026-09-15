@@ -55,7 +55,7 @@ SUPPORT
 
 A site where Verbia does not work yet, a bug, or an idea: use Contact in the extension settings, or write to henri@henriz.dev. Privacy policy: https://verbia.henriz.dev/privacy
 
-Verbia is available for Chrome and Microsoft Edge. Current version 0.1.5.
+Verbia is available for Chrome and Microsoft Edge; Firefox support is in the works.
 
 **Description (中文)** — 粘贴到后台 Description 字段：
 
@@ -97,7 +97,7 @@ Verbia 只在你主动唤起后才读取页面内容，且只读取你正在操�
 
 遇到无法使用的站点、Bug 或建议：可通过扩展设置里的 Contact 联系我们，或发邮件至 henri@henriz.dev。隐私政策：https://verbia.henriz.dev/privacy
 
-Verbia 支持 Chrome 与 Microsoft Edge。当前版本 0.1.5。
+Verbia 支持 Chrome 与 Microsoft Edge，Firefox 版本正在计划中。
 
 **Category:** Social & Communication
 
@@ -397,7 +397,7 @@ The next release adds Contact/Feedback links in the popup and Dashboard and an o
 - ⬜ **Publisher Name** 未填，需与开发者账号显示名一致（会出现在商店列表上）。
 - ⬜ 版本历史缺 0.1.1–0.1.4 条目（该字段对用户可见）。
 - ⬜ Distribution 目前写的是 “Unlisted for initial 10–30 person validation”，公开发布需改为 **Public**。
-- ⬜ 打包时排除：`.git/`、`node_modules/`、`.env*`、`dist/`、`CHROMEWEBSTORE.md`、`CHROMEWEBSTORE-COPY.md`、`promo-materials/`。
+- ⬜ 打包时排除：`.git/`、`node_modules/`、`.env*`、`dist/`、`promo-materials/`，以及整个 `apps/extension/docs/`（本文件、`CHROMEWEBSTORE-COPY.md`、内部 PRD 都在这里，不要进包）。
 - ⬜ 内部门槛（不影响商店审核）：模型质量评测、Reddit 人工回归。
 
 **提交时填在「审核备注」里的话**

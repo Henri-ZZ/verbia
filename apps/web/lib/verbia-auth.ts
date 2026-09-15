@@ -135,9 +135,10 @@ export async function syncSignedInSessionToExtension(): Promise<"synced" | "unav
 export async function signOut(): Promise<void> {
   try {
     const client = await getClient();
-    // Local scope only: supabase-js defaults to "global", which revokes the
-    // SAME account's sessions on other surfaces (e.g. the browser extension).
-    // Website and extension keep independent login states by design.
+    // Local scope only. supabase-js defaults to "global", which revokes this
+    // account's sessions on every device — but the state the surfaces share is
+    // shared *in this browser*, and that is what announceWebSignOut below
+    // carries. The user's phone is not ours to sign out from here.
     await client.auth.signOut({ scope: "local" });
   } catch {
     // Local session clearing below still applies.
@@ -147,6 +148,30 @@ export async function signOut(): Promise<void> {
   } catch {
     // ignore
   }
+  announceWebSignOut();
+}
+
+// Tells the extension this website signed out, so a page that is open hears
+// about it at once. Nothing is left behind for a page that is not open: the
+// bridge reads this website's signed-in state whenever it loads, which cannot
+// go stale the way a record of the event would.
+function announceWebSignOut(): void {
+  window.dispatchEvent(new CustomEvent("verbia:web-signed-out"));
+}
+
+// The extension signed out, so this page follows it out — the two surfaces keep
+// one signed-in state. Announced twice because the bridge may have run before
+// this app mounted: as a data attribute, and as an event (@see bridge.ts).
+export function onExtensionSignOutRequest(handler: () => void): () => void {
+  // Consume the attribute rather than only reading it: it belongs to the whole
+  // document, while this app can mount the page again without a reload, and a
+  // sign-out that already happened must not keep firing.
+  if (document.documentElement.dataset.verbiaWebSignOut === "1") {
+    delete document.documentElement.dataset.verbiaWebSignOut;
+    handler();
+  }
+  window.addEventListener("verbia:web-sign-out", handler);
+  return () => window.removeEventListener("verbia:web-sign-out", handler);
 }
 
 export function providerOf(user: User): "google" | "email" | undefined {
@@ -164,5 +189,175 @@ export function avatarUrlOf(user: User): string | undefined {
     return url.protocol === "https:" ? url.href : undefined;
   } catch {
     return undefined;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Email codes, passwords, and reset
+//
+// Sign-up and sign-in are the same call here. The account is created the moment
+// a code is verified (shouldCreateUser), so an address that never verifies never
+// leaves a user row behind — nothing to clean up, and nothing to enumerate.
+// ---------------------------------------------------------------------------
+
+// The address is carried between the account page and the verify page in session
+// storage rather than the query string: it is only needed to re-send and to label
+// the screen, and an email in a URL ends up in history and screenshots.
+export const VERIFY_EMAIL_KEY = "verbia-verify-email";
+
+export function verifyUrl(): string {
+  return `${sessionOrigin()}/account/verify`;
+}
+
+export function resetUrl(): string {
+  return `${sessionOrigin()}/account/reset`;
+}
+
+// Failures travel as codes, not sentences. Supabase returns one English sentence
+// per error and these pages are bilingual, so the copy lives in one table below
+// instead of being re-derived at each call site.
+export type AuthErrorCode =
+  | "invalid_code"
+  | "expired_code"
+  | "invalid_credentials"
+  | "weak_password"
+  | "same_password"
+  | "reauthentication_needed"
+  | "rate_limited"
+  | "captcha_failed"
+  | "not_configured"
+  | "unknown";
+
+function authErrorCode(error: { code?: string | null; message?: string | null } | null | undefined): AuthErrorCode {
+  const raw = `${error?.code ?? ""} ${error?.message ?? ""}`.toLowerCase();
+  if (!raw.trim()) return "unknown";
+  if (raw.includes("captcha")) return "captcha_failed";
+  if (raw.includes("rate limit") || raw.includes("too many")) return "rate_limited";
+  if (raw.includes("reauthentication")) return "reauthentication_needed";
+  if (raw.includes("different from the old") || raw.includes("same password")) return "same_password";
+  if (raw.includes("weak") || raw.includes("password should")) return "weak_password";
+  // "Token has expired or is invalid" carries both words: expired first, or every
+  // expired code would be reported as a mistyped one.
+  if (raw.includes("expired")) return "expired_code";
+  if (raw.includes("token") || raw.includes("otp")) return "invalid_code";
+  if (raw.includes("invalid login") || raw.includes("invalid credential")) return "invalid_credentials";
+  return "unknown";
+}
+
+const AUTH_ERROR_COPY = {
+  en: {
+    invalid_code: "That code is not right. Check the 6 digits, or send a new code.",
+    expired_code: "That code has expired. Send a new code.",
+    invalid_credentials: "Wrong email or password.",
+    weak_password: "That password was rejected — try a longer or less common one.",
+    same_password: "That is already your password.",
+    reauthentication_needed: "For security, sign in again before changing your password.",
+    rate_limited: "Too many attempts. Wait a minute and try again.",
+    captcha_failed: "The anti-bot check failed. Reload the page and try again.",
+    not_configured: "Sign-in is not configured on this site.",
+    unknown: "Something went wrong. Please try again."
+  },
+  zh: {
+    invalid_code: "验证码不正确，请检查这 6 位数字，或重新发送。",
+    expired_code: "验证码已过期，请重新发送。",
+    invalid_credentials: "邮箱或密码不正确。",
+    weak_password: "该密码被拒绝，请换一个更长或更少见的。",
+    same_password: "这就是你当前的密码。",
+    reauthentication_needed: "出于安全考虑，请重新登录后再修改密码。",
+    rate_limited: "尝试过于频繁，请等一分钟再试。",
+    captcha_failed: "人机校验未通过，请刷新页面重试。",
+    not_configured: "本站尚未配置登录。",
+    unknown: "出错了，请重试。"
+  }
+} as const;
+
+export function authErrorCopy(locale: "en" | "zh", code: AuthErrorCode): string {
+  return AUTH_ERROR_COPY[locale][code] ?? AUTH_ERROR_COPY[locale].unknown;
+}
+
+type Verified = { ok: true; createdAt?: string } | { ok: false; code: AuthErrorCode };
+
+export async function sendEmailCode(email: string, captchaToken?: string): Promise<{ ok: true } | { ok: false; code: AuthErrorCode }> {
+  try {
+    const client = await getClient();
+    const { error } = await client.auth.signInWithOtp({
+      email,
+      options: {
+        shouldCreateUser: true,
+        // Kept so a template that still uses the default confirmation URL lands
+        // on the callback page; the custom link in the template goes to /account/verify.
+        emailRedirectTo: currentCallbackUrl(),
+        ...(captchaToken ? { captchaToken } : {})
+      }
+    });
+    return error ? { ok: false, code: authErrorCode(error) } : { ok: true };
+  } catch {
+    return { ok: false, code: "not_configured" };
+  }
+}
+
+// The code typed on the page. type "email" covers the code and the magic link;
+// the wrong type reports "token has expired", which looks like a timing problem
+// and is not one.
+export async function verifyEmailCode(email: string, token: string): Promise<Verified> {
+  try {
+    const client = await getClient();
+    const { data, error } = await client.auth.verifyOtp({ email, token, type: "email" });
+    return error ? { ok: false, code: authErrorCode(error) } : { ok: true, createdAt: data.user?.created_at };
+  } catch {
+    return { ok: false, code: "not_configured" };
+  }
+}
+
+// The link from the same email, opened on whatever device the mail was read on.
+// verifyOtp takes the hash directly, so this does not need the PKCE verifier that
+// lives in the browser which started the sign-in.
+export async function verifyEmailLink(tokenHash: string): Promise<Verified> {
+  try {
+    const client = await getClient();
+    const { data, error } = await client.auth.verifyOtp({ token_hash: tokenHash, type: "email" });
+    return error ? { ok: false, code: authErrorCode(error) } : { ok: true, createdAt: data.user?.created_at };
+  } catch {
+    return { ok: false, code: "not_configured" };
+  }
+}
+
+// Setting a password is the last step of a sign-up, never a way in on its own:
+// this only works on a live session, which is why it is called right after the
+// code is verified.
+export async function updatePassword(password: string): Promise<{ ok: true } | { ok: false; code: AuthErrorCode }> {
+  try {
+    const client = await getClient();
+    const { error } = await client.auth.updateUser({ password });
+    return error ? { ok: false, code: authErrorCode(error) } : { ok: true };
+  } catch {
+    return { ok: false, code: "not_configured" };
+  }
+}
+
+export async function requestPasswordReset(email: string, captchaToken?: string): Promise<{ ok: true } | { ok: false; code: AuthErrorCode }> {
+  try {
+    const client = await getClient();
+    const { error } = await client.auth.resetPasswordForEmail(email, {
+      redirectTo: resetUrl(),
+      ...(captchaToken ? { captchaToken } : {})
+    });
+    return error ? { ok: false, code: authErrorCode(error) } : { ok: true };
+  } catch {
+    return { ok: false, code: "not_configured" };
+  }
+}
+
+export async function signInWithPasswordEmail(email: string, password: string, captchaToken?: string): Promise<{ ok: true } | { ok: false; code: AuthErrorCode }> {
+  try {
+    const client = await getClient();
+    const { error } = await client.auth.signInWithPassword({
+      email,
+      password,
+      ...(captchaToken ? { options: { captchaToken } } : {})
+    });
+    return error ? { ok: false, code: authErrorCode(error) } : { ok: true };
+  } catch {
+    return { ok: false, code: "not_configured" };
   }
 }

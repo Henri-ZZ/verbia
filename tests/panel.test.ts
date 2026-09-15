@@ -131,7 +131,7 @@ const identified = {
 
 type Sent = { type?: string; payload?: Record<string, unknown> };
 
-function fakeChrome(reply: (message: Sent) => Promise<unknown>) {
+function fakeChrome(reply: (message: Sent) => Promise<unknown>, settings: Record<string, unknown> = DEFAULT_SETTINGS) {
   return {
     runtime: {
       id: "verbia-test",
@@ -140,7 +140,7 @@ function fakeChrome(reply: (message: Sent) => Promise<unknown>) {
       // The panel pulls settings on every open; only the identify request is the
       // test's business.
       sendMessage: (message: Sent) => message.type === "GET_SETTINGS"
-        ? Promise.resolve({ ok: true, data: DEFAULT_SETTINGS })
+        ? Promise.resolve({ ok: true, data: settings })
         : reply(message)
     },
     storage: { onChanged: { addListener: () => {}, removeListener: () => {} } },
@@ -158,6 +158,58 @@ async function buildPanel(html: string, reply: (message: Sent) => Promise<unknow
   await panel.open(false);
   return panel;
 }
+
+// The panel carries the direction on its own host, because a closed shadow root
+// resets what the page around it sets (@see the [dir="rtl"] rule in the styles).
+// Hebrew reaches the host through the same two steps Arabic does — resolveUiLang,
+// then isRtl — so this is what catches a new right-to-left language being added to
+// the string table and then laid out left to right anyway.
+describe("right-to-left layout", () => {
+  it("turns the panel around for a right-to-left language", async () => {
+    vi.stubGlobal("chrome", fakeChrome(async () => ({ ok: true, data: identified }), { ...DEFAULT_SETTINGS, uiLanguage: "he" }));
+    document.body.innerHTML = REGION;
+    const editor = document.querySelector<HTMLElement>('[contenteditable="true"]');
+    if (!editor) throw new Error("fixture has no editor");
+    const panel = new VerbiaPanel(new QqMailAdapter(), toTarget(editor), context("high"), () => {});
+    panel.mountAfter(editor);
+    await panel.open(false);
+    expect(document.querySelector<HTMLElement>("[data-verbia-root='true']")?.dir).toBe("rtl");
+  });
+});
+
+// Dictation had no test until this one, which is how "Auto" came to read the
+// browser language while the interface said something else. The recognizer is told
+// the interface language instead, because that is the language the user is looking
+// at — and the one they are most likely about to speak.
+describe("dictation", () => {
+  it("listens in the interface language when the voice setting is Auto", async () => {
+    const listened: string[] = [];
+    class FakeRecognition {
+      continuous = false;
+      interimResults = false;
+      lang = "";
+      onstart: (() => void) | null = null;
+      onend: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      onresult: ((event: unknown) => void) | null = null;
+      start() { listened.push(this.lang); }
+      stop() {}
+    }
+    vi.stubGlobal("SpeechRecognition", FakeRecognition);
+    vi.stubGlobal("chrome", fakeChrome(async () => ({ ok: true, data: identified }), { ...DEFAULT_SETTINGS, uiLanguage: "sv" }));
+    document.body.innerHTML = REGION;
+    const editor = document.querySelector<HTMLElement>('[contenteditable="true"]');
+    if (!editor) throw new Error("fixture has no editor");
+    const panel = new VerbiaPanel(new QqMailAdapter(), toTarget(editor), context("high"), () => {});
+    panel.mountAfter(editor);
+    await panel.open(false);
+
+    const speak = document.querySelector<HTMLElement>("[data-verbia-root='true']")?.shadowRoot?.querySelector<HTMLElement>('[data-action="record"]');
+    expect(speak).not.toBeNull();
+    speak?.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+    expect(listened).toEqual(["sv-SE"]);
+  });
+});
 
 const shadow = () => document.querySelector<HTMLElement>("[data-verbia-root='true']")!.shadowRoot!;
 const shadowHtml = () => shadow().innerHTML;

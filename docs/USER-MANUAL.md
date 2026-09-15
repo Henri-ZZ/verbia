@@ -2,7 +2,7 @@
 
 > 适用对象：**人类用户**（产品如何使用）与 **AI Agent**（系统机制、行为边界与代码索引）。
 > 本文描述当前实现（Manifest V3 扩展 + 官网 + 后端网关），并随功能演进更新。
-> 最后更新：2026-09-08
+> 最后更新：2026-09-15
 
 ---
 
@@ -36,6 +36,7 @@
 | Outlook 模式 | Outlook 网页版写信与回复场景的自动上下文提取 |
 | Email 模式 | 未做专门适配的邮箱网页版：靠 AI 识别读取当前邮件作为上下文 |
 | Universal Mode（通用模式） | 其它网站：聚焦输入框 + 可选手动加入的上下文 |
+| 站点模式（Site Mode） | 三档行为的判定：**auto**（有专用适配器的站点 → 适配器读页面、面板自动弹出）、**email**（白名单邮箱 → 靠 AI 识别）、**universal**（其它页面 → 全部手动）。只看域名与适配器，不猜页面内容（`src/content/site-mode.ts`） |
 | 自动适配 | 某个网站“开箱即用”的接入（当前支持 Reddit、Gmail 网页版、Outlook 网页版、QQ 邮箱） |
 | Dashboard/账号 | 官网 `/account` 与插件设置页的账号中心 |
 
@@ -43,8 +44,8 @@
 
 ## 3. 安装与浏览器支持
 
-- 目前以 Chrome 扩展形式发布（Chrome Web Store），其余 Chromium 内核浏览器可从同一商店安装。
-- 官网“立即安装/Install now”按钮会**自动识别浏览器**：Firefox/Edge 上架后分别跳转各自商店，未上架时回退 Chrome 商店（链接维护在 `apps/web/components/install-link.tsx` 的 `STORE_URLS` 常量中）。
+- 已上架 **Chrome 与 Microsoft Edge**；Firefox 正在计划中（尚未提供）。
+- 官网“立即安装/Install now”按钮会**自动识别浏览器**：已上架的商店直接跳转，未上架的回落 Chrome 商店（链接维护在 `apps/web/components/install-link.tsx` 的 `STORE_URLS` 常量中）。
 - 安装后在 `chrome://extensions` 固定到工具栏。
 
 ---
@@ -101,12 +102,14 @@
 
 ### 5.4 Email 模式（其它邮箱网页版）
 
-适用于白名单内的邮箱网页版（163 / 126 / 189 / 新浪、Yahoo、Proton、iCloud、Fastmail、Zoho、GMX、mail.com、Yandex、Naver、Daum、Posteo、mailbox.org 等）。这些站点**不做任何针对性的自动识别**，上下文全部交给模型：
+适用于白名单内的邮箱网页版（网易 163 / 126 / yeah.net、天翼 189、新浪、搜狐、阿里云邮、iCloud、Yahoo（含日本站）、Proton、Tuta、Fastmail、Zoho（com/eu/in）、GMX（com/net）、mailbox.org、Posteo、AOL、Yandex、Naver、Daum，共 **28 个域名**）。这些站点**不做任何针对性的自动识别**，上下文全部交给模型：
+
+> 名单是**数据不是代码**（`src/content/site-mode.ts` 的 `EMAIL_HOSTS`）：加一家邮箱只改一行，不需要了解该邮箱的任何 DOM 结构。QQ 邮箱的名字虽然也在名单里，但它有专属适配器——**适配器总是优先**，所以它走自动模式。
 
 1. 打开一封邮件，点击回复框；
 2. 按快捷键（默认 `Alt+Shift+Y`）或点插件图标 → 面板浮在编辑区上，不会进入邮件正文；
 3. 此时**没有上下文**，面板会提示「未读取到邮件内容」；
-4. 点 **「AI 识别当前邮件上下文」** → 模型读取回复框周围的邮件区域，判断你在回复哪封邮件；
+4. 点 **「AI 识别当前邮件上下文」**（按钮下方常驻一行说明：“AI 读取回复框周围的邮件内容，消耗 1 次每日额度”）→ 模型读取回复框周围的邮件区域，判断你在回复哪封邮件；
 5. 核对识别结果（成功后上下文会自动展开），再输入意图 → Generate。
 
 > 与自动模式的区别：这里没有站点级 DOM 适配，识别完全靠模型判断，所以**每次识别消耗 1 次每日额度**。识别失败（未通过 grounding 校验）不扣额度，此时请选中邮件正文 → 右键「加入 Verbia 上下文」手动提供。
@@ -140,7 +143,8 @@
 
 **面板行为**
 - 生成前可展开预览、移除某段或全部上下文；
-- 系统消息与上下文截断/低置信度均有类型化提示（图标 + 颜色）。
+- 系统消息与上下文截断/低置信度均有类型化提示（图标 + 颜色）；
+- **低置信度有两种措辞**，按来源区分：适配器自己读出来的（“上下文为自动识别，请核对下方内容；不是你要回复的邮件可手动添加或点下方 AI 识别”）与 AI 识别成功但置信度仍低（“AI 识别的置信度较低，请核对识别结果”）。后者确实会出现——服务端用 grounding 得分给模型自报的置信度封顶，所以一次成功的识别也可能返回 low。
 
 **当前限制（重要）**
 - 上下文目前**仅支持纯文本**；
@@ -152,7 +156,11 @@
 ## 7. 意图输入：打字或语音
 
 - **打字**：用自己最舒服的语言写想表达的意思（不是写 prompt）。
-- **语音**：点击麦克风，用浏览器语音识别（Web Speech）把你的话转成 Intent；语音语言可在设置页“Voice language”指定（仅用于识别，最终草稿语言不受它限制）。
+- **语音**：点击麦克风，用浏览器的 Web Speech 识别把你的话转成 Intent。**它没有语种自动识别**：浏览器一次只加载一种语言的识别模型，必须告诉它听哪一种。
+  - 设置页「Voice language」默认 `Auto`，含义是**跟随界面语言**（界面语言本身来自浏览器语言，或你手动选的那一种）——不是“自动判断你在说什么语言”。
+  - 可在设置页手选识别语言，共 31 种，覆盖全部界面语言。**浏览器语言 ≠ 你说话的语言时必须手选**，否则识别会明显出错（拿错语言的模型硬解你的话）。
+  - 识别语言只影响“你说了什么”的转写，**不影响草稿语言**（草稿语言由输出语言决定）。
+  - 音频由浏览器的语音服务处理（Chrome 会上传到其语音识别服务），Verbia 只拿到文字结果，不保存音频。
 - 可再选择：输出语言、语气（Tone）、长度（Length）——设置页可配置默认值，面板也能临时调整（是否在面板显示这些控件可在设置里开关）。
 
 ---
@@ -192,9 +200,9 @@
 
 ## 11. 设置项一览（options）
 
-- **回复面板设置**：输出语言 / 语气 / 长度 / 语音语言；是否在面板显示语言、语气、长度控件；
+- **回复面板设置**：输出语言 / 语气 / 长度 / 语音语言（识别语言共 31 种 + 自动，见 7）；是否在面板显示语言、语气、长度控件；
 - **默认展开上下文预览**；
-- **界面语言**：en / 中文（跟随浏览器或手动指定）；
+- **界面语言**：31 种（跟随浏览器或手动指定），含阿拉伯语与希伯来语两种从右到左排版；
 - **界面与隐私**：仅元数据诊断开关（默认关，只可能上报运行指标、不含正文）；
 - **高级设置（可折叠）**：重置设置；
 - **Support**：`Leave Review` 打开扩展商店评分页（按 manifest 的 `update_url` 判断这份扩展来自 Chrome 还是 Edge 商店，未打包时回退到当前浏览器）；`Send Feedback` 打开官网反馈页（`source=settings`，带版本号）；
@@ -215,11 +223,11 @@
 
 ## 13. 已知限制与路线图
 
-- **自动适配范围**：当前支持 Reddit、Gmail Web 与 Outlook Web；下一个目标是 X（Twitter）（通过新增 adapter 扩展，见 14 节代码结构）。
+- **自动适配范围**：Reddit、Gmail Web、Outlook Web、QQ 邮箱；其它邮箱网页版走 Email 模式（28 个域名白名单，靠 AI 识别），其它页面走通用模式。下一个目标是 X（Twitter）（通过新增 adapter 扩展，见 14 节代码结构）。
 - **上下文媒体类型**：暂只支持纯文字；图片/视频为未来目标。
 - **编辑器兼容性**：复杂富文本编辑器可能退化为手动复制。
-- **语音输入**：依赖浏览器/系统语音识别能力。
-- **浏览器分发**：Chrome 已上架；Edge / Firefox 商店待发布（`install-link.tsx` 已预留常量）。
+- **语音输入**：依赖浏览器/系统语音识别能力，且**没有语种自动识别**——识别语言默认跟随界面语言、可在设置页手选；浏览器语言与口语语言不一致时必须手动选（见 7）。
+- **浏览器分发**：Chrome 与 Microsoft Edge 已上架；Firefox 正在计划中（`install-link.tsx` 已预留常量）。
 - **支付地区/币种**：当前收银台以 USD 计价，国际卡 / Apple/Google Pay；微信支付/支付宝与中国大陆 CNY 计价需 Waffo 侧开放本地支付能力。
 - Reddit DOM 变更频繁，线上以大版本回归测试为准。
 
@@ -236,7 +244,10 @@
 | `src/content/adapters/reddit.ts` | Reddit 自动适配：回复框定位、帖/评论链上下文提取 |
 | `src/content/adapters/gmail.ts` | Gmail 写信 iframe 内编辑器定位与引用邮件上下文提取（`all_frames + match_about_blank`，仅写信帧激活） |
 | `src/content/adapters/outlook.ts` | Outlook 网页版编辑器定位，以及阅读窗格/会话区域的可见邮件上下文提取 |
+| `src/content/adapters/qqmail.ts` | QQ 邮箱编辑器定位与当前邮件上下文提取 |
 | `src/content/adapters/universal.ts` | 通用模式：编辑器定位与无站点适配 |
+| `src/content/site-mode.ts` | 站点模式判定：邮箱域名白名单（28 个，纯数据）+ `resolveSiteMode`；决定面板是否自动弹出、浮动还是内联、请求上报的 platform。新增一家邮箱只需往 `EMAIL_HOSTS` 加一行 |
+| `src/content/context/collector.ts` | 邻域收集与指纹：从编辑器向上找“上方已有正文”的最小祖先，克隆后剔除页面 chrome 与编辑器自身；AI 识别的输入就是它 |
 | `src/content/editor/editable.ts` | 可编辑目标封装（textarea/input/contenteditable 插入、追加/替换） |
 | `src/content/ui/panel.ts` | 回复面板 UI 与交互（HTML 模板内联样式 + 渲染） |
 | `src/content/index.ts` | 内容脚本入口、消息桥接；被重新注入时清理旧实例遗留的面板并接管 |
@@ -253,15 +264,16 @@
 | 路径 | 职责 |
 |---|---|
 | `src/messages.ts` | 扩展内部消息类型（GET_AUTH_STATE/SIGN_OUT/GENERATE_REPLY…）与账号用量类型 |
-| `src/schema.ts` | 用户设置结构、默认值、后端 base URL 常量 |
-| `src/ui-strings.ts` | 所有 UI 双语文案（en/zh 对称；新增文案应加在这里） |
+| `src/schema.ts` | 用户设置结构、默认值、后端 base URL 常量；界面语言下拉（31 种）、语音识别语言下拉与 `voiceTagFor` 映射（`Record<UiLang, string>`——新增界面语言不补识别语言会编译失败） |
+| `src/ui-strings.ts` | 所有 UI 文案：**31 种语言与 EN 逐键对称**（`UiLang` / `UI_LANGS` / `UI_STRINGS` / `resolveUiLang` / `isRtl`）；新增文案必须一次补齐 31 份，新增语言见本节末尾的规则 |
 
 > 命名约定：面向用户的套餐名是 **Premium**，不是 Pro；代码内部 `plan: "pro"`/`intent=pro` 等历史标识符不可面向用户展示。
 
 ### 后端网关（`services/api/`）
 | 路径 | 职责 |
 |---|---|
-| `src/app.ts` | HTTP 路由：`/health`、`/v1/account/usage`、`/v1/billing/checkout`、`/v1/billing/webhook`、`/v1/replies:generate`；配额 gate；CORS |
+| `src/app.ts` | HTTP 路由：`/health`、`/v1/account/usage`、`/v1/billing/checkout`、`/v1/billing/webhook`、`/v1/replies:generate`、`/v1/context:extract`；配额 gate（**先** `check_generation_quota` 只读校验、超限 429，**成功产出可用内容后**才 `record_generation_quota` 记账）；请求日志带 platform；CORS |
+| `src/extraction.ts` | 邮件上下文识别：prompt 构造与 grounding 校验（把模型返回的字段回文核对，并用得分给模型自报置信度封顶） |
 | `src/auth.ts` | 使用 Supabase ES256 JWKS 本地验证 Bearer JWT |
 | `src/billing.ts` | Waffo Pancake 集成：创建结账会话（当前锁 USD）、订阅状态查询、Webhook 验签 |
 | `src/worker.ts` | Cloudflare Worker 入口（`wrangler.jsonc` 部署） |
@@ -279,7 +291,8 @@
 - **401=登出**：用量等接口 401/403 → 先刷新一次，仍失败即本地登出。
 - **配额服务端判定**：前端不要自欺显示额度，以网关返回为准。
 - **会话独立**：web 与扩展登出均用 local scope，不得互相吊销。
-- **UI 文案**：先看 `ui-strings.ts` 是否已有对应 key，新增需 en/zh 对称。
+- **UI 文案**：先看 `ui-strings.ts` 是否已有对应 key；新增 key 必须补齐 **31 种语言**（`tests/schema.test.ts` 会检查逐键对称与空串，缺一即红）。
+- **新增界面语言**：必须同时改 5 处——`UiLang` 联合类型、`UI_LANGS`、`UI_STRINGS` 映射、`UI_LANGUAGE_OPTIONS`（漏了会出现“下拉能选、后端拒绝、静默回落英文”）、`resolveUiLang` 的匹配分支。三个前缀陷阱：`fil` 必须排在 `fi` 之前；`nb`/`nn` 都归 `no`；`he`/`iw` 都归 `he`。RTL 语言只需加进 `RTL_LANGS`（三处 UI 自动生效）；语音识别语言必须补进 `VOICE_TAG_BY_UI_LANG`，否则 `tsc` 直接报错。
 - **可访问资源**：新增“注入网页中加载的扩展内资源”（如 svg/图片）必须同步加进 manifest `web_accessible_resources`。
 - **多平台扩展**：新增站点自动适配时，新建 `content/adapters/<site>.ts` 并注册到内容脚本入口，同时补充对应 host 权限说明与测试。
 
@@ -292,3 +305,6 @@
 - **额度今天用完怎么办？** 明天 UTC 0 点重置，或升级 Premium（见 10）。
 - **能翻译整页/长文吗？** 不能：Verbia 面向“正在回复的这一条”，上下文按字段边界截断，不做整页处理。
 - **会替我发送吗？** 永远不会（见 1）。
+- **语音识别把我说的话识别错了？** Web Speech 没有语种识别。识别语言默认跟随**界面语言**，可在设置页「Voice language」手选（31 种）；浏览器语言或界面语言与你说的话不一致时，必须手动选一次（见 7）。
+- **哪些邮箱能用 AI 识别？** 白名单内的邮箱网页版：网易 163/126/yeah.net、天翼 189、新浪、搜狐、阿里云邮、iCloud、Yahoo（含日本站）、Proton、Tuta、Fastmail、Zoho、GMX、mailbox.org、Posteo、AOL、Yandex、Naver、Daum（见 5.4）。名单外的邮箱退化为通用模式，仍可选中正文 → 右键加入上下文，功能不缺，只是措辞不是“邮件”那一套。
+- **界面语言有多少种？** 31 种，含阿拉伯语与希伯来语两种从右到左排版（设置页下拉里按本地名列出）。

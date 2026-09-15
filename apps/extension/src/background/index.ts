@@ -1,5 +1,5 @@
 import { DEFAULT_SETTINGS, UI_STRINGS, contextExtractionRequestSchema, contextExtractionResponseSchema, generateReplyRequestSchema, generateReplyResponseSchema, resolveUiLang, type AccountUsage, type AuthState, type ExtensionRequest, type ExtensionResponse, type StagedContext, type StagedSelection, type UiLang, type UserSettings } from "@verbia/shared";
-import { SUPABASE_URL, WEB_AUTH_ORIGIN, authBearer, authEnabled, authSnapshot, clearSession, establishSessionFromTokenHash, getSupabase, refreshStoredSession, signOut } from "../auth/supabase";
+import { WEB_AUTH_ORIGIN, authBearer, authSnapshot, clearSession, establishSessionFromTokenHash, refreshStoredSession, signOut } from "../auth/supabase";
 import { ACTION_NOTICE_KEY } from "../runtime";
 import { migrateOpenTabs, reloadContentScript } from "./migrate";
 
@@ -42,54 +42,11 @@ chrome.runtime.onInstalled.addListener(async details => {
 
 chrome.runtime.onStartup.addListener(() => { void ensureContextMenu(); });
 
-// Captures PKCE code landings for both Google OAuth (tab opened by
-// signInWithGoogle) and Magic Link emails (tab the user clicked from the
-// email). The landing is a plain https navigation, so Chrome never blocks it
-// the way it blocks 302s into chrome-extension:// pages. The PKCE verifier
-// written when the flow was started lives in the shared storage, so
-// exchangeCodeForSession can finish the login here even when no options page
-// is open.
-//
-// New landings go to https://verbia.henriz.dev/auth-complete — a real page
-// that doubles as a single-sign-on handoff: after the exchange succeeds the
-// finished session is pushed to the page's bridge content script, which
-// writes it into the website's localStorage, so the website is signed in
-// too. (A legacy landing on the Supabase project root is exchanged and then
-// closed, for links emailed before this redirect was introduced.)
-chrome.tabs.onUpdated.addListener((tabId, info) => {
-  const url = info.url;
-  if (!url) return;
-  let parsed: URL;
-  try { parsed = new URL(url); } catch { return; }
-  const code = parsed.searchParams.get("code");
-  if (!code) return;
-  const onWebComplete = parsed.origin === WEB_AUTH_ORIGIN && parsed.pathname === "/auth-complete";
-  const onLegacyRoot = parsed.origin === SUPABASE_URL && parsed.pathname === "/";
-  if (onWebComplete || onLegacyRoot) void captureSignInCode(tabId, code, onWebComplete);
-});
-
-async function captureSignInCode(tabId: number, code: string, keepTab: boolean): Promise<void> {
-  if (!authEnabled) return;
-  try {
-    const client = getSupabase();
-    const { error, data } = await client.auth.exchangeCodeForSession(code);
-    if (error) return; // stale link / verifier mismatch — leave the tab alone
-    if (!keepTab) {
-      // Legacy Supabase-root landing: nothing to render; close it.
-      await chrome.tabs.remove(tabId).catch(() => undefined);
-      return;
-    }
-    // Landing on the website: hand the session to the page so /auth-complete
-    // stores it and shows the completed state (website now signed in too).
-    if (data.session) {
-      const tokenHash = await requestSessionHandoff(data.session.access_token);
-      await chrome.tabs.sendMessage(tabId, { type: "VERBIA_CREATE_WEB_SESSION", tokenHash }).catch(() => undefined);
-    }
-  } catch {
-    // exchange threw (e.g. no verifier stored for this code) — ignore; the
-    // user can re-request the magic link and start a fresh flow.
-  }
-}
+// Sign-in is no longer initiated from the extension, so there is nothing to
+// capture here any more: the website signs the user in and the bridge hands the
+// finished session over (@see syncWebsiteSignIn below, which is the one entry
+// point that remains, and webSignInUrl in auth/supabase.ts for the button that
+// opens the website).
 
 // Menu titles cannot use the __MSG_ placeholder and are created at runtime,
 // so keep them in the interface language chosen on the Settings page.
@@ -340,7 +297,17 @@ chrome.runtime.onMessage.addListener((message: ExtensionRequest, sender, sendRes
     return true;
   }
   if (message.type === "SIGN_OUT") {
-    void signOut().then(() => sendResponse({ ok: true, data: { signedIn: false } })).catch(error => sendResponse(failure(error)));
+    void signOut().then(broadcastWebSignOut).then(() => sendResponse({ ok: true, data: { signedIn: false } })).catch(error => sendResponse(failure(error)));
+    return true;
+  }
+  if (message.type === "WEB_SIGNED_OUT") {
+    if (!fromWebsite(sender)) {
+      sendResponse(failure(new Error("Website sign-out source is not allowed")));
+      return false;
+    }
+    // clearSession, not signOut: the website is the surface that just signed out,
+    // and answering with a sign-out broadcast would only echo back to it.
+    void clearSession().then(() => sendResponse({ ok: true })).catch(error => sendResponse(failure(error)));
     return true;
   }
 });
@@ -357,10 +324,53 @@ async function requestSessionHandoff(accessToken: string): Promise<string> {
   return body.tokenHash;
 }
 
+// Pages allowed to hand a website session to the extension, and the only pages
+// whose word on sign-out is taken. The origin is still checked strictly — the
+// path list only says which of OUR pages may speak about credentials, and it
+// stays an allowlist rather than "anything on the site" so a page that merely
+// renders user content can never mint or end an extension session.
+const SESSION_SYNC_PATHS = ["/account", "/account/callback", "/account/verify"];
+
+function fromWebsiteAuthPage(sender: chrome.runtime.MessageSender): boolean {
+  if (!sender.tab?.url) return false;
+  try {
+    const url = new URL(sender.tab.url);
+    return url.origin === WEB_AUTH_ORIGIN && SESSION_SYNC_PATHS.includes(url.pathname);
+  } catch {
+    return false;
+  }
+}
+
+// Any page of ours may report a sign-out, not just the auth pages: the website
+// reports it whenever it happens to load while signed out, and this is the one
+// message that cannot do more than sign a surface out. Signing *in* stays on the
+// narrower list above, because that one mints a session.
+function fromWebsite(sender: chrome.runtime.MessageSender): boolean {
+  if (!sender.tab?.url) return false;
+  try {
+    return new URL(sender.tab.url).origin === WEB_AUTH_ORIGIN;
+  } catch {
+    return false;
+  }
+}
+
+// Signing out is one state shared by both surfaces, so the extension's sign-out
+// has to reach the website too. Open pages hear about it immediately; the marker
+// signOut() left in storage is what covers a website with no tab open (@see
+// bridge.ts, which reads it on its next load).
+async function broadcastWebSignOut(): Promise<void> {
+  const tabs = await chrome.tabs.query({ url: `${WEB_AUTH_ORIGIN}/*` });
+  await Promise.all(tabs.map(tab => tab.id === undefined
+    ? Promise.resolve()
+    : chrome.tabs.sendMessage(tab.id, { type: "WEB_SIGN_OUT" }).catch(() => undefined)));
+}
+
 async function syncWebsiteSignIn(accessToken: string, sender: chrome.runtime.MessageSender): Promise<void> {
-  if (!sender.tab?.url) throw new Error("Website sign-in sync requires a tab");
-  const url = new URL(sender.tab.url);
-  if (url.origin !== WEB_AUTH_ORIGIN || url.pathname !== "/account/callback") throw new Error("Website sign-in sync source is not allowed");
+  if (!fromWebsiteAuthPage(sender)) throw new Error("Website sign-in sync source is not allowed");
+  // The surfaces share one sign-in state, so a website that finds the extension
+  // already signed in has nothing to hand over — and visiting the account page
+  // must not quietly replace a good session with a fresh one every time.
+  if ((await authSnapshot()).signedIn) return;
   const tokenHash = await requestSessionHandoff(accessToken);
   if (!await establishSessionFromTokenHash(tokenHash)) throw new Error("Could not establish the extension session");
 }

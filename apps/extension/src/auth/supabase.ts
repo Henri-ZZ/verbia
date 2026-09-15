@@ -14,16 +14,27 @@ export const authEnabled = Boolean(SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY);
 // others see the same state without message round-trips.
 export const AUTH_STORAGE_KEY = "verbia-auth-token";
 
-// Landing target for every OAuth / email round-trip (Google OAuth and Magic
-// Link). It is a real page on the Verbia website (/auth-complete) rather than
-// the Supabase project root, because Chrome blocks server-side 302
-// navigations into chrome-extension:// pages (ERR_BLOCKED_BY_CLIENT) and the
-// Supabase root renders no HTML. The page is a friendly "Signing in…" screen:
-// the background service worker exchanges the ?code= landing (the PKCE
-// verifier lives in extension storage), requests a one-time handoff token,
-// and lets the website redeem it into an independent session.
+// The website owns sign-in. The extension never talks to an identity provider
+// itself: it opens a page on our own origin, and the bridge content script hands
+// the finished session back (@see syncWebsiteSignIn in background/index.ts, which
+// mints a *separate* extension session through the API's one-time handoff token,
+// so the two surfaces never share a refresh token).
 export const WEB_AUTH_ORIGIN = (process.env.VERBIA_WEB_ORIGIN ?? "https://verbia.henriz.dev").replace(/\/+$/, "");
-export const SUPABASE_SIGNIN_REDIRECT = `${WEB_AUTH_ORIGIN}/auth-complete`;
+
+// Opened in a normal tab by the Sign in button on the popup and the settings
+// page. ?from=extension only asks the account page to show its “back to the
+// extension” affordance; the session itself is handed over whenever either side
+// finds the other missing one, because the two surfaces share a single sign-in
+// state (@see the sign-out cooperative below).
+export function webSignInUrl(): string {
+  return `${WEB_AUTH_ORIGIN}/account?from=extension`;
+}
+
+// Left behind when the extension signs out, and read by the website's bridge on
+// its next load: a website with no open tab would otherwise never hear about it.
+// Cleared at the one place an extension session can come into being, so a stale
+// sign-out can never undo a session the user signed in again afterwards.
+export const WEB_SIGN_OUT_KEY = "verbia-web-sign-out";
 
 let clientInstance: SupabaseClient | undefined;
 
@@ -34,9 +45,9 @@ export function getSupabase(): SupabaseClient {
       // Service workers sleep: never rely on the client's own timer. Every
       // surface refreshes explicitly through refreshIfNeeded() before use.
       autoRefreshToken: false,
-      // The auth callback page handles email links (?code / #access_token)
-      // itself. Google OAuth is captured in a normal tab by signInWithGoogle
-      // (see below), so no surface ever needs URL-based session detection.
+      // No surface exchanges codes from a URL any more: sign-in happens on the
+      // website and the session arrives through the bridge, so URL-based session
+      // detection would only risk picking up an unrelated ?code=.
       detectSessionInUrl: false,
       persistSession: true,
       storageKey: AUTH_STORAGE_KEY,
@@ -185,60 +196,27 @@ export async function signOut(): Promise<void> {
     // Sign-out still must clear local state even if the remote call fails.
   }
   await clearSession();
+  // Signing out is one shared state, not one per surface: leave the marker the
+  // website's bridge reads, so the website follows even with no tab open. Only
+  // a sign-out the user asked for does this — losing the session to a failed
+  // refresh is a local problem and must not sign the website out.
+  await chrome.storage.local.set({ [WEB_SIGN_OUT_KEY]: true });
 }
 
 export async function establishSessionFromTokenHash(tokenHash: string): Promise<boolean> {
   if (!authEnabled || !tokenHash) return false;
   const { data, error } = await getSupabase().auth.verifyOtp({ token_hash: tokenHash, type: "email" });
-  return !error && Boolean(data.session?.access_token);
+  if (error || !data.session?.access_token) return false;
+  // The only way an extension session comes into being, which makes this the one
+  // place that can guarantee an old sign-out marker is gone: it describes a
+  // state the user has since left, and honouring it later would sign out a
+  // session they just signed in to.
+  await chrome.storage.local.remove(WEB_SIGN_OUT_KEY);
+  return true;
 }
 
-// Google OAuth cannot land on a real chrome-extension:// page — Chrome blocks
-// server-side 302 navigations into extension pages (ERR_BLOCKED_BY_CLIENT) —
-// and chrome.identity.launchWebAuthFlow proved unreliable on this machine. The
-// flow opens the Supabase authorize URL in a normal tab (the user's ordinary
-// network path). The background capture listener (background/index.ts)
-// exchanges the ?code= landing — it also serves Magic Link emails, where no
-// options page is open — so this function only waits for the session to show
-// up in the shared storage key.
-export async function signInWithGoogle(): Promise<{ ok: true } | { ok: false; error: unknown }> {
-  const client = getSupabase();
-  const { data, error } = await client.auth.signInWithOAuth({
-    provider: "google",
-    options: { redirectTo: SUPABASE_SIGNIN_REDIRECT, skipBrowserRedirect: true }
-  });
-  if (error) return { ok: false, error };
-  const authorizeUrl = data?.url;
-  if (!authorizeUrl) return { ok: false, error: new Error("no authorize URL returned") };
-  await chrome.tabs.create({ url: authorizeUrl });
-  return waitForStoredSession(3 * 60_000);
-}
-
-// Resolves once a real session (a storage write under AUTH_STORAGE_KEY whose
-// JSON carries an access token) appears — which is exactly what the exchange
-// in the background capture listener produces.
-function waitForStoredSession(timeoutMs: number): Promise<{ ok: true } | { ok: false; error: unknown }> {
-  return new Promise(resolve => {
-    let settled = false;
-    const done = (result: { ok: true } | { ok: false; error: unknown }) => {
-      if (settled) return;
-      settled = true;
-      chrome.storage.onChanged.removeListener(onChange);
-      clearTimeout(timer);
-      resolve(result);
-    };
-    const timer = setTimeout(() => done({ ok: false, error: new Error("sign-in timed out") }), timeoutMs);
-    const onChange = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
-      if (area !== "local") return;
-      const change = changes[AUTH_STORAGE_KEY];
-      if (!change || typeof change.newValue !== "string") return;
-      try {
-        const parsed = JSON.parse(change.newValue) as PersistedSession;
-        if (parsed.access_token) done({ ok: true });
-      } catch {
-        // Not a session write — keep waiting.
-      }
-    };
-    chrome.storage.onChanged.addListener(onChange);
-  });
-}
+// Sign-in moved to the website (@see webSignInUrl above, and syncWebsiteSignIn in
+// background/index.ts). What used to live here — opening the Supabase authorize
+// URL in a tab and waiting for the background to exchange the landing — was the
+// extension's own Google OAuth and magic-link flows. Both are gone on purpose:
+// the extension now has exactly one way in, and one place to fix when it breaks.

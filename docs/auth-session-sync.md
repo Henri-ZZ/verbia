@@ -1,10 +1,10 @@
-# Verbia 双向登录与独立 Session 机制
+# Verbia 双向登录与共享登录状态
 
 本文说明 Verbia 官网与浏览器扩展之间的登录同步、Session 隔离、安全边界和退出行为。
 
 ## 产品行为
 
-Verbia 官网和扩展使用同一个 Supabase 项目，因此账号身份、套餐和用量属于同一个用户。两端各自持有独立 Session：
+Verbia 官网和扩展使用同一个 Supabase 项目，因此账号身份、套餐和用量属于同一个用户。两端各自持有独立 Session（各自的 Refresh Token，互不共用），但**登录状态是共享的**：
 
 ```text
 同一个 Supabase 用户
@@ -16,9 +16,9 @@ Verbia 官网和扩展使用同一个 Supabase 项目，因此账号身份、套
 
 - 在扩展登录成功，官网自动登录。
 - 在官网登录成功，已安装在同一浏览器配置中的扩展自动登录。
-- 官网退出只退出官网。
-- 扩展退出只退出扩展。
-- 打开一个已经登录的页面不会反复强制另一端登录；只有一次新的登录完成时才触发同步。
+- **任一端退出，同一浏览器里的另一端也随之退出。**
+- 已经登录的一端不会因为另一端已登录而被反复重建：扩展只在自己没有会话时才接受交接。
+- 共享状态的作用范围是**同一个浏览器**。在别的设备（例如手机）上退出官网，不影响本机的扩展，反之亦然。
 
 两端不能直接共用 Refresh Token。Supabase Refresh Token 会轮换，共用同一套 Session 可能让两个客户端竞争刷新并导致 Session 被撤销。因此同步过程使用一次性交接 Token，让目标端创建自己的新 Session。
 
@@ -90,22 +90,43 @@ Worker 的处理顺序：
 
 ## 退出机制
 
-官网调用：
+两端都只做**局部**退出（`scope: "local"`）：各自清掉自己的 Session，再通过 bridge 让另一端也退出。**不使用 `global`**——它会撤销该账号在所有设备上的 Session，把用户手机上的登录一起踢掉，而共享状态的作用范围只是同一个浏览器。
 
 ```ts
+// 官网与扩展各自只清自己
 supabase.auth.signOut({ scope: "local" })
 ```
 
-然后只删除官网的 `verbia-web-auth`。扩展 Session 不受影响。
+### 两个方向
 
-扩展也调用 `scope: "local"`，然后只删除扩展的 `verbia-auth-token`。官网 Session 不受影响。
+| 方向 | 立即通道（页面开着） | 兜底（当时没有页面打开） |
+|---|---|---|
+| 扩展退出 → 官网 | 后台广播 `WEB_SIGN_OUT` 给已打开的官网标签 | 后台把 `verbia-web-sign-out` 写进 `chrome.storage.local`，官网 bridge 下次加载时兑现 |
+| 官网退出 → 扩展 | 页面派发 `verbia:web-signed-out`，bridge 转成 `WEB_SIGNED_OUT` | 不需要兜底：bridge 每次加载都会上报官网当前的登录状态 |
 
-不要把任一端改成默认的全局退出；全局退出会撤销该用户的其他 Session，破坏“两边只退出自己”的产品约定。如果以后增加“退出所有设备”，应作为单独且明确的操作。
+bridge 在 `document_idle` 运行，可能早于页面首次渲染，因此「扩展退出 → 官网」同时用 data 属性（页面挂载时读取）与事件（页面已在运行时）两种方式送达。
+
+「官网退出 → 扩展」之所以不留标记，是因为**官网是否登录可以直接读**（localStorage 里有没有 `verbia-web-auth`）：bridge 每次加载上报一次当前状态，没有记录就没有「过期记录」可言。正在登录中的页面（`/account/callback`、`/account/verify`）例外——那里的「还没有会话」是正常的，不是退出。
+
+### 待办标记为什么不会误杀刚登录的会话
+
+`verbia-web-sign-out` 若被无限期遵守，就会在用户重新登录后把新会话踢掉。保证在于**扩展侧只有一个地方能建成会话**（`establishSessionFromTokenHash`），而待办标记在这里被清除：它在任何时刻存在，都意味着用户当前确实处于退出状态；一旦重新登录，标记已经被清掉。
+
+反方向的标记曾经也有一个，已删除：用户在官网退出后**不刷新页面**就用密码登录，会让那个标记活到下一次刷新，把刚建好的会话踢掉。可读的状态没有这个问题。
+
+### 无痕窗口
+
+扩展的 `chrome.storage` 在无痕与普通配置之间共享，而官网在无痕窗口里的存储是空的。bridge 用 `chrome.extension.inIncognitoContext` 跳过全部同步：否则任何一次无痕访问官网，都会把普通配置里的登录踢掉，而无痕窗口本来就没有可同步的状态。
+
+### 不传播的情况
+
+- 扩展因刷新 Token 失败而**悄悄丢失**会话（`clearSession`）不通知官网：那是本机的技术故障，不是用户主动退出。
+- 未来若增加「在所有设备退出」，应作为单独且明确的操作（它会调用 `global`）。
 
 ## 安全边界
 
 - bridge 的 Manifest 匹配范围只包含 `https://verbia.henriz.dev/*`。
-- 官网发来的消息视为不可信输入；扩展后台检查发送标签的 Origin 和回调路径。
+- 官网发来的消息视为不可信输入；扩展后台一律检查发送标签的 Origin。**登录**额外限定 `/account`、`/account/callback`、`/account/verify` 三个页面（它会产生会话）；**退出**只限 Origin，因为任何页面发出的退出信号最坏也只能让一端退出，无法让任何一端登录。
 - Worker 必须以项目 JWKS 对来源 Access Token 完整验签，不能相信 localStorage 或扩展消息里声明的用户资料。
 - 一次性交接 Token 不写入 URL、localStorage、日志、Sentry 或数据库业务表。
 - `SUPABASE_SERVICE_ROLE_KEY` 只存在于 Worker Secret，不进入官网或扩展包。
@@ -121,7 +142,7 @@ supabase.auth.signOut({ scope: "local" })
 | `services/api/src/app.ts` | `/v1/auth/session-handoff`、来源 Token 验证、一次性 Token 生成与限流 |
 | `apps/extension/src/background/index.ts` | 两个方向的 Worker 调用和来源校验 |
 | `apps/extension/src/auth/supabase.ts` | 扩展 Session 存储、刷新、局部退出、`verifyOtp` |
-| `apps/extension/src/bridge.ts` | 官网与扩展之间的登录同步桥接 |
+| `apps/extension/src/bridge.ts` | 官网与扩展之间的登录与退出同步桥接（含两个方向的待办标记） |
 | `apps/web/lib/verbia-auth.ts` | 官网 Session、局部退出和同步事件 |
 | `apps/web/app/account/callback/page.tsx` | 官网新登录完成后触发扩展同步 |
 | `apps/web/app/auth-complete/page.tsx` | 扩展新登录后等待官网独立 Session 并展示结果 |
@@ -141,8 +162,10 @@ supabase.auth.signOut({ scope: "local" })
 2. 两端都退出，在扩展用 Magic Link 登录：结果同上。
 3. 两端都退出，在官网用 Google 登录：官网和扩展都登录，两个 Refresh Token 不同。
 4. 两端都退出，在官网用 Magic Link 登录：结果同上。
-5. 官网退出：官网变为未登录，扩展仍保持登录并可正常刷新 Token。
-6. 扩展退出：扩展变为未登录，官网仍保持登录并可正常刷新 Token。
-7. 扩展退出后刷新一个仍登录的官网页面：扩展不会被自动重新登录。
-8. 未安装扩展时官网登录：官网正常完成，不出现扩展同步错误。
-9. 交接接口不可用时：来源端登录不丢失，目标端不写入半成品 Session。
+5. 官网退出：官网变为未登录，同一浏览器里的扩展也随之变为未登录。
+6. 扩展退出：扩展变为未登录；已打开与未打开的官网标签页都会随之退出。
+7. 扩展退出时官网没有任何标签页打开，之后才打开官网：官网自动退出，且不会把扩展重新登录。
+8. 扩展退出后在同一浏览器重新登录：两端都登录，且不会因为上一次的待办标记被立即踢出。
+9. 在另一台设备（例如手机）退出官网：本机扩展不受影响。
+10. 未安装扩展时官网登录：官网正常完成，不出现扩展同步错误。
+11. 交接接口不可用时：来源端登录不丢失，目标端不写入半成品 Session。

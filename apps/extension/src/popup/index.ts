@@ -1,4 +1,5 @@
-import { DEFAULT_SETTINGS, UI_STRINGS, resolveUiLang, type AuthState } from "@verbia/shared";
+import { DEFAULT_SETTINGS, UI_STRINGS, isRtl, resolveUiLang, type AuthState } from "@verbia/shared";
+import { webSignInUrl } from "../auth/supabase";
 import { ACTION_NOTICE_KEY } from "../runtime";
 import { renderShortcutKeys } from "../ui/shortcut";
 
@@ -10,7 +11,7 @@ async function applyLanguage() {
   const contact = document.querySelector<HTMLAnchorElement>("#contact-feedback");
   if (contact) contact.href = `https://verbia.henriz.dev/${lang === "zh-CN" ? "zh/" : ""}contact?source=popup&version=${encodeURIComponent(chrome.runtime.getManifest().version)}`;
   document.documentElement.lang = lang;
-  document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
+  document.documentElement.dir = isRtl(lang) ? "rtl" : "ltr";
   for (const el of document.querySelectorAll<HTMLElement>("[data-i18n]")) {
     const text = strings[el.dataset.i18n ?? ""];
     if (text) el.textContent = text;
@@ -153,7 +154,10 @@ async function renderAuth() {
     button.type = "button";
     button.className = "sign-in";
     button.textContent = strings["account.signIn"] ?? "Sign in";
-    button.addEventListener("click", () => { void chrome.runtime.openOptionsPage(); });
+    // Sign-in happens on the website — the one surface that can hold a CAPTCHA and
+    // every method at once. The bridge hands the finished session back here, and
+    // the storage listener below re-renders this row as signed in.
+    button.addEventListener("click", () => { void chrome.tabs.create({ url: webSignInUrl() }); });
     row.append(label, button);
   }
 }

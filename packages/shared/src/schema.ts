@@ -1,4 +1,7 @@
 import { z } from "zod";
+// Type-only, and one-way: ui-strings.ts does not import this file, so the voice
+// table below can be keyed by the interface language without a cycle.
+import type { UiLang } from "./ui-strings";
 
 export const toneSchema = z.enum(["auto", "casual", "friendly", "professional", "polite", "direct"]);
 export const lengthSchema = z.enum(["short", "medium", "detailed"]);
@@ -137,8 +140,71 @@ export const VOICE_LANGUAGE_OPTIONS = [
   { value: "hi-IN", label: "हिन्दी" },
   { value: "vi-VN", label: "Tiếng Việt" },
   { value: "id-ID", label: "Bahasa Indonesia" },
-  { value: "ar-SA", label: "العربية" }
+  { value: "ar-SA", label: "العربية" },
+  { value: "pl-PL", label: "Polski" },
+  { value: "nl-NL", label: "Nederlands" },
+  { value: "th-TH", label: "ไทย" },
+  { value: "uk-UA", label: "Українська" },
+  { value: "cs-CZ", label: "Čeština" },
+  { value: "ms-MY", label: "Bahasa Melayu" },
+  { value: "fil-PH", label: "Filipino" },
+  { value: "ro-RO", label: "Română" },
+  { value: "hu-HU", label: "Magyar" },
+  { value: "el-GR", label: "Ελληνικά" },
+  { value: "he-IL", label: "עברית" },
+  { value: "sv-SE", label: "Svenska" },
+  { value: "da-DK", label: "Dansk" },
+  { value: "nb-NO", label: "Norsk" },
+  { value: "fi-FI", label: "Suomi" }
 ] as const;
+
+// Speech recognition does not detect which language is being spoken: the browser
+// loads one acoustic model and has to be told which. So "Auto" cannot mean "work
+// it out" — it means "use the language this user is already looking at", which is
+// the interface language, itself already resolved from the browser or the user's
+// explicit pick (@see resolveUiLang). Reading the browser language directly, which
+// is what this used to do, ignored a user who chose a different interface language
+// and then spoke it.
+//
+// The Record is the point: a new interface language cannot be added without a
+// recognition tag, because TypeScript refuses to compile this without one.
+const VOICE_TAG_BY_UI_LANG: Record<UiLang, string> = {
+  en: "en-US",
+  "zh-CN": "zh-CN",
+  "zh-TW": "zh-TW",
+  es: "es-ES",
+  "pt-BR": "pt-BR",
+  ja: "ja-JP",
+  de: "de-DE",
+  fr: "fr-FR",
+  ko: "ko-KR",
+  it: "it-IT",
+  tr: "tr-TR",
+  vi: "vi-VN",
+  id: "id-ID",
+  pl: "pl-PL",
+  nl: "nl-NL",
+  th: "th-TH",
+  ar: "ar-SA",
+  ru: "ru-RU",
+  uk: "uk-UA",
+  hi: "hi-IN",
+  cs: "cs-CZ",
+  ms: "ms-MY",
+  fil: "fil-PH",
+  ro: "ro-RO",
+  hu: "hu-HU",
+  el: "el-GR",
+  he: "he-IL",
+  sv: "sv-SE",
+  da: "da-DK",
+  no: "nb-NO",
+  fi: "fi-FI"
+};
+
+export function voiceTagFor(uiLang: UiLang): string {
+  return VOICE_TAG_BY_UI_LANG[uiLang];
+}
 
 export const UI_LANGUAGE_OPTIONS = [
   { value: "auto", label: "Auto (follow browser)" },
@@ -163,7 +229,16 @@ export const UI_LANGUAGE_OPTIONS = [
   { value: "uk", label: "Українська" },
   { value: "hi", label: "हिन्दी" },
   { value: "cs", label: "Čeština" },
-  { value: "ms", label: "Bahasa Melayu" }
+  { value: "ms", label: "Bahasa Melayu" },
+  { value: "fil", label: "Filipino" },
+  { value: "ro", label: "Română" },
+  { value: "hu", label: "Magyar" },
+  { value: "el", label: "Ελληνικά" },
+  { value: "he", label: "עברית" },
+  { value: "sv", label: "Svenska" },
+  { value: "da", label: "Dansk" },
+  { value: "no", label: "Norsk" },
+  { value: "fi", label: "Suomi" }
 ] as const;
 
 // Target languages offered in the Reply Language selector. Generation itself

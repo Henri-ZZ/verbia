@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import {
-  AUTH_CONFIGURED, API_BASE, accountState, avatarUrlOf, getClient, providerOf, sendMagicLink, signInWithGoogle, signOut
+  AUTH_CONFIGURED, API_BASE, VERIFY_EMAIL_KEY, accountState, authErrorCopy, avatarUrlOf, getClient, onExtensionSignOutRequest, providerOf, sendEmailCode, signInWithGoogle, signInWithPasswordEmail, signOut, syncSignedInSessionToExtension
 } from "../../lib/verbia-auth";
 import { ProCheckout } from "../../components/pro-checkout";
 
@@ -18,12 +19,16 @@ const T = {
     signedOutTitle: "Sign in to Verbia",
     signedOutIntro: "One account for the website and the browser extension — same profile, same daily allowance.",
     google: "Continue with Google",
-    divider: "or use a magic link",
+    divider: "or continue with your email",
     emailPlaceholder: "you@example.com",
-    send: "Email me a sign-in link",
+    send: "Email me a sign-in code",
     sending: "Sending…",
-    sent: "Check your inbox — the sign-in link is on its way.",
-    signInHint: "Verbia never needs a password. Google and email magic links only.",
+    sent: "Check your inbox — we sent a sign-in code.",
+    passwordPlaceholder: "Your password",
+    passwordSubmit: "Sign in",
+    passwordToggle: "Sign in with a password instead",
+    codeToggle: "Email me a sign-in code instead",
+    signInHint: "A sign-in code is all you need to start. Once you are in, you can set a password — or keep using codes.",
     signedInTitle: "Signed in",
     planFree: "Free",
     planPremium: "Premium",
@@ -39,7 +44,10 @@ const T = {
     upgradeTitle: "Upgrade to Verbia Premium",
     upgradeBody: "Get 100 context-aware replies per day.",
     checkoutSuccess: "Payment received. Your Premium status may take a moment to update.",
-    accountNote: "This is the same Verbia account your browser extension uses. The website and the extension keep separate signed-in sessions — signing out here does not sign out the extension.",
+    accountNote: "This is the same Verbia account your browser extension uses. The website and the extension share one sign-in state — signing out here signs out the extension too.",
+    extensionHint: "Opening this page from the extension? Sign in below and the extension picks it up on its own — then use “Back to the extension”.",
+    extensionSynced: "Signed in — the extension has this session too.",
+    openExtension: "Back to the extension",
     backHome: "← Back to verbia.henriz.dev"
   },
   zh: {
@@ -48,12 +56,16 @@ const T = {
     signedOutTitle: "登录 Verbia",
     signedOutIntro: "网站与浏览器扩展共用一个账号——同一份个人资料，同一份每日额度。",
     google: "使用 Google 登录",
-    divider: "或使用邮箱免密链接",
+    divider: "或使用邮箱登录",
     emailPlaceholder: "you@example.com",
-    send: "给我发送登录链接",
+    send: "给我发送登录验证码",
     sending: "发送中…",
-    sent: "请查收邮件，登录链接已发送。",
-    signInHint: "Verbia 无需密码，只支持 Google 或邮箱免密登录。",
+    sent: "请查收邮件，登录验证码已发送。",
+    passwordPlaceholder: "你的密码",
+    passwordSubmit: "登录",
+    passwordToggle: "改用密码登录",
+    codeToggle: "改用邮箱验证码",
+    signInHint: "先用验证码即可开始。登录后可以设置密码，也可以继续用验证码。",
     signedInTitle: "已登录",
     planFree: "免费版",
     // "Premium" stays untranslated: it is the product tier name, same in every locale.
@@ -70,7 +82,10 @@ const T = {
     upgradeTitle: "升级到 Premium",
     upgradeBody: "每天可使用 100 次上下文回复。",
     checkoutSuccess: "付款已完成，Premium 状态可能需要片刻更新。",
-    accountNote: "这就是你的浏览器扩展使用的同一个 Verbia 账号。网站与扩展各自保持独立的登录会话——在此退出不会退出扩展。",
+    accountNote: "这就是你的浏览器扩展使用的同一个 Verbia 账号。网站与扩展共用一个登录状态——在这里退出，扩展也会一起退出。",
+    extensionHint: "从扩展打开本页？在下面登录后扩展会自动接上——然后点「回到扩展」。",
+    extensionSynced: "已登录，扩展也已同步。",
+    openExtension: "回到扩展",
     backHome: "← 返回 verbia.henriz.dev"
   }
 } as const;
@@ -82,10 +97,15 @@ export default function AccountPage() {
   const [usage, setUsage] = useState<Usage>(null);
   const [usageStatus, setUsageStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [usePassword, setUsePassword] = useState(false);
   const [sending, setSending] = useState(false);
   const [notice, setNotice] = useState<string>("");
   const [error, setError] = useState<string>("");
+  const [fromExtension, setFromExtension] = useState(false);
   const started = useRef(false);
+  const synced = useRef(false);
+  const router = useRouter();
 
   const t = T[locale];
 
@@ -94,7 +114,25 @@ export default function AccountPage() {
     const params = new URLSearchParams(window.location.search);
     const explicit = params.get("locale");
     setLocale(explicit === "zh" || explicit === "en" ? explicit : preferred.startsWith("zh") ? "zh" : "en");
+    setFromExtension(params.get("from") === "extension");
   }, []);
+
+  // The two surfaces keep one signed-in state, so a website that finds itself
+  // signed in while the extension is not hands its session over. The background
+  // skips this when it already holds a session, so visiting this page does not
+  // mint a fresh extension session every time.
+  useEffect(() => {
+    if (state !== "signed_in" || synced.current) return;
+    synced.current = true;
+    void syncSignedInSessionToExtension().then(result => { if (result === "synced") setNotice(t.extensionSynced); });
+  }, [state, t.extensionSynced]);
+
+  // …and the other half of that state: when the extension signs out, this page
+  // follows it out rather than sitting here signed in.
+  useEffect(() => onExtensionSignOutRequest(() => {
+    void signOut();
+    setUser(null); setUsage(null); setUsageStatus("idle"); setState("signed_out"); setNotice(""); setError("");
+  }), []);
 
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get("checkout") === "success") setNotice(t.checkoutSuccess);
@@ -175,18 +213,39 @@ export default function AccountPage() {
     if (!result.ok) setError(result.message);
   }
 
-  async function onMagic(event: React.FormEvent) {
+  function validEmail() {
+    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return true;
+    setError(locale === "zh" ? "请输入有效的邮箱地址" : "Enter a valid email address.");
+    return false;
+  }
+
+  // Sending the code is a step, not a state: the code is entered on its own page,
+  // which is also where the sign-in link lands, so the two entry points cannot
+  // drift apart.
+  async function onSendCode(event: React.FormEvent) {
     event.preventDefault();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setError(locale === "zh" ? "请输入有效的邮箱地址" : "Enter a valid email address."); return; }
+    if (!validEmail()) return;
     setSending(true); setError(""); setNotice("");
-    const result = await sendMagicLink(email);
+    const result = await sendEmailCode(email);
     setSending(false);
-    if (result.ok) setNotice(t.sent);
-    else setError(result.message);
+    if (!result.ok) { setError(authErrorCopy(locale, result.code)); return; }
+    try { window.sessionStorage.setItem(VERIFY_EMAIL_KEY, email); } catch { /* private mode: the code still arrives by mail */ }
+    router.push("/account/verify");
+  }
+
+  // For accounts that have set a password. Signing in flips the view through
+  // onAuthStateChange, so there is nothing to do on success.
+  async function onPassword(event: React.FormEvent) {
+    event.preventDefault();
+    if (!validEmail()) return;
+    setSending(true); setError(""); setNotice("");
+    const result = await signInWithPasswordEmail(email, password);
+    setSending(false);
+    if (!result.ok) setError(authErrorCopy(locale, result.code));
   }
 
   async function onSignOut() {
-    const confirmed = window.confirm(locale === "zh" ? "确定要退出登录吗？" : "Sign out of Verbia?");
+    const confirmed = window.confirm(locale === "zh" ? "确定要退出登录吗？扩展会一起退出。" : "Sign out of Verbia? The extension signs out too.");
     if (!confirmed) return;
     setError(""); setNotice("");
     await signOut();
@@ -235,11 +294,14 @@ export default function AccountPage() {
                 {t.google}
               </button>
               <div className="account-divider"><span>{t.divider}</span></div>
-              <form className="account-magic" onSubmit={onMagic}>
+              <form className="account-magic" onSubmit={usePassword ? onPassword : onSendCode}>
                 <input type="email" inputMode="email" autoComplete="email" required value={email} onChange={event => setEmail(event.target.value)} placeholder={t.emailPlaceholder} aria-label={t.emailPlaceholder} />
-                <button className="button primary" type="submit" disabled={sending}>{sending ? t.sending : t.send}</button>
+                {usePassword && <input type="password" autoComplete="current-password" required value={password} onChange={event => setPassword(event.target.value)} placeholder={t.passwordPlaceholder} aria-label={t.passwordPlaceholder} />}
+                <button className="button primary" type="submit" disabled={sending}>{sending ? t.sending : usePassword ? t.passwordSubmit : t.send}</button>
               </form>
+              <button className="account-link" type="button" onClick={() => { setUsePassword(!usePassword); setPassword(""); setError(""); }}>{usePassword ? t.codeToggle : t.passwordToggle}</button>
               <p className="account-hint muted">{t.signInHint}</p>
+              {fromExtension && <p className="account-hint muted">{t.extensionHint}</p>}
             </div>
           </>
         )}
@@ -274,6 +336,7 @@ export default function AccountPage() {
             {usageStatus === "ready" && usage?.plan !== "premium" && <div className="account-upgrade"><strong>{t.upgradeTitle}<img className="premium-mark" src="/premium.png" alt="" width="14" height="14"/></strong><p>{t.upgradeBody}</p><ProCheckout locale={locale} compact/></div>}
 
             <p className="account-note muted">{t.accountNote}</p>
+            {fromExtension && <button className="button primary" type="button" onClick={() => window.dispatchEvent(new CustomEvent("verbia:open-dashboard"))}>{t.openExtension}</button>}
             <button className="button secondary" type="button" onClick={() => void onSignOut()}>{t.signOut}</button>
           </>
         )}
