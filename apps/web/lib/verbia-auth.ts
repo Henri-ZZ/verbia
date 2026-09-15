@@ -225,6 +225,7 @@ export type AuthErrorCode =
   | "reauthentication_needed"
   | "rate_limited"
   | "captcha_failed"
+  | "captcha_required"
   | "not_configured"
   | "unknown";
 
@@ -254,6 +255,7 @@ const AUTH_ERROR_COPY = {
     reauthentication_needed: "For security, sign in again before changing your password.",
     rate_limited: "Too many attempts. Wait a minute and try again.",
     captcha_failed: "The anti-bot check failed. Reload the page and try again.",
+    captcha_required: "Complete the human check above first.",
     not_configured: "Sign-in is not configured on this site.",
     unknown: "Something went wrong. Please try again."
   },
@@ -266,6 +268,7 @@ const AUTH_ERROR_COPY = {
     reauthentication_needed: "出于安全考虑，请重新登录后再修改密码。",
     rate_limited: "尝试过于频繁，请等一分钟再试。",
     captcha_failed: "人机校验未通过，请刷新页面重试。",
+    captcha_required: "请先完成上方的人机校验。",
     not_configured: "本站尚未配置登录。",
     unknown: "出错了，请重试。"
   }

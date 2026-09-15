@@ -1,0 +1,14 @@
+{
+  "extensionName": {
+    "message": "Verbia - AI na Katulong sa Pag-reply at Pagsulat"
+  },
+  "description": {
+    "message": "Gumawa ng draft ng sagot sa kahit anong wika — binabasa ng Verbia ang email o thread na sinasagot mo at isinusulat ang ibig mong sabihin."
+  },
+  "actionTitle": {
+    "message": "Buksan ang Verbia Dashboard"
+  },
+  "openVerbiaDesc": {
+    "message": "I-focus ang text field, tapos gamitin ang shortcut para buksan ang reply panel"
+  }
+}

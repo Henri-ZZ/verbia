@@ -1,0 +1,14 @@
+{
+  "extensionName": {
+    "message": "Verbia - Asistent AI pentru răspunsuri și scriere"
+  },
+  "description": {
+    "message": "Redactează răspunsuri în orice limbă — Verbia citește e-mailul sau conversația la care răspunzi și scrie ce vrei să spui."
+  },
+  "actionTitle": {
+    "message": "Deschide Dashboard-ul Verbia"
+  },
+  "openVerbiaDesc": {
+    "message": "Focusează un câmp de text, apoi folosește scurtătura pentru a deschide panoul de răspuns"
+  }
+}

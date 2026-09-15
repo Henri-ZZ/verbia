@@ -159,7 +159,7 @@ pnpm db:check
 - 扩展：`chrome.storage.local` 的 session（包内 `auth/supabase.ts`）。
 - 官网：`localStorage` 中的 `verbia-web-auth` session（`apps/web/lib/verbia-auth.ts`）。
 
-所以同一用户在两边都能登录、看到同一份每日额度；两边互不影响，**登出一边不影响另一边**。
+所以同一用户在两边都能登录、看到同一份每日额度。**登录状态是两端共享的**：任一端退出，同一浏览器里的另一端也随之退出（详见 `docs/auth-session-sync.md`）。
 
 ### 1. Supabase Dashboard 需要做的一次性配置
 
@@ -179,9 +179,12 @@ pnpm db:check
 NEXT_PUBLIC_SUPABASE_URL=https://pthfyoejvlcwxboskrjr.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<与根 .env.local 的 SUPABASE_PUBLISHABLE_KEY 同一对>
 NEXT_PUBLIC_VERBIA_API=https://api.verbia.henriz.dev
+# 仅当 Supabase 开启了 CAPTCHA 保护时需要（见第 4 节）
+NEXT_PUBLIC_CAPTCHA_PROVIDER=turnstile
+NEXT_PUBLIC_CAPTCHA_SITE_KEY=
 ```
 
-模板见 `apps/web/.env.example`。
+模板见根 `.env.example` 的 Website 段。
 
 ### 3. 本地联调与发布
 
@@ -191,3 +194,46 @@ pnpm --filter @verbia/web build  # 静态导出到 apps/web/out，部署到 verb
 ```
 
 `/account` 页面会根据用户浏览器语言或 `?locale=` 在中英文之间切换，文案与扩展的 account.* 保持口径一致。
+
+### 4. CAPTCHA（默认 Cloudflare Turnstile）
+
+Supabase 的 **Authentication → Attack Protection** 一旦开启 CAPTCHA 保护，**所有发起登录的请求都必须带 token**，否则服务端直接拒绝（界面显示「人机校验未通过」）。这套保护有**两把钥匙分放两处**，最容易只装一半：
+
+| 一半 | 放哪里 | 谁用 |
+|---|---|---|
+| **secret** | Supabase 面板（`••••••`，可 Reveal） | 服务端验证 token |
+| **site key** | **提供方自己的后台** | 官网渲染控件 |
+
+**Supabase 面板里没有 site key 输入框**——它只存 secret。所以 site key 只能去提供方后台取，且两者必须同属**同一个站点/账号**（拿 A 站点的 secret 配 B 站点的 sitekey，控件会渲染但每次都校验失败）。
+
+**为什么默认 Turnstile：**
+
+| | 免费档上限 |
+|---|---|
+| **Cloudflare Turnstile** | 挑战/验证请求**不限量**（免费档限制在 20 个 widget、每 widget 10 个 hostname） |
+| **hCaptcha** | Basic 免费档 **每月 10,000 次请求**，超出需 Pro（约 $99–139/月） |
+
+每次登录尝试算 1 次请求（发码、重发、密码登录各算一次）。另外 Turnstile 的 `appearance: "interaction-only"` 让通过静默校验的用户**看不到控件**，而且 API 已经在 Cloudflare 上，少一个后台。
+
+官网侧要做的事：
+
+1. 在提供方后台建站点，把 **`verbia.henriz.dev` 加进 hostname/Domains 列表**（Turnstile 可加 `localhost`，本地调试比 hCaptcha 友好），否则控件不签发 token。
+2. 复制 **sitekey** → `apps/web/.env.local` 的 `NEXT_PUBLIC_CAPTCHA_SITE_KEY`；复制 **secret** → Supabase 面板的 Captcha secret；把 Supabase 的 provider 下拉切到 **Turnstile by Cloudflare**。
+3. `NEXT_PUBLIC_CAPTCHA_PROVIDER` 必须与 Supabase 的下拉一致（`turnstile` 默认，可选 `hcaptcha`）。这两个键都是**构建期注入**的，改完必须**重新构建部署官网**。
+4. 本地 `localhost` 若跑不了控件（hCaptcha 必须 Ngrok 或改 hosts；Turnstile 可把 localhost 加进 hostname 列表），也可以本地先不开 CAPTCHA——site key 为空时控件完全不渲染。
+
+覆盖范围（`apps/web/components/captcha.tsx`）：
+
+| 入口 | 需要 token |
+|---|---|
+| 账号页「给我发送登录验证码」 | ✅ `signInWithOtp` |
+| 账号页「密码登录」 | ✅ `signInWithPassword` |
+| 验证页「重新发送验证码」 | ✅ 又一次 `signInWithOtp`，需新 token |
+| 验证页「输入验证码」 | ❌ 验证既有挑战，不发起新请求 |
+| 「使用 Google 登录」 | ❌ 跳转流程，不受影响 |
+
+两条行为约定：
+
+- **`NEXT_PUBLIC_HCAPTCHA_SITE_KEY` 为空时控件完全不渲染**，请求照旧发出。所以本地、预览等没有 CAPTCHA 的环境不需要配置，也不会被这套代码影响。
+- token 是**一次性**的，页面在提交时取新 token，并在每次尝试后（含失败）重置控件——否则第二次提交会拿着已用过的 token 失败。
+- 控件已加载但未完成校验时，官网**先本地拦下**并提示「请先完成上方的人机校验」，不会把注定失败的请求发出去。

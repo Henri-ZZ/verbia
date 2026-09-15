@@ -1,0 +1,14 @@
+{
+  "extensionName": {
+    "message": "Verbia - עוזר תשובות וכתיבה עם AI"
+  },
+  "description": {
+    "message": "נסח תשובות בכל שפה — Verbia קורא את המייל או השיחה שאתה משיב להם וכותב את מה שאתה מתכוון."
+  },
+  "actionTitle": {
+    "message": "פתח את לוח Verbia"
+  },
+  "openVerbiaDesc": {
+    "message": "מקם את הסמן בשדה טקסט ואז השתמש בקיצור כדי לפתוח את לוח התשובה"
+  }
+}

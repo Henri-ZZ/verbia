@@ -8,6 +8,7 @@ import {
   AUTH_CONFIGURED, API_BASE, VERIFY_EMAIL_KEY, accountState, authErrorCopy, avatarUrlOf, getClient, onExtensionSignOutRequest, providerOf, sendEmailCode, signInWithGoogle, signInWithPasswordEmail, signOut, syncSignedInSessionToExtension
 } from "../../lib/verbia-auth";
 import { ProCheckout } from "../../components/pro-checkout";
+import { Captcha, type CaptchaHandle } from "../../components/captcha";
 
 type Locale = "en" | "zh";
 type Usage = { plan: "free" | "premium"; used: number; limit: number | null; resetsAt?: string; premiumUntil?: string } | null;
@@ -105,6 +106,13 @@ export default function AccountPage() {
   const [fromExtension, setFromExtension] = useState(false);
   const started = useRef(false);
   const synced = useRef(false);
+  // Did this page already find a signed-in website when it first looked? Set
+  // once by refresh() below, and read by the handoff effect.
+  const hadSessionOnLoad = useRef<boolean | null>(null);
+  // The CAPTCHA widget, when a site key is configured. It stays null otherwise,
+  // which is what makes the check in takeCaptcha() a no-op wherever CAPTCHA is
+  // not set up.
+  const captchaWidget = useRef<CaptchaHandle | null>(null);
   const router = useRouter();
 
   const t = T[locale];
@@ -117,15 +125,19 @@ export default function AccountPage() {
     setFromExtension(params.get("from") === "extension");
   }, []);
 
-  // The two surfaces keep one signed-in state, so a website that finds itself
-  // signed in while the extension is not hands its session over. The background
-  // skips this when it already holds a session, so visiting this page does not
-  // mint a fresh extension session every time.
+  // Handing the website's session to the extension happens when the user signs
+  // in here, or when the extension asks for it (?from=extension, its Sign in
+  // button). A session that was *already* on this page when it loaded is not
+  // evidence of either: it may be exactly the session the extension just signed
+  // out of, and handing it back would sign the extension in again seconds after
+  // the user signed it out. The background also skips this when it already
+  // holds a session, so no visit mints a second one.
   useEffect(() => {
     if (state !== "signed_in" || synced.current) return;
+    if (!fromExtension && hadSessionOnLoad.current !== false) return;
     synced.current = true;
     void syncSignedInSessionToExtension().then(result => { if (result === "synced") setNotice(t.extensionSynced); });
-  }, [state, t.extensionSynced]);
+  }, [fromExtension, state, t.extensionSynced]);
 
   // …and the other half of that state: when the extension signs out, this page
   // follows it out rather than sitting here signed in.
@@ -145,6 +157,7 @@ export default function AccountPage() {
     async function refresh() {
       const current = await accountState();
       if (disposed) return;
+      if (hadSessionOnLoad.current === null) hadSessionOnLoad.current = current.status === "signed_in";
       if (current.status === "signed_in") {
         setUser(current.user);
         setState("signed_in");
@@ -219,14 +232,30 @@ export default function AccountPage() {
     return false;
   }
 
+  // Both requests below leave for Supabase, which refuses them without a CAPTCHA
+  // token whenever that protection is on. Read one first, and reset the widget
+  // afterwards: a token is spent by the attempt that used it, so the next one
+  // needs a fresh challenge.
+  function takeCaptcha(): { token?: string; blocked: boolean } {
+    const token = captchaWidget.current?.token();
+    if (captchaWidget.current?.required() && !token) {
+      setError(authErrorCopy(locale, "captcha_required"));
+      return { blocked: true };
+    }
+    return { token, blocked: false };
+  }
+
   // Sending the code is a step, not a state: the code is entered on its own page,
   // which is also where the sign-in link lands, so the two entry points cannot
   // drift apart.
   async function onSendCode(event: React.FormEvent) {
     event.preventDefault();
     if (!validEmail()) return;
+    const captcha = takeCaptcha();
+    if (captcha.blocked) return;
     setSending(true); setError(""); setNotice("");
-    const result = await sendEmailCode(email);
+    const result = await sendEmailCode(email, captcha.token);
+    captchaWidget.current?.reset();
     setSending(false);
     if (!result.ok) { setError(authErrorCopy(locale, result.code)); return; }
     try { window.sessionStorage.setItem(VERIFY_EMAIL_KEY, email); } catch { /* private mode: the code still arrives by mail */ }
@@ -238,8 +267,11 @@ export default function AccountPage() {
   async function onPassword(event: React.FormEvent) {
     event.preventDefault();
     if (!validEmail()) return;
+    const captcha = takeCaptcha();
+    if (captcha.blocked) return;
     setSending(true); setError(""); setNotice("");
-    const result = await signInWithPasswordEmail(email, password);
+    const result = await signInWithPasswordEmail(email, password, captcha.token);
+    captchaWidget.current?.reset();
     setSending(false);
     if (!result.ok) setError(authErrorCopy(locale, result.code));
   }
@@ -297,6 +329,7 @@ export default function AccountPage() {
               <form className="account-magic" onSubmit={usePassword ? onPassword : onSendCode}>
                 <input type="email" inputMode="email" autoComplete="email" required value={email} onChange={event => setEmail(event.target.value)} placeholder={t.emailPlaceholder} aria-label={t.emailPlaceholder} />
                 {usePassword && <input type="password" autoComplete="current-password" required value={password} onChange={event => setPassword(event.target.value)} placeholder={t.passwordPlaceholder} aria-label={t.passwordPlaceholder} />}
+                <Captcha handleRef={captchaWidget} locale={locale} />
                 <button className="button primary" type="submit" disabled={sending}>{sending ? t.sending : usePassword ? t.passwordSubmit : t.send}</button>
               </form>
               <button className="account-link" type="button" onClick={() => { setUsePassword(!usePassword); setPassword(""); setError(""); }}>{usePassword ? t.codeToggle : t.passwordToggle}</button>

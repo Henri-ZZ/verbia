@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import { Inter, Plus_Jakarta_Sans } from "next/font/google";
+import { SessionWatch } from "../components/session-watch";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-body", display: "swap" });
@@ -27,7 +28,7 @@ export const viewport: Viewport = { themeColor: "#f2fcf4", colorScheme: "light" 
 const GA_ID = "G-540Y1K231S";
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en" className={`${inter.variable} ${jakarta.variable}`}><body><a className="skip-link" href="#main">Skip to content</a>{children}
+  return <html lang="en" className={`${inter.variable} ${jakarta.variable}`}><body><a className="skip-link" href="#main">Skip to content</a><SessionWatch />{children}
     <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="lazyOnload" />
     <Script id="ga-config" strategy="lazyOnload" dangerouslySetInnerHTML={{ __html: `window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', '${GA_ID}');` }} />
   </body></html>;

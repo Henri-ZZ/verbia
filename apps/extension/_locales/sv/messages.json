@@ -1,0 +1,14 @@
+{
+  "extensionName": {
+    "message": "Verbia - AI-assistent för svar och skrivande"
+  },
+  "description": {
+    "message": "Skriv svar på vilket språk som helst — Verbia läser e-postmeddelandet eller tråden du svarar på och skriver det du menar."
+  },
+  "actionTitle": {
+    "message": "Öppna Verbias Dashboard"
+  },
+  "openVerbiaDesc": {
+    "message": "Fokusera ett textfält och använd sedan kortkommandot för att öppna svarspanelen"
+  }
+}

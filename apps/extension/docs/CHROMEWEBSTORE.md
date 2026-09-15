@@ -25,11 +25,11 @@ FEATURES
 
 • Write in your language, send in theirs. Type or speak what you want to say — any language — and Verbia writes the reply in the reply language, tone, and length you pick.
 • It knows what you are answering. On Reddit, Gmail, Outlook, and QQ Mail, Verbia reads the conversation as the reply box opens and shows it before generating: the post and its reply chain, or the original email.
-• Other webmail works too. On 163, Yahoo, Proton, iCloud, Fastmail, Zoho, GMX, mail.com, Yandex, Naver, Daum and other mail sites, press “AI identify this email” and the message around your reply box is read for you.
+• Other webmail works too. On any other mail site, press “AI identify this email” and the message around your reply box is read for you.
 • Anywhere else you type. On any other page, use the text you selected as context — add it from the right-click menu — or use no context at all.
 • Speak instead of typing. Voice input turns what you say into the draft.
 • Everything is yours to decide. Verbia only ever produces a draft. You insert it, edit it, and send it yourself. It never sends, submits, or posts anything for you.
-• 22 interface languages: English, 简体中文, 繁體中文, Español, Português, 日本語, Deutsch, Français, 한국어, Italiano, Türkçe, Tiếng Việt, Bahasa Indonesia, Polski, Nederlands, ไทย, العربية, Русский, Українська, हिन्दी, Čeština, Bahasa Melayu.
+• 31 interface languages, switchable any time in the Dashboard.
 • Free plan: 10 drafts a day. Premium raises it to 100 a day.
 
 HOW TO USE
@@ -67,11 +67,11 @@ Verbia 用你选择的语言、在你正在书写的页面上，起草你真正�
 
 • 用你的语言写，用对方的语言发。说出或输入你想表达的内容，Verbia 按你选择的语言、语气与长度写出回复草稿。
 • 知道你在回复什么。在 Reddit、Gmail、Outlook 与 QQ 邮箱上，回复框打开时 Verbia 会读取相关对话并在生成前展示：帖子与回复链，或正在回复的那封邮件。
-• 其它邮箱也能用。在 163、Yahoo、Proton、iCloud、Fastmail、Zoho、GMX、mail.com、Yandex、Naver、Daum 等邮箱网页版，点击「AI 识别当前邮件上下文」，Verbia 会替你读取回复框周围的邮件内容。
+• 其它邮箱也能用。在任意其他邮箱的网页版，点击「AI 识别当前邮件上下文」，Verbia 会替你读取回复框周围的邮件内容。
 • 其它网页同样可用。任何页面上，都可以用你选中的文字作为上下文（右键菜单加入），也可以不带上下文直接起草。
 • 说，不必打。语音输入把你说的内容变成草稿。
 • 一切都由你决定。Verbia 只生成草稿，由你插入、修改并亲手发送；它绝不会替你发送、提交或发布任何内容。
-• 22 种界面语言：English、简体中文、繁體中文、Español、Português、日本語、Deutsch、Français、한국어、Italiano、Türkçe、Tiếng Việt、Bahasa Indonesia、Polski、Nederlands、ไทย、العربية、Русский、Українська、हिन्दी、Čeština、Bahasa Melayu。
+• 31 种界面语言，可随时在 Dashboard 中切换。
 • 免费版每天 10 次生成，Premium 提升到每天 100 次。
 
 使用方法
@@ -107,11 +107,15 @@ Verbia 支持 Chrome 与 Microsoft Edge，Firefox 版本正在计划中。
 
 ## Localized Listings
 
-商店允许为每种语言分别填写 **Title / Summary / Description**。扩展界面上现有 **22 种**语言，它们的 Title 与 Summary 随扩展包发布；**Description 全部已写好**，可直接复制粘贴（见 [`CHROMEWEBSTORE-COPY.md`](CHROMEWEBSTORE-COPY.md)，22 个 locale 各一段）。
+商店允许为每种语言分别填写 **Title / Summary / Description**。扩展界面上现有 **31 种**语言，它们的 Title 与 Summary 随扩展包发布；**Description 全部已写好**，可直接复制粘贴（见 [`CHROMEWEBSTORE-COPY.md`](CHROMEWEBSTORE-COPY.md)，31 个 locale 各一段）。
+
+> **后台能填哪些语言，取决于扩展包里有哪些 `_locales/` 目录。** 新增语言必须先建 `apps/extension/_locales/<code>/messages.json`（四个键：`extensionName`、`description`、`actionTitle`、`openVerbiaDesc`）并重新上传包，否则后台不会出现该语言的字段、Title 与 Summary 也不会本地化。
 
 **字段来源不同：** 各语言的 **Title** 与 **Summary** 随扩展包发布（manifest `name` / `description` → `apps/extension/_locales/<locale>/messages.json` 的 `extensionName` / `description`），后台显示为 “from package”、无法单独填写，下面列出的值仅供核对；只有 **Description** 需要在后台逐语言粘贴。本文件与 `_locales` 不一致时以 `_locales` 为准。
 
-> 可直接复制的 **Description**（22 种语言）见 [`CHROMEWEBSTORE-COPY.md`](CHROMEWEBSTORE-COPY.md)。
+> 可直接复制的 **Description**（31 种语言）见 [`CHROMEWEBSTORE-COPY.md`](CHROMEWEBSTORE-COPY.md)。
+
+> **不要在描述里枚举第三方站点，也不要列举全部界面语言。** 2026-09-15 的提交因这一行被判定为 Keyword Spam（`Yellow Argon`）拒绝：`On 163, Yahoo, Proton, iCloud, Fastmail, Zoho, GMX, mail.com, Yandex, Naver, Daum`——11 个品牌名连排会被读成"为搜索堆词"。现在描述里只保留产品自身的核心集成（Reddit / Gmail / Outlook / QQ 邮箱），其余一律写成「其它邮箱」「任意其他邮箱」；界面语言只写数量与切换位置（`22 interface languages, switchable any time in the Dashboard.`）。**站点全集只放官网，不要放回商店描述。**
 
 ### Español (es)
 
@@ -306,7 +310,7 @@ Verbia membaca konten halaman hanya setelah Anda memanggilnya, membatasi akses p
 | Marquee Promo Tile  |                   1400×560 | ✅ Ready    | `promo-materials/marquee_promo_tile_14000_5600.png`（文件名多了一个 0，实际尺寸 1400×560，建议改名） |
 | 非商店素材          |                  1571×1001 | —           | `promo-materials/promo_tile.png`（非商店标准尺寸，别上传）           |
 
-截图内容：1 号展示邮件模式下「AI 识别当前邮件上下文」与已识别的上下文预览；2 号展示生成前可见的上下文与意图输入区；3 号展示草稿与「Verbia 绝不替你发送」的边界。发布前建议把 1 号换成最新界面（含 22 种界面语言的设置页）——当前素材是 22 种语言上线前拍的。
+截图内容：1 号展示邮件模式下「AI 识别当前邮件上下文」与已识别的上下文预览；2 号展示生成前可见的上下文与意图输入区；3 号展示草稿与「Verbia 绝不替你发送」的边界。发布前建议把 1 号换成最新界面（含多语言设置页）——当前素材拍摄于 22 种语言上线之前。
 
 ## Permissions Justification
 
@@ -372,16 +376,16 @@ Verbia membaca konten halaman hanya setelah Anda memanggilnya, membatasi akses p
 **English**
 
 • QQ Mail on the web joins Gmail, Outlook, and Reddit: the panel opens with the mail you are answering already read.
-• A generalized email mode for other webmail — 163, Yahoo, Proton, iCloud, Fastmail, Zoho, GMX, mail.com, Yandex, Naver, Daum and more. Press “AI identify this email” and the message around your reply box is read for you.
-• 10 new interface languages, 22 in total: 繁體中文, Polski, Nederlands, ไทย, العربية, Русский, Українська, हिन्दी, Čeština, Bahasa Melayu. Arabic is laid out right to left.
+• A generalized email mode for other webmail. Press “AI identify this email” and the message around your reply box is read for you.
+• 10 new interface languages, 22 in total. Arabic is laid out right to left.
 • A generation that fails, times out, or comes back with nothing usable no longer counts against your daily drafts.
 • The context panel is clearer about what it did: the AI button says what it does and what it costs, and a low-confidence read is labelled as this read rather than the feature.
 
 **中文**
 
 • QQ 邮箱网页版加入 Gmail、Outlook 与 Reddit：打开回复框时，你正在回复的那封邮件已经读取好了。
-• 新增通用邮件模式，支持 163、Yahoo、Proton、iCloud、Fastmail、Zoho、GMX、mail.com、Yandex、Naver、Daum 等邮箱网页版：点击「AI 识别当前邮件上下文」，Verbia 会读取回复框周围的邮件内容。
-• 新增 10 种界面语言，共 22 种：繁體中文、Polski、Nederlands、ไทย、العربية、Русский、Українська、हिन्दी、Čeština、Bahasa Melayu。阿拉伯语为从右到左排版。
+• 新增通用邮件模式：点击「AI 识别当前邮件上下文」，Verbia 会读取回复框周围的邮件内容。
+• 新增 10 种界面语言，共 22 种。阿拉伯语为从右到左排版。
 • 失败、超时或没有可用内容的生成不再计入每日额度。
 • 上下文面板更清楚：AI 识别按钮写明它的作用与消耗；置信度低时只说明「本次」结果，而不是对功能本身下结论。
 
@@ -391,7 +395,7 @@ The next release adds Contact/Feedback links in the popup and Dashboard and an o
 
 **提交前状态（2026-09-15 实测核对）**
 
-- ✅ ~~Store assets~~ — 全部就绪且尺寸合规（截图 1280×800、小图 440×280、横幅 1400×560，见上表）。建议把 1 号截图换成 22 种语言版本上线后的界面。
+- ✅ ~~Store assets~~ — 全部就绪且尺寸合规（截图 1280×800、小图 440×280、横幅 1400×560，见上表）。建议把 1 号截图换成 31 种语言版本上线后的界面。
 - ✅ ~~Public privacy-policy URL~~ — https://verbia.henriz.dev/privacy 返回 200。
 - ✅ ~~Support contact~~ — https://verbia.henriz.dev/contact 返回 200；henri@henriz.dev。
 - ⬜ **Publisher Name** 未填，需与开发者账号显示名一致（会出现在商店列表上）。

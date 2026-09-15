@@ -1,0 +1,14 @@
+{
+  "extensionName": {
+    "message": "Verbia - AI-avustaja vastauksiin ja kirjoittamiseen"
+  },
+  "description": {
+    "message": "Kirjoita vastauksia millä tahansa kielellä — Verbia lukee sähköpostin tai ketjun, johon vastaat, ja kirjoittaa sen, mitä tarkoitat."
+  },
+  "actionTitle": {
+    "message": "Avaa Verbia Dashboard"
+  },
+  "openVerbiaDesc": {
+    "message": "Kohdista tekstikenttään ja avaa vastauspaneeli pikakuvakkeella"
+  }
+}

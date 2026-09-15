@@ -1378,6 +1378,11 @@ button:focus-visible {
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(15, 110, 86, 0.14);
 }
+.account-captcha {
+  display: flex;
+  justify-content: center;
+  min-height: 0;
+}
 .account-hint {
   margin: 12px 0 0;
   font-size: 12.5px;

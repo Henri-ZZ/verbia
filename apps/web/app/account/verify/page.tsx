@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AUTH_CONFIGURED, VERIFY_EMAIL_KEY, authErrorCopy, sendEmailCode, syncSignedInSessionToExtension, updatePassword, verifyEmailCode, verifyEmailLink
 } from "../../../lib/verbia-auth";
+import { Captcha, type CaptchaHandle } from "../../../components/captcha";
 
 type Locale = "en" | "zh";
 type Step = "verify" | "password" | "done";
@@ -83,6 +84,9 @@ export default function VerifyPage() {
   const [notice, setNotice] = useState("");
   const [cooldown, setCooldown] = useState(0);
   const started = useRef(false);
+  // Only the resend path needs this; it stays null wherever no site key is set,
+  // which keeps the check around it a no-op.
+  const captchaWidget = useRef<CaptchaHandle | null>(null);
 
   const t = T[locale];
 
@@ -148,11 +152,17 @@ export default function VerifyPage() {
     await afterVerified(result.createdAt);
   }
 
+  // Resending is a second sign-in request, so it needs its own CAPTCHA token:
+  // the one solved on the account page was spent there. Entering the code does
+  // not — that verifies an existing challenge rather than starting a new one.
   async function onResend() {
     if (cooldown > 0) return;
     if (!email) { setError(authErrorCopy(locale, "invalid_code")); return; }
+    const token = captchaWidget.current?.token();
+    if (captchaWidget.current?.required() && !token) { setError(authErrorCopy(locale, "captcha_required")); return; }
     setBusy(true); setError(""); setNotice("");
-    const result = await sendEmailCode(email);
+    const result = await sendEmailCode(email, token);
+    captchaWidget.current?.reset();
     setBusy(false);
     if (!result.ok) { setError(authErrorCopy(locale, result.code)); return; }
     setCooldown(RESEND_COOLDOWN_S);
@@ -219,6 +229,7 @@ export default function VerifyPage() {
                 ? t.resendIn(cooldown)
                 : <button className="account-link" type="button" disabled={busy} onClick={() => void onResend()}>{t.resend}</button>}
             </p>
+            <Captcha handleRef={captchaWidget} locale={locale} />
             <p className="account-hint muted">{t.linkHint}</p>
           </>
         )}

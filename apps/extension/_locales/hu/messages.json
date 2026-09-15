@@ -1,0 +1,14 @@
+{
+  "extensionName": {
+    "message": "Verbia - AI válasz- és írásasszisztens"
+  },
+  "description": {
+    "message": "Fogalmazz választ bármilyen nyelven — a Verbia elolvassa az e-mailt vagy a beszélgetést, amire válaszolsz, és megírja, amit szeretnél."
+  },
+  "actionTitle": {
+    "message": "Verbia Dashboard megnyitása"
+  },
+  "openVerbiaDesc": {
+    "message": "Fókuszálj egy szövegmezőre, majd a gyorsbillentyűvel nyisd meg a válaszpanelt"
+  }
+}
