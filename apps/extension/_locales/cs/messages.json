@@ -1,0 +1,14 @@
+{
+  "extensionName": {
+    "message": "Verbia – AI asistent pro odpovědi a psaní"
+  },
+  "description": {
+    "message": "Pište odpovědi v jakémkoli jazyce — Verbia přečte e-mail nebo vlákno, na které odpovídáte, a napíše, co máte na mysli."
+  },
+  "actionTitle": {
+    "message": "Otevřít panel Verbia"
+  },
+  "openVerbiaDesc": {
+    "message": "Umístěte kurzor do textového pole a zkratkou otevřete panel odpovědi"
+  }
+}

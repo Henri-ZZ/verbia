@@ -153,7 +153,17 @@ export const UI_LANGUAGE_OPTIONS = [
   { value: "it", label: "Italiano" },
   { value: "tr", label: "Türkçe" },
   { value: "vi", label: "Tiếng Việt" },
-  { value: "id", label: "Bahasa Indonesia" }
+  { value: "id", label: "Bahasa Indonesia" },
+  { value: "zh-TW", label: "繁體中文" },
+  { value: "pl", label: "Polski" },
+  { value: "nl", label: "Nederlands" },
+  { value: "th", label: "ไทย" },
+  { value: "ar", label: "العربية" },
+  { value: "ru", label: "Русский" },
+  { value: "uk", label: "Українська" },
+  { value: "hi", label: "हिन्दी" },
+  { value: "cs", label: "Čeština" },
+  { value: "ms", label: "Bahasa Melayu" }
 ] as const;
 
 // Target languages offered in the Reply Language selector. Generation itself

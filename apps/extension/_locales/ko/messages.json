@@ -3,7 +3,7 @@
     "message": "Verbia - AI 답장 및 글쓰기 도우미"
   },
   "description": {
-    "message": "어떤 언어로든 말하거나 입력하세요. Verbia가 대화를 이해하고 전하려는 뜻을 자연스럽고 맥락에 맞는 답장으로 바꿔줍니다."
+    "message": "어떤 언어로든 답장 초안을 작성하세요. Verbia가 답장할 메일이나 대화를 읽고 전하려는 내용을 씁니다."
   },
   "actionTitle": {
     "message": "Verbia 대시보드 열기"

@@ -1,0 +1,14 @@
+{
+  "extensionName": {
+    "message": "Verbia - AI 回覆與寫作助理"
+  },
+  "description": {
+    "message": "用任何語言起草回覆——Verbia 讀取你正在回覆的郵件或對話，寫出你真正想說的內容。"
+  },
+  "actionTitle": {
+    "message": "開啟 Verbia 主控台"
+  },
+  "openVerbiaDesc": {
+    "message": "聚焦文字欄位後，用快速鍵開啟回覆面板"
+  }
+}

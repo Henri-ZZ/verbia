@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { VerbiaPanel } from "../apps/extension/src/content/ui/panel";
 import { QqMailAdapter } from "../apps/extension/src/content/adapters/qqmail";
+import { RedditAdapter } from "../apps/extension/src/content/adapters/reddit";
 import { UniversalAdapter } from "../apps/extension/src/content/adapters/universal";
 import { toTarget } from "../apps/extension/src/content/editor/editable";
 import { DEFAULT_SETTINGS, UI_STRINGS, type ContextEnvelope } from "@verbia/shared";
@@ -312,6 +313,38 @@ describe("identifying the context", () => {
     expect(panel.dropsStaleIdentification(true)).toBe(true);
     // Already forgotten: a second call has nothing left to compare against.
     expect(panel.dropsStaleIdentification(true)).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Pages that are not mail sites. The identification is a mail feature: it answers
+// "which message am I replying to", and a generic page has no answer to that — the
+// model would name whichever text it liked and the panel would offer it as context.
+// ---------------------------------------------------------------------------
+
+describe("sites without mail", () => {
+  async function build(adapter: UniversalAdapter | RedditAdapter, mode: "universal" | "auto") {
+    vi.stubGlobal("chrome", fakeChrome(async () => ({ ok: true, data: identified })));
+    document.body.innerHTML = REGION;
+    const editor = document.querySelector<HTMLElement>('[contenteditable="true"]');
+    if (!editor) throw new Error("fixture has no editor");
+    const panel = new VerbiaPanel(adapter, toTarget(editor), context("high"), () => {}, mode);
+    panel.mountAfter(editor);
+    await panel.open(false);
+    return panel;
+  }
+
+  it("offers no identification on a generic page", async () => {
+    await build(new UniversalAdapter(), "universal");
+    expect(identifyButton()).toBeNull();
+    expect(shadowText()).not.toContain(UI_STRINGS.en["context.identify"]);
+  });
+
+  // Reddit has its own read of the thread and no mail to identify: the repair path
+  // there is selecting the text, not asking a model about a conversation.
+  it("offers no identification on Reddit", async () => {
+    await build(new RedditAdapter(), "auto");
+    expect(identifyButton()).toBeNull();
   });
 });
 

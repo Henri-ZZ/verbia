@@ -1,6 +1,6 @@
 # Chrome Web Store Listing — Verbia
 
-> Last Updated: 2026-09-13
+> Last Updated: 2026-09-15
 
 ## Store Listing
 
@@ -9,33 +9,95 @@
 **Tagline (EN):** Your intent. The right words.  
 **Tagline (中文):** 你的意图，恰如其言。
 
-**Short Description (EN):** Speak or type in any language. Verbia understands the conversation and turns what you mean into natural, context-aware replies.
+**Summary (EN)** — 随扩展包发布（后台显示 "Summary from package"）： Draft replies in any language — Verbia reads the email or thread you are answering and writes the reply you mean.  (113 characters)
 
-**Short Description (中文):** 使用任何语言说出或输入你想表达的内容。Verbia 理解对话上下文，将你的真实意图转化为自然、贴合语境的回复。
+**Summary (中文)** — 随扩展包发布： 用任何语言起草回复——Verbia 读取你正在回复的邮件或对话，写出你真正想说的内容。
 
-**Detailed Description (EN):**
+> Summary **不套用 Tagline**：商店的搜索、分类与审核都按「说清功能」评估，「Your intent. The right words.」单独出现会被当成 vague marketing。Tagline 仍按 `docs/BRAND.md` 用在对外物料副标与官网。改动 Summary 意味着同步 22 个 `_locales/*/messages.json` 的 `description`——后台的 Summary 取自扩展包，两者必须一致。
 
-You mean it. Verbia says it.（官方中文：你的想法，Verbia 帮你表达。）
+**Description (EN)** — 粘贴到后台 Description 字段：
 
-Verbia helps multilingual professionals express what they mean in a natural reply without composing every sentence in English first.
+You mean it. Verbia says it.
 
-Automatic mode now supports Reddit, Gmail, and Outlook on the web, with more platforms on the way. On these sites, Verbia detects the conversation you are replying to and shows it before generating — the post and reply chain, or the original email being answered. Elsewhere, you can use selected text or no context. Write or speak your intent, choose a tone and length, review the draft, then insert or copy it.
+Verbia drafts the reply you mean, in the language you choose, on the page you are already writing on. You do not have to think in English first.
 
-To use Verbia, sign in, focus a reply field, and use your configured shortcut to open the reply panel. Review the visible context, enter your intent, and choose Generate. Verbia always shows a draft first. It never sends or submits a message; only you do that. The toolbar icon opens the Dashboard, where you can manage your account and preferences.
+FEATURES
 
-Verbia reads page content only after you invoke it, limits access to the reply you are working on, stores preferences locally, and does not use message text for analytics.
+• Write in your language, send in theirs. Type or speak what you want to say — any language — and Verbia writes the reply in the reply language, tone, and length you pick.
+• It knows what you are answering. On Reddit, Gmail, Outlook, and QQ Mail, Verbia reads the conversation as the reply box opens and shows it before generating: the post and its reply chain, or the original email.
+• Other webmail works too. On 163, Yahoo, Proton, iCloud, Fastmail, Zoho, GMX, mail.com, Yandex, Naver, Daum and other mail sites, press “AI identify this email” and the message around your reply box is read for you.
+• Anywhere else you type. On any other page, use the text you selected as context — add it from the right-click menu — or use no context at all.
+• Speak instead of typing. Voice input turns what you say into the draft.
+• Everything is yours to decide. Verbia only ever produces a draft. You insert it, edit it, and send it yourself. It never sends, submits, or posts anything for you.
+• 22 interface languages: English, 简体中文, 繁體中文, Español, Português, 日本語, Deutsch, Français, 한국어, Italiano, Türkçe, Tiếng Việt, Bahasa Indonesia, Polski, Nederlands, ไทย, العربية, Русский, Українська, हिन्दी, Čeština, Bahasa Melayu.
+• Free plan: 10 drafts a day. Premium raises it to 100 a day.
 
-**Detailed Description (中文):**
+HOW TO USE
 
-你的想法，Verbia 帮你表达。（You mean it. Verbia says it.）
+1. Sign in, then focus the field you are replying in.
+2. Open the reply panel with the Verbia shortcut (Alt+Shift+Y by default, configurable at chrome://extensions/shortcuts) or with the toolbar icon.
+3. Check the context shown in the panel — that is what will be sent.
+4. Type or say your intent, for example “decline politely, keep the door open”.
+5. Choose the reply language, tone, and length, then Generate.
+6. Review the draft, then insert it into the page or copy it.
 
-Verbia 帮助多语言使用者直接用自己熟悉的语言表达想法，不必先在英文里组织好每一句话，也能得到自然、贴切、符合语境的回复草稿。
+PRIVACY
 
-自动模式目前支持 Reddit、Gmail 与 Outlook 网页版，更多平台正在路上。在这些站点上，Verbia 会在生成前识别并展示你正在回复的相关对话——帖子与回复链，或正在回复的那封邮件；在其他网页，你可以使用选中的文字作为上下文，也可以不带上下文直接起草。写下或说出你的意图，选择语气和长度，检查草稿后再插入或复制。
+Verbia reads page content only after you invoke it, and only around the field you are working in. Nothing is sent until you press Generate or AI identify; what is sent is the visible context plus your intent, and it is used to produce that one draft. Message text is not used for analytics and is not kept after the draft is returned. Preferences stay on your device, and the account exists to keep them and to count your daily drafts.
 
-要使用 Verbia：登录后聚焦任意回复框，用你配置的快捷键唤起回复面板。先确认面板中可见的上下文，输入你的意图，然后点击 Generate。Verbia 总是先把草稿展示给你，绝不会替你发送或提交任何消息——发送永远由你自己完成。点击工具栏图标可打开控制面板，管理账号与偏好设置。
+PERMISSIONS
 
-Verbia 只在你主动唤起后才读取页面内容，访问范围限定于你正在编辑的这条回复；偏好设置仅保存在本地，消息文本不会用于任何分析。
+• Read and change your data on supported sites — needed to place the reply panel next to the box you are writing in and to insert the draft you approved. The page is read only when you summon Verbia, and only around that box.
+• Storage — keeps your language, tone, length, and account settings on your device.
+• Sign-in — Verbia connects to its own service to create the draft. No advertising or third-party tracking scripts run on your pages.
+
+SUPPORT
+
+A site where Verbia does not work yet, a bug, or an idea: use Contact in the extension settings, or write to henri@henriz.dev. Privacy policy: https://verbia.henriz.dev/privacy
+
+Verbia is available for Chrome and Microsoft Edge. Current version 0.1.5.
+
+**Description (中文)** — 粘贴到后台 Description 字段：
+
+你的想法，Verbia 帮你表达。
+
+Verbia 用你选择的语言、在你正在书写的页面上，起草你真正想说的回复——不必先在英文里组织好每一句话。
+
+功能
+
+• 用你的语言写，用对方的语言发。说出或输入你想表达的内容，Verbia 按你选择的语言、语气与长度写出回复草稿。
+• 知道你在回复什么。在 Reddit、Gmail、Outlook 与 QQ 邮箱上，回复框打开时 Verbia 会读取相关对话并在生成前展示：帖子与回复链，或正在回复的那封邮件。
+• 其它邮箱也能用。在 163、Yahoo、Proton、iCloud、Fastmail、Zoho、GMX、mail.com、Yandex、Naver、Daum 等邮箱网页版，点击「AI 识别当前邮件上下文」，Verbia 会替你读取回复框周围的邮件内容。
+• 其它网页同样可用。任何页面上，都可以用你选中的文字作为上下文（右键菜单加入），也可以不带上下文直接起草。
+• 说，不必打。语音输入把你说的内容变成草稿。
+• 一切都由你决定。Verbia 只生成草稿，由你插入、修改并亲手发送；它绝不会替你发送、提交或发布任何内容。
+• 22 种界面语言：English、简体中文、繁體中文、Español、Português、日本語、Deutsch、Français、한국어、Italiano、Türkçe、Tiếng Việt、Bahasa Indonesia、Polski、Nederlands、ไทย、العربية、Русский、Українська、हिन्दी、Čeština、Bahasa Melayu。
+• 免费版每天 10 次生成，Premium 提升到每天 100 次。
+
+使用方法
+
+1. 登录后，聚焦你正在回复的输入框。
+2. 用快捷键（默认 Alt+Shift+Y，可在 chrome://extensions/shortcuts 修改）或点击工具栏图标打开回复面板。
+3. 先看面板中展示的上下文——那就是将要发送的内容。
+4. 输入或说出你的意图，例如「礼貌拒绝，但保持后续可能」。
+5. 选择回复语言、语气与长度，然后点击 Generate。
+6. 检查草稿，再插入页面或复制。
+
+隐私
+
+Verbia 只在你主动唤起后才读取页面内容，且只读取你正在操作的那个输入框周围。在你点击 Generate 或「AI 识别」之前不会发送任何内容；发送的是面板中可见的上下文加上你的意图，仅用于生成这一份草稿。消息文本不用于分析，也不会在返回草稿后保留。偏好设置保存在你的设备上，账号用于保存这些设置并统计每日生成次数。
+
+权限
+
+• 在你使用 Verbia 的站点上读取和修改数据 —— 用于在输入框旁显示面板并插入你确认过的草稿；只有你主动唤起时才会读取页面，且只读取那个输入框周围。
+• 存储 —— 在本机保存语言、语气、长度与账号设置。
+• 登录 —— Verbia 连接自己的服务来生成草稿；你的页面上不会运行任何广告或第三方跟踪脚本。
+
+支持
+
+遇到无法使用的站点、Bug 或建议：可通过扩展设置里的 Contact 联系我们，或发邮件至 henri@henriz.dev。隐私政策：https://verbia.henriz.dev/privacy
+
+Verbia 支持 Chrome 与 Microsoft Edge。当前版本 0.1.5。
 
 **Category:** Social & Communication
 
@@ -45,11 +107,11 @@ Verbia 只在你主动唤起后才读取页面内容，访问范围限定于你�
 
 ## Localized Listings
 
-Chrome Web Store 允许为每种语言单独提交 name / summary / detailed description。下面 10 种语言与扩展界面语言包（`es` / `pt-BR` / `ja` / `de` / `fr` / `ko` / `it` / `tr` / `vi` / `id`）一一对应，可直接粘贴到商店后台对应 locale。
+商店允许为每种语言分别填写 **Title / Summary / Description**。扩展界面上现有 **22 种**语言，它们的 Title 与 Summary 随扩展包发布；**Description 全部已写好**，可直接复制粘贴（见 [`CHROMEWEBSTORE-COPY.md`](CHROMEWEBSTORE-COPY.md)，22 个 locale 各一段）。
 
-**字段来源不同：** 各语言的 Extension Name 与 Summary 随扩展包发布（manifest `name` / `description` → `apps/extension/_locales/<locale>/messages.json` 的 `extensionName` / `description`），商店后台无法单独填写，下面列出的值仅供核对；只有 **Detailed Description** 需要在后台逐语言粘贴。本文件与 `_locales` 不一致时以 `_locales` 为准。
+**字段来源不同：** 各语言的 **Title** 与 **Summary** 随扩展包发布（manifest `name` / `description` → `apps/extension/_locales/<locale>/messages.json` 的 `extensionName` / `description`），后台显示为 “from package”、无法单独填写，下面列出的值仅供核对；只有 **Description** 需要在后台逐语言粘贴。本文件与 `_locales` 不一致时以 `_locales` 为准。
 
-> 可直接复制的 Detailed Description（12 种语言）见 [`CHROMEWEBSTORE-COPY.md`](CHROMEWEBSTORE-COPY.md)。
+> 可直接复制的 **Description**（22 种语言）见 [`CHROMEWEBSTORE-COPY.md`](CHROMEWEBSTORE-COPY.md)。
 
 ### Español (es)
 
@@ -57,7 +119,7 @@ Chrome Web Store 允许为每种语言单独提交 name / summary / detailed des
 
 **Summary:** Habla o escribe en cualquier idioma. Verbia entiende la conversación y convierte lo que quieres decir en respuestas naturales.
 
-**Detailed Description:**
+**Description:**
 
 Tú lo piensas. Verbia lo dice.
 
@@ -75,7 +137,7 @@ Verbia lee el contenido de la página solo después de que lo invoques, limita e
 
 **Summary:** Fale ou digite em qualquer idioma. O Verbia entende a conversa e transforma o que você quer dizer em respostas naturais.
 
-**Detailed Description:**
+**Description:**
 
 Você pensa. O Verbia diz.
 
@@ -93,7 +155,7 @@ O Verbia lê o conteúdo da página apenas depois que você o aciona, limita o a
 
 **Summary:** どの言語でも話すか入力するだけ。Verbia が会話を理解し、伝えたい内容を自然で文脈に合った返信に変えます。
 
-**Detailed Description:**
+**Description:**
 
 あなたの想いを、Verbia が言葉に。
 
@@ -111,7 +173,7 @@ Verbia がページの内容を読み取るのは、あなたが呼び出した�
 
 **Summary:** Sprich oder tippe in jeder Sprache. Verbia versteht das Gespräch und macht aus dem, was du meinst, natürliche Antworten.
 
-**Detailed Description:**
+**Description:**
 
 Du meinst es. Verbia sagt es.
 
@@ -129,7 +191,7 @@ Verbia liest Seiteninhalte erst, nachdem du es aufgerufen hast, beschränkt den 
 
 **Summary:** Parlez ou écrivez dans n’importe quelle langue. Verbia comprend la conversation et rédige des réponses naturelles.
 
-**Detailed Description:**
+**Description:**
 
 Vous le pensez. Verbia le dit.
 
@@ -147,7 +209,7 @@ Verbia ne lit le contenu de la page qu’après votre appel, limite l’accès �
 
 **Summary:** 어떤 언어로든 말하거나 입력하세요. Verbia가 대화를 이해하고 전하려는 뜻을 자연스럽고 맥락에 맞는 답장으로 바꿔줍니다.
 
-**Detailed Description:**
+**Description:**
 
 뜻은 당신이, 말은 Verbia가.
 
@@ -165,7 +227,7 @@ Verbia는 사용자가 호출한 뒤에만 페이지 내용을 읽고, 접근 �
 
 **Summary:** Parla o scrivi in qualsiasi lingua. Verbia capisce il contesto e trasforma ciò che vuoi dire in risposte naturali.
 
-**Detailed Description:**
+**Description:**
 
 Tu lo intendi. Verbia lo dice.
 
@@ -183,7 +245,7 @@ Verbia legge il contenuto della pagina solo dopo che lo richiami, limita l’acc
 
 **Summary:** Her dilde konuş ya da yaz. Verbia konuşmayı anlar ve ne demek istediğini doğal, bağlama uygun yanıtlara dönüştürür.
 
-**Detailed Description:**
+**Description:**
 
 Sen onu kastediyorsun. Verbia söylüyor.
 
@@ -201,7 +263,7 @@ Verbia sayfa içeriğini yalnızca sen çağırdıktan sonra okur, erişimi üze
 
 **Summary:** Nói hoặc nhập bằng bất kỳ ngôn ngữ nào. Verbia hiểu ngữ cảnh và biến ý bạn muốn nói thành câu trả lời tự nhiên.
 
-**Detailed Description:**
+**Description:**
 
 Bạn nghĩ vậy. Verbia nói vậy.
 
@@ -219,7 +281,7 @@ Verbia chỉ đọc nội dung trang sau khi bạn gọi nó, giới hạn quy�
 
 **Summary:** Bicara atau menulis dalam bahasa apa pun. Verbia memahami konteks dan mengubah maksud Anda menjadi balasan yang alami.
 
-**Detailed Description:**
+**Description:**
 
 Anda memaksudkannya. Verbia mengatakannya.
 
@@ -233,14 +295,18 @@ Verbia membaca konten halaman hanya setelah Anda memanggilnya, membatasi akses p
 
 ## Graphics & Assets
 
-| Asset            |          Dimensions | Status                  | Filename                           |
-| ---------------- | ------------------: | ----------------------- | ---------------------------------- |
-| Store Icon       |         128×128 PNG | ✅ Created and uploaded | `apps/extension/icons/icon128.png` |
-| Screenshot 1     | 1280×800 or 640×400 | ⬜ Not created          |                                    |
-| Screenshot 2     | 1280×800 or 640×400 | ⬜ Not created          |                                    |
-| Small Promo Tile |             440×280 | ⬜ Not created          |                                    |
+| Asset               |                Dimensions | Status      | Filename                                                            |
+| ------------------- | ------------------------: | ----------- | ------------------------------------------------------------------- |
+| Store Icon          |               128×128 PNG | ✅ Ready    | `apps/extension/icons/icon128.png`                                   |
+| Screenshot 1        |                  1280×800 | ✅ Ready    | `promo-materials/screenshot_promo1.png`                              |
+| Screenshot 2        |                  1280×800 | ✅ Ready    | `promo-materials/screenshot_promo2.png`                              |
+| Screenshot 3        |                  1280×800 | ✅ Ready    | `promo-materials/screenshot_promo5.png`                              |
+| Screenshot 4 (备用) |                  1280×800 | ✅ Ready    | `promo-materials/reply-panel.png`                                    |
+| Small Promo Tile    |                   440×280 | ✅ Ready    | `promo-materials/small_promo_tile_440_280.png`                       |
+| Marquee Promo Tile  |                   1400×560 | ✅ Ready    | `promo-materials/marquee_promo_tile_14000_5600.png`（文件名多了一个 0，实际尺寸 1400×560，建议改名） |
+| 非商店素材          |                  1571×1001 | —           | `promo-materials/promo_tile.png`（非商店标准尺寸，别上传）           |
 
-Screenshot 1 should show reviewed Reddit context and the intent controls. Screenshot 2 should show a generated draft before insertion and the “Verbia never sends” boundary. Refresh the toolbar popup/settings screenshot to include the daily usage meter and reorganized account card.
+截图内容：1 号展示邮件模式下「AI 识别当前邮件上下文」与已识别的上下文预览；2 号展示生成前可见的上下文与意图输入区；3 号展示草稿与「Verbia 绝不替你发送」的边界。发布前建议把 1 号换成最新界面（含 22 种界面语言的设置页）——当前素材是 22 种语言上线前拍的。
 
 ## Permissions Justification
 
@@ -292,16 +358,50 @@ Screenshot 1 should show reviewed Reddit context and the intent controls. Screen
 
 ## Version History
 
-| Version | Date       | Changes                                                                                                                                                                                                        | Status |
-| ------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| 0.1.0   | 2026-09-06 | Reddit inline reply assistant, removable reply panels with clean-session reopening, Universal reply drafting, dashboard access from the popup, Google profile identity, and visible daily free-usage allowance | Draft  |
+| Version | Date       | Changes                                                                                                                                                                                                                                                                                                          | Status |
+| ------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| 0.1.5   | 2026-09-15 | QQ Mail on the web; a generalized email mode for other webmail where “AI identify this email” reads the message around the reply box; 10 new interface languages (22 total, Arabic right-to-left); failed or unusable generations no longer count against the daily allowance; clearer context and identification wording | Draft  |
+| 0.1.4   | 2026-09-13 | （本文档未登记；见 git `39ec204` / `21d1949`）QQ Mail 支持、AI 识别邮件上下文                                                                                                                                                                                                                                    | Draft  |
+| 0.1.1–0.1.3 | —      | 未登记。建议按 git log 回填后再提交，商店的版本历史对用户可见                                                                                                                                                                                                                                                    | Draft  |
+| 0.1.0   | 2026-09-06 | Reddit inline reply assistant, removable reply panels with clean-session reopening, Universal reply drafting, dashboard access from the popup, Google profile identity, and visible daily free-usage allowance                                                                                                  | Draft  |
+
+### What’s new (0.1.5)
+
+> 商店后台每次更新都有独立的 “What’s new” 字段（不是 Description 字段，粘贴下面这段）。
+
+**English**
+
+• QQ Mail on the web joins Gmail, Outlook, and Reddit: the panel opens with the mail you are answering already read.
+• A generalized email mode for other webmail — 163, Yahoo, Proton, iCloud, Fastmail, Zoho, GMX, mail.com, Yandex, Naver, Daum and more. Press “AI identify this email” and the message around your reply box is read for you.
+• 10 new interface languages, 22 in total: 繁體中文, Polski, Nederlands, ไทย, العربية, Русский, Українська, हिन्दी, Čeština, Bahasa Melayu. Arabic is laid out right to left.
+• A generation that fails, times out, or comes back with nothing usable no longer counts against your daily drafts.
+• The context panel is clearer about what it did: the AI button says what it does and what it costs, and a low-confidence read is labelled as this read rather than the feature.
+
+**中文**
+
+• QQ 邮箱网页版加入 Gmail、Outlook 与 Reddit：打开回复框时，你正在回复的那封邮件已经读取好了。
+• 新增通用邮件模式，支持 163、Yahoo、Proton、iCloud、Fastmail、Zoho、GMX、mail.com、Yandex、Naver、Daum 等邮箱网页版：点击「AI 识别当前邮件上下文」，Verbia 会读取回复框周围的邮件内容。
+• 新增 10 种界面语言，共 22 种：繁體中文、Polski、Nederlands、ไทย、العربية、Русский、Українська、हिन्दी、Čeština、Bahasa Melayu。阿拉伯语为从右到左排版。
+• 失败、超时或没有可用内容的生成不再计入每日额度。
+• 上下文面板更清楚：AI 识别按钮写明它的作用与消耗；置信度低时只说明「本次」结果，而不是对功能本身下结论。
 
 The next release adds Contact/Feedback links in the popup and Dashboard and an optional uninstall survey. A submission may contain the category or uninstall reason, the user's message, an optional contact email, language, extension version, and limited browser information. It never automatically includes page text, private messages, intent, or generated drafts.
 
 ## Review Notes
 
-Known release blockers: store assets, public privacy-policy URL, publisher identity, support contact, final model benchmark, and current Reddit manual validation.
+**提交前状态（2026-09-15 实测核对）**
 
-Authentication completion now remains on the Verbia success page instead of redirecting users to the homepage. Users can explicitly return to the extension Dashboard or open the website homepage.
+- ✅ ~~Store assets~~ — 全部就绪且尺寸合规（截图 1280×800、小图 440×280、横幅 1400×560，见上表）。建议把 1 号截图换成 22 种语言版本上线后的界面。
+- ✅ ~~Public privacy-policy URL~~ — https://verbia.henriz.dev/privacy 返回 200。
+- ✅ ~~Support contact~~ — https://verbia.henriz.dev/contact 返回 200；henri@henriz.dev。
+- ⬜ **Publisher Name** 未填，需与开发者账号显示名一致（会出现在商店列表上）。
+- ⬜ 版本历史缺 0.1.1–0.1.4 条目（该字段对用户可见）。
+- ⬜ Distribution 目前写的是 “Unlisted for initial 10–30 person validation”，公开发布需改为 **Public**。
+- ⬜ 打包时排除：`.git/`、`node_modules/`、`.env*`、`dist/`、`CHROMEWEBSTORE.md`、`CHROMEWEBSTORE-COPY.md`、`promo-materials/`。
+- ⬜ 内部门槛（不影响商店审核）：模型质量评测、Reddit 人工回归。
 
-The next release also synchronizes a newly completed sign-in between the extension and verbia.henriz.dev. Each surface receives its own Supabase session, so signing out of the extension does not sign out the website, and signing out of the website does not sign out the extension.
+**提交时填在「审核备注」里的话**
+
+Verbia only ever produces a draft; it never sends, submits, or posts anything on the user's behalf. Page content is read only after the user summons the extension (keyboard shortcut or toolbar icon), and only around the editor they are working in. Sign-in exists to sync preferences and count the daily free drafts. The reply panel can be closed at any time and never blocks the page.
+
+（历史记录：认证完成页停在 Verbia 成功页而不跳回首页；扩展与官网各自持有独立 Supabase 会话，任一方登出不影响另一方。）

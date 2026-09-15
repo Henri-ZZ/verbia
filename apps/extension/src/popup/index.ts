@@ -10,6 +10,7 @@ async function applyLanguage() {
   const contact = document.querySelector<HTMLAnchorElement>("#contact-feedback");
   if (contact) contact.href = `https://verbia.henriz.dev/${lang === "zh-CN" ? "zh/" : ""}contact?source=popup&version=${encodeURIComponent(chrome.runtime.getManifest().version)}`;
   document.documentElement.lang = lang;
+  document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
   for (const el of document.querySelectorAll<HTMLElement>("[data-i18n]")) {
     const text = strings[el.dataset.i18n ?? ""];
     if (text) el.textContent = text;

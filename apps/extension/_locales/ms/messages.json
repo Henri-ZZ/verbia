@@ -1,0 +1,14 @@
+{
+  "extensionName": {
+    "message": "Verbia - Pembantu Balasan & Penulisan AI"
+  },
+  "description": {
+    "message": "Draf balasan dalam apa-apa bahasa — Verbia membaca e-mel atau perbualan yang anda balas dan menulis maksud anda."
+  },
+  "actionTitle": {
+    "message": "Buka papan pemuka Verbia"
+  },
+  "openVerbiaDesc": {
+    "message": "Letakkan kursor pada medan teks, kemudian guna pintasan untuk membuka panel balasan"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "extensionName": {
+    "message": "Verbia – asystent odpowiedzi i pisania z AI"
+  },
+  "description": {
+    "message": "Twórz odpowiedzi w dowolnym języku — Verbia czyta e-mail lub wątek, na który odpowiadasz, i pisze to, co masz na myśli."
+  },
+  "actionTitle": {
+    "message": "Otwórz panel Verbia"
+  },
+  "openVerbiaDesc": {
+    "message": "Ustaw kursor w polu tekstowym i użyj skrótu, aby otworzyć panel odpowiedzi"
+  }
+}

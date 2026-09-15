@@ -14,7 +14,7 @@ type Reply<T> = { ok?: boolean; data?: T; error?: { code?: string; userMessage?:
 
 const styles = `
 :host{all:initial;display:block;inline-size:100%;color-scheme:light;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#172019}
-*,*::before,*::after{box-sizing:border-box}button,textarea,select,input{font:inherit}button{cursor:pointer}.panel :focus-visible{outline:1.5px solid #9FE1CB;outline-offset:1px}:host(.is-dragging){cursor:grabbing}:host(.is-dragging) .head{cursor:grabbing}:host(.floating) .inline-shell{margin-block-start:0}
+*,*::before,*::after{box-sizing:border-box}button,textarea,select,input{font:inherit}button{cursor:pointer}.panel :focus-visible{outline:1.5px solid #9FE1CB;outline-offset:1px}:host(.is-dragging){cursor:grabbing}:host(.is-dragging) .head{cursor:grabbing}:host(.floating) .inline-shell{margin-block-start:0}:host([dir="rtl"]){direction:rtl}
 .inline-shell{display:block;inline-size:100%;margin-block-start:10px;container-type:inline-size;contain:layout style paint}.panel{inline-size:100%;overflow:auto;background:#fbfcf7;border:1px solid #dfe7dd;border-radius:12px;box-shadow:0 1px 2px #1720190a,0 6px 18px #17201912;padding:14px}.head{display:flex;align-items:center;justify-content:space-between;cursor:grab;touch-action:none}.brand{font:800 18px/1 Georgia,serif;color:#0F6E56;margin:0}.brand .wordmark{display:block;height:30px;width:auto}.slogan{font-size:.75rem;color:#33604E;margin:4px 0 0;font-weight:700}.icon{display:grid;place-items:center;min-inline-size:30px;min-block-size:30px;border:0;border-radius:8px;background:transparent;color:#526057;padding:0;transition:background .15s ease}.icon:hover{background:#e8efe9}.icon svg{inline-size:16px;block-size:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .18s ease}.panel.collapsed .icon svg{transform:rotate(180deg)}.panel.collapsed{padding-block:6px}.panel.collapsed .panel-body{display:none}.panel.collapsed .slogan{display:none}.chip{display:inline-flex;margin:12px 0 8px;padding:6px 9px;border-radius:999px;background:#E1F5EE;color:#0F6E56;font-size:.75rem;font-weight:700}.warning{background:#fff2cf;color:#6f4b00;padding:8px 10px;border-radius:9px;font-size:.75rem;margin:6px 0}.context{border:1px solid #dfe7dd;border-radius:10px;margin:0 0 12px}.context summary{padding:9px 11px;cursor:pointer;font-size:.8rem;font-weight:700}.context-body{padding:0 11px 9px;white-space:pre-wrap;max-block-size:150px;overflow:auto;font-size:.75rem;color:#526057}.remove-context{margin:0 11px 9px;border:0;background:transparent;color:#9c3c34;padding:0;text-decoration:underline;font-size:.75rem}
 label{display:block;font-size:.75rem;font-weight:750;color:#39483e;margin:10px 0 5px}.intent,.draft{inline-size:100%;resize:vertical;min-block-size:84px;border:1px solid #cad6cc;background:white;border-radius:10px;padding:9px 10px;line-height:1.45}.draft{min-block-size:100px}select{inline-size:100%;min-block-size:32px;appearance:none;-webkit-appearance:none;border:1px solid #cad6cc;border-radius:9px;background-color:#fff;padding:6px 27px 6px 9px;font-size:.78rem;font-weight:600;color:#1b2a20;cursor:pointer;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23526d5c' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M4 6.5L8 10.5L12 6.5'/></svg>");background-repeat:no-repeat;background-position:right 8px center;background-size:14px 14px;transition:border-color .15s ease,box-shadow .15s ease}
 select:hover{border-color:#8fae9b}
@@ -346,6 +346,11 @@ export class VerbiaPanel {
     // source the Settings page and popup use. navigator.language reflects the
     // page content-language preference and can disagree with it.
     this.lang = resolveUiLang(this.settings.uiLanguage, uiLanguage());
+    // The panel lives in a closed shadow root whose host resets every property, so
+    // the direction is carried on the host and re-read by one rule inside (@see the
+    // [dir="rtl"] rule in the styles): Arabic would otherwise be laid out left to
+    // right in the middle of a right-to-left page.
+    this.host.dir = this.lang === "ar" ? "rtl" : "ltr";
     this.phase = "context_ready";
     this.renderPanel();
     if (this.floating) this.scheduleFloat();
@@ -757,6 +762,12 @@ export class VerbiaPanel {
   // chip above, so the summary adds the two things the chip cannot say: who the
   // mail is from, and what it is about.
   private identifyBlock(): string {
+    // A mail feature, and only offered where there is mail to read: the question it
+    // answers is "which message am I replying to", which a generic page does not have
+    // an answer to — the model would name whatever text it liked best, and the panel
+    // would present that as the context. Everywhere else the context comes from the
+    // adapter, from a selection, or from nobody.
+    if (!isMailSite(this.mode, this.adapter.id)) return "";
     const loading = this.identify === "loading";
     const label = loading
       ? this.t(this.identifyWidening ? "context.identifyingWider" : "context.identifying")

@@ -1,0 +1,14 @@
+{
+  "extensionName": {
+    "message": "Verbia - AI-antwoord- en schrijfassistent"
+  },
+  "description": {
+    "message": "Stel antwoorden op in elke taal — Verbia leest de e-mail of het gesprek waarop je reageert en schrijft wat je bedoelt."
+  },
+  "actionTitle": {
+    "message": "Verbia-dashboard openen"
+  },
+  "openVerbiaDesc": {
+    "message": "Zet de cursor in een tekstveld en gebruik de sneltoets om het antwoordpaneel te openen"
+  }
+}

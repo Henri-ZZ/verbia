@@ -43,6 +43,9 @@ function fill(id: string, items: ReadonlyArray<{ value: string; label: string }>
 function applyLanguage() {
   const strings = UI_STRINGS[lang];
   document.documentElement.lang = lang;
+  // Arabic reads right to left, and the form has to say so: without this the label
+  // sits on the wrong side of every field it belongs to.
+  document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
   for (const el of document.querySelectorAll<HTMLElement>("[data-i18n]")) {
     const key = el.dataset.i18n ?? "";
     const text = strings[key];
