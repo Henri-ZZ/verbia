@@ -234,6 +234,81 @@ Supabase 的 **Authentication → Attack Protection** 一旦开启 CAPTCHA 保�
 
 两条行为约定：
 
-- **`NEXT_PUBLIC_HCAPTCHA_SITE_KEY` 为空时控件完全不渲染**，请求照旧发出。所以本地、预览等没有 CAPTCHA 的环境不需要配置，也不会被这套代码影响。
+- **`NEXT_PUBLIC_CAPTCHA_SITE_KEY` 为空时控件完全不渲染**，请求照旧发出。所以本地、预览等没有 CAPTCHA 的环境不需要配置，也不会被这套代码影响。
 - token 是**一次性**的，页面在提交时取新 token，并在每次尝试后（含失败）重置控件——否则第二次提交会拿着已用过的 token 失败。
 - 控件已加载但未完成校验时，官网**先本地拦下**并提示「请先完成上方的人机校验」，不会把注定失败的请求发出去。
+
+### 5. 邮件模板：只发 6 位验证码
+
+Supabase 默认的 **Magic Link** 模板只含 `{{ .ConfirmationURL }}`——**一个链接，没有验证码**，而官网的流程是"发码 → 在 `/account/verify` 输入 6 位数字"。到 **Authentication → Email Templates → Magic Link** 改成下面的样子：把原来的按钮位置换成验证码。
+
+```html
+<!doctype html>
+<html lang="en">
+<body style="margin:0;padding:0;background:#f4f5f0;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f5f0;padding:32px 16px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border:1px solid #dce5db;border-radius:16px;box-shadow:0 8px 26px rgba(33,69,49,.06);">
+          <tr>
+            <td style="padding:36px 36px 8px;text-align:center;">
+              <p style="margin:0;font-family:Georgia,serif;font-size:24px;font-weight:bold;color:#0f6e56;">Verbia</p>
+              <p style="margin:6px 0 0;font-family:Georgia,serif;font-size:14px;font-style:italic;color:#33604e;">You mean it. Verbia says it.</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:24px 36px 8px;">
+              <h1 style="margin:0;font-family:Inter,Arial,Helvetica,sans-serif;font-size:20px;line-height:1.3;color:#172019;">Your sign-in code</h1>
+              <p style="margin:14px 0 0;font-family:Inter,Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:#39483e;">
+                Enter this code on the sign-in page to sign in to {{ .Email }}. You can use the same account across the Verbia website and the browser extension.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:26px 36px 6px;text-align:center;">
+              <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto;background:#f2fcf4;border:1px solid #dce5db;border-radius:12px;">
+                <tr>
+                  <td style="padding:18px 30px 18px 38px;">
+                    <p style="margin:0;font-family:'SF Mono',Menlo,Consolas,'Courier New',monospace;font-size:32px;font-weight:bold;letter-spacing:8px;color:#0f6e56;">{{ .Token }}</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:8px 36px 8px;">
+              <p style="margin:0;font-family:Inter,Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#66736a;text-align:center;">
+                This code expires in 10 minutes and can only be used once.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:8px 36px 34px;">
+              <p style="margin:0;font-family:Inter,Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#66736a;">
+                Didn't request this email? You can safely ignore it — your account won't be changed.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:14px 36px;border-top:1px solid #eef2ee;text-align:center;">
+              <p style="margin:0;font-family:Inter,Arial,Helvetica,sans-serif;font-size:11px;line-height:1.6;color:#718078;">
+                Verbia &middot; <a href="https://verbia.henriz.dev" style="color:#0f6e56;text-decoration:none;">verbia.henriz.dev</a>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+```
+
+- **Subject** 也改掉默认的 “Confirm Your Email”，写清是登录验证码。
+- **产品决定：不发送登录链接，只发验证码。** 因此代码里没有 `?token_hash=` 落地处理，也没有 `verifyEmailLink`。
+- **验证页始终提交「邮箱 + 验证码」这一对**：6 位数字本身不携带身份，Supabase 校验的是 `(email, token)`。邮箱输入框**常显**，有记录时预填发起登录用的那个地址（sessionStorage 按浏览器、按标签页分开，只有发起登录的那个标签页里有）。
+- 因此**跨设备可用**：手机上发码、想在电脑上登录时，把那封邮件里的**邮箱和验证码一起填上**即可——这是去掉链接后必须补上的能力。
+- **`This code expires in …` 要和后台一致**：Supabase 的 **Email OTP Expiration 默认 3600 秒（60 分钟）**。模板写 10 分钟就必须把后台也改成 600，否则文案是错的。
+- 新注册用户若收到的是另一封模板（Confirm signup），**同样加上 `{{ .Token }}`**，否则新老用户的体验会不一致。
+- 模板是**项目级**的，Supabase 不支持按用户语言切换——31 种界面语言的用户会收到同一封邮件。要本地化只能自建邮件通道，目前按单一语言（建议英文或中英并列）处理。
+- 改完模板后要**重新发一封**验证新内容；已发出的邮件仍带旧模板。

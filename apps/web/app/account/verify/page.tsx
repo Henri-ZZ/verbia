@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  AUTH_CONFIGURED, VERIFY_EMAIL_KEY, authErrorCopy, sendEmailCode, syncSignedInSessionToExtension, updatePassword, verifyEmailCode, verifyEmailLink
+  AUTH_CONFIGURED, VERIFY_EMAIL_KEY, authErrorCopy, sendEmailCode, syncSignedInSessionToExtension, updatePassword, verifyEmailCode
 } from "../../../lib/verbia-auth";
 import { Captcha, type CaptchaHandle } from "../../../components/captcha";
 
@@ -16,14 +16,17 @@ const T = {
     toggled: "中文",
     verifyTitle: "Enter your sign-in code",
     verifyBody: (email: string) => `We sent a 6-digit code to ${email}.`,
-    verifyBodyUnknown: "Enter the 6-digit code from the email, or open the sign-in link on this device.",
+    verifyBodyUnknown: "Enter the address the code was sent to, and the 6-digit code from that email.",
     codeLabel: "6-digit code",
     verify: "Verify and continue",
     verifying: "Verifying…",
     resend: "Send a new code",
     resendIn: (seconds: number) => `Send a new code in ${seconds}s`,
     resendSent: "A new code is on its way.",
-    linkHint: "Opened the link on another device? Enter the code from that same email here instead.",
+    emailLabel: "Email",
+    emailPlaceholder: "you@example.com",
+    emailHint: "Signing in on another device? Put the address the code was sent to here.",
+    needEmail: "Enter your email address first.",
     passwordTitle: "Set a password",
     passwordBody: "Your account is ready. A password is optional — it lets you sign in without waiting for an email, in the extension too.",
     passwordLabel: "Password",
@@ -43,14 +46,17 @@ const T = {
     toggled: "English",
     verifyTitle: "输入登录验证码",
     verifyBody: (email: string) => `验证码已发送至 ${email}。`,
-    verifyBodyUnknown: "请输入邮件中的 6 位验证码，或在本设备上打开登录链接。",
+    verifyBodyUnknown: "请填写收到验证码的邮箱地址，以及邮件里的 6 位验证码。",
     codeLabel: "6 位验证码",
     verify: "验证并继续",
     verifying: "验证中…",
     resend: "重新发送验证码",
     resendIn: (seconds: number) => `${seconds} 秒后可重新发送`,
     resendSent: "新的验证码已发送。",
-    linkHint: "在别的设备上打开了链接？请在本页输入同一封邮件里的验证码。",
+    emailLabel: "邮箱",
+    emailPlaceholder: "you@example.com",
+    emailHint: "在别的设备登录？请把邮箱改成收到验证码的那个。",
+    needEmail: "请先填写邮箱地址。",
     passwordTitle: "设置密码",
     passwordBody: "账号已就绪。密码是可选的——设置后无需等待邮件即可登录，在扩展里也一样。",
     passwordLabel: "密码",
@@ -83,7 +89,12 @@ export default function VerifyPage() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [cooldown, setCooldown] = useState(0);
-  const started = useRef(false);
+  // Whether the address came from the request that sent the code, in which case
+  // the field is prefilled rather than empty. A 6-digit code carries no identity
+  // of its own — Supabase verifies it against an email address — so the address
+  // is always part of what this page submits, and it is the only thing that
+  // makes signing in on a second device possible.
+  const [emailRemembered, setEmailRemembered] = useState(false);
   // Only the resend path needs this; it stays null wherever no site key is set,
   // which keeps the check around it a no-op.
   const captchaWidget = useRef<CaptchaHandle | null>(null);
@@ -96,10 +107,14 @@ export default function VerifyPage() {
     const explicit = params.get("locale");
     setLocale(explicit === "zh" || explicit === "en" ? explicit : preferred.startsWith("zh") ? "zh" : "en");
     try {
-      setEmail(window.sessionStorage.getItem(VERIFY_EMAIL_KEY) ?? "");
+      // Only the page that asked for the code knows the address, and only for as
+      // long as this tab lives. Landing here without it — another device, another
+      // tab, cleared storage — is exactly what the field below is for.
+      const remembered = window.sessionStorage.getItem(VERIFY_EMAIL_KEY) ?? "";
+      setEmail(remembered);
+      setEmailRemembered(Boolean(remembered));
     } catch {
-      // Storage can be unavailable (private mode); the screen still works as long
-      // as the user has the code from the email.
+      // Storage can be unavailable (private mode); the field below covers it.
     }
   }, []);
 
@@ -124,29 +139,14 @@ export default function VerifyPage() {
     window.location.replace("/account");
   }, []);
 
-  // A link landing carries ?token_hash=; it is exchanged exactly once, even if
-  // the effect re-runs (React strict mode).
-  useEffect(() => {
-    if (started.current || !AUTH_CONFIGURED) return;
-    const tokenHash = new URLSearchParams(window.location.search).get("token_hash");
-    if (!tokenHash) return;
-    started.current = true;
-    setBusy(true);
-    void verifyEmailLink(tokenHash).then(async result => {
-      setBusy(false);
-      if (!result.ok) {
-        setError(authErrorCopy(locale, result.code));
-        return;
-      }
-      await afterVerified(result.createdAt);
-    });
-  }, [afterVerified, locale]);
 
   async function onVerify(event: React.FormEvent) {
     event.preventDefault();
     if (code.trim().length < 6) { setError(authErrorCopy(locale, "invalid_code")); return; }
+    const address = email.trim();
+    if (!address) { setError(t.needEmail); return; }
     setBusy(true); setError(""); setNotice("");
-    const result = await verifyEmailCode(email, code.trim());
+    const result = await verifyEmailCode(address, code.trim());
     setBusy(false);
     if (!result.ok) { setError(authErrorCopy(locale, result.code)); return; }
     await afterVerified(result.createdAt);
@@ -157,11 +157,12 @@ export default function VerifyPage() {
   // not — that verifies an existing challenge rather than starting a new one.
   async function onResend() {
     if (cooldown > 0) return;
-    if (!email) { setError(authErrorCopy(locale, "invalid_code")); return; }
+    const address = email.trim();
+    if (!address) { setError(t.needEmail); return; }
     const token = captchaWidget.current?.token();
     if (captchaWidget.current?.required() && !token) { setError(authErrorCopy(locale, "captcha_required")); return; }
     setBusy(true); setError(""); setNotice("");
-    const result = await sendEmailCode(email, token);
+    const result = await sendEmailCode(address, token);
     captchaWidget.current?.reset();
     setBusy(false);
     if (!result.ok) { setError(authErrorCopy(locale, result.code)); return; }
@@ -211,6 +212,16 @@ export default function VerifyPage() {
             <p className="muted">{email ? t.verifyBody(email) : t.verifyBodyUnknown}</p>
             <form className="account-magic account-code" onSubmit={onVerify}>
               <input
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={event => setEmail(event.target.value)}
+                placeholder={t.emailPlaceholder}
+                aria-label={t.emailLabel}
+              />
+              <input
                 type="text"
                 inputMode="numeric"
                 autoComplete="one-time-code"
@@ -224,13 +235,13 @@ export default function VerifyPage() {
               />
               <button className="button primary" type="submit" disabled={busy}>{busy ? t.verifying : t.verify}</button>
             </form>
+            {emailRemembered && <p className="account-hint muted">{t.emailHint}</p>}
             <p className="account-resend">
               {cooldown > 0
                 ? t.resendIn(cooldown)
                 : <button className="account-link" type="button" disabled={busy} onClick={() => void onResend()}>{t.resend}</button>}
             </p>
             <Captcha handleRef={captchaWidget} locale={locale} />
-            <p className="account-hint muted">{t.linkHint}</p>
           </>
         )}
 

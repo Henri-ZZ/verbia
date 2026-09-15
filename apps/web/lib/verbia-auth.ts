@@ -312,18 +312,11 @@ export async function verifyEmailCode(email: string, token: string): Promise<Ver
   }
 }
 
-// The link from the same email, opened on whatever device the mail was read on.
-// verifyOtp takes the hash directly, so this does not need the PKCE verifier that
-// lives in the browser which started the sign-in.
-export async function verifyEmailLink(tokenHash: string): Promise<Verified> {
-  try {
-    const client = await getClient();
-    const { data, error } = await client.auth.verifyOtp({ token_hash: tokenHash, type: "email" });
-    return error ? { ok: false, code: authErrorCode(error) } : { ok: true, createdAt: data.user?.created_at };
-  } catch {
-    return { ok: false, code: "not_configured" };
-  }
-}
+// There is deliberately no verifyEmailLink() here. The sign-in email carries a
+// 6-digit code and no link, so nothing ever lands on the site with a token hashed
+// into the URL. That is also why the verify page asks for the address when it does
+// not already know it: a code is verified against the email it was sent to, and
+// only the tab that requested it has that address to hand.
 
 // Setting a password is the last step of a sign-up, never a way in on its own:
 // this only works on a live session, which is why it is called right after the

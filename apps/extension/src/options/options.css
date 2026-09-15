@@ -15,3 +15,21 @@ input[type="checkbox"]:focus-visible{outline:3px solid #0f6e5633;outline-offset:
 .support-action.is-primary{border-color:transparent;background:#0f6e56;color:#fff}
 .support-action.is-primary:hover{border-color:transparent;background:#0a5a45}
 .contact-feedback-link{display:inline-flex;margin-top:12px;color:#0f6e56;font-size:12px;font-weight:750;text-underline-offset:3px}
+
+/* Signed-out account card: the description first, then the button at the left
+   edge. It used to share a two-column grid with the signed-in layout, which put
+   the button in the right-hand column and stretched it to fill it — one wide bar
+   split down the middle, with the description marooned on the far left. The
+   spacing that grid gap provided is not needed here: the description brings its
+   own bottom margin and the button its own top margin. */
+.signed-out-layout {
+  grid-template-columns: 1fr;
+  gap: 0;
+}
+
+.signed-out-layout .account-magic {
+  justify-self: start;
+  width: auto;
+  min-width: 160px;
+  padding: 0 22px;
+}
