@@ -53,7 +53,7 @@ const T = {
     passwordTitle: "Password",
     // Covers both setting one and changing it: the user object does not say
     // whether a password is already on the account (@see onSavePassword).
-    passwordBody: "Set or change a password to sign in without waiting for an email — in the extension too.",
+    passwordBody: "Set or change a password to sign in without waiting for an email.",
     passwordToggle: "Set or change password",
     passwordNewLabel: "New password",
     passwordConfirmLabel: "Confirm password",
@@ -63,7 +63,7 @@ const T = {
     passwordTooShort: "Use at least 6 characters.",
     passwordMismatch: "The two passwords do not match.",
     forgotPassword: "Forgot your password?",
-    accountNote: "This is the same Verbia account your browser extension uses. The website and the extension share one sign-in state — signing out here signs out the extension too.",
+    accountNote: "The website and the extension share one account and one sign-in state.",
     extensionHint: "Opening this page from the extension? Sign in below and the extension picks it up on its own — then use “Back to the extension”.",
     extensionSynced: "Signed in — the extension has this session too.",
     openExtension: "Back to the extension",
@@ -104,7 +104,7 @@ const T = {
     upgradeBody: "每天可使用 100 次上下文回复。",
     checkoutSuccess: "付款已完成，Premium 状态可能需要片刻更新。",
     passwordTitle: "密码",
-    passwordBody: "设置或修改密码后，无需等待邮件即可登录，在扩展里也一样。",
+    passwordBody: "设置或修改密码后，无需等待邮件即可登录。",
     passwordToggle: "设置或修改密码",
     passwordNewLabel: "新密码",
     passwordConfirmLabel: "确认密码",
@@ -114,7 +114,7 @@ const T = {
     passwordTooShort: "请至少使用 6 位。",
     passwordMismatch: "两次输入的密码不一致。",
     forgotPassword: "忘记密码？",
-    accountNote: "这就是你的浏览器扩展使用的同一个 Verbia 账号。网站与扩展共用一个登录状态——在这里退出，扩展也会一起退出。",
+    accountNote: "官网和扩展共享账号和登录状态。",
     extensionHint: "从扩展打开本页？在下面登录后扩展会自动接上——然后点「回到扩展」。",
     extensionSynced: "已登录，扩展也已同步。",
     openExtension: "回到扩展",
@@ -470,9 +470,9 @@ export default function AccountPage() {
             {/* Same container the signed-out block uses for its buttons: bare
                 siblings here had no gap, so the sign-out button sat flush against
                 the save button in the password form above it. */}
-            <div className="account-buttons">
+            <div className="account-buttons account-exit">
               {fromExtension && <button className="button primary" type="button" onClick={() => window.dispatchEvent(new CustomEvent("verbia:open-dashboard"))}>{t.openExtension}</button>}
-              <button className="button secondary" type="button" onClick={() => void onSignOut()}>{t.signOut}</button>
+              <button className="button danger" type="button" onClick={() => void onSignOut()}>{t.signOut}</button>
             </div>
           </>
         )}

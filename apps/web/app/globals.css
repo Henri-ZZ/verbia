@@ -10,6 +10,8 @@
   --muted: #3f4944;
   --outline: #6f7a74;
   --border: #dbe5dd;
+  --danger: #a23b32;
+  --danger-dark: #8a3029;
   --display: var(--font-display), sans-serif;
   --body: var(--font-body), sans-serif;
   color-scheme: light;
@@ -144,6 +146,17 @@ img {
   background: var(--paper);
   color: var(--ink);
   box-shadow: 0 1px 4px rgba(23, 32, 25, 0.08);
+}
+/* Destructive. Red appears nowhere else in the palette except error copy, so a
+   filled red button is unmistakable — and the primary green stays reserved for
+   the actions a page actually wants people to take. */
+.button.danger {
+  background: var(--danger);
+  color: white;
+  box-shadow: 0 3px 12px rgba(162, 59, 50, 0.2);
+}
+.button.danger:hover {
+  background: var(--danger-dark);
 }
 .button.compact {
   min-height: 40px;
@@ -1341,6 +1354,11 @@ button:focus-visible {
   gap: 13px;
   margin-top: 26px;
 }
+/* The sign-out group closes the signed-in block instead of opening a new
+   section, so it sits at half that distance from the row above it. */
+.account-exit {
+  margin-top: 13px;
+}
 .account-panel .button {
   width: 100%;
 }
@@ -1394,6 +1412,11 @@ button:focus-visible {
 }
 .account-password .muted {
   margin: 6px 0 0;
+}
+/* Only the collapsed state's toggle: the form's own button takes its spacing
+   from the .account-magic grid instead. */
+.account-password > .button {
+  margin-top: 14px;
 }
 .account-hint {
   margin: 12px 0 0;
@@ -1950,7 +1973,7 @@ button:focus-visible {
 .auth-complete-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 12px; margin-top: 30px; }
 @keyframes auth-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .auth-complete-mark.waiting span { animation: none; } }
-.feedback-status.error { color: var(--error); }
+.feedback-status.error { color: var(--danger); }
 .contact-layout aside { position: sticky; top: 108px; padding: 26px; background: linear-gradient(145deg, #eef9f1, var(--paper)); }
 .contact-layout aside h2 { margin: 0 0 10px; font: 700 23px var(--display); }
 .contact-layout aside p { margin: 0 0 17px; color: var(--muted); line-height: 1.6; }

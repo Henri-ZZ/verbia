@@ -41,7 +41,7 @@ Verbia 的账号体系：Google 第三方登录 + 邮箱 Magic Link（免密）�
    该地址服务扩展发起的 **Google 登录与 Magic Link 两条链路**，必须在 Supabase 放行。Chrome 不允许服务端 302 跳进 `chrome-extension://` 页面，因此回跳先落到普通 HTTPS 页面；扩展后台截获 `?code=`、建立扩展 Session，再通过 Worker 的一次性交接 Token 让官网建立独立 Session。页面确认成功后停留在当前页，由用户选择“回到 Dashboard”或“回到首页”。官网登录还需要放行 `https://verbia.henriz.dev/account/callback`。
 4. **Auth → Providers → Email**：开启 Email。**2026-09-15 起同时允许 OTP 验证码与密码登录**，
    取代此前「只保留 Magic Link、不设密码」的决策——注册即“验证码登录 + 补设密码”，
-   密码可选（见 §七）。当前取值：
+   密码可选（见 §六.6）。当前取值：
 
    | 设置 | 值 | 为什么 |
    |---|---|---|
@@ -327,3 +327,54 @@ Supabase 默认的 **Magic Link** 模板只含 `{{ .ConfirmationURL }}`——**�
 - **前端无法判断账号是否已设过密码**：Supabase 的 user 对象里 `provider: "email"` 同时覆盖"魔法链接用户"和"密码用户"，没有可读的标记。所以文案只能写成「设置或修改」这类通用说法，不能按状态切换。
 - 若项目开了 **Secure password change**（修改密码要求近期登录），会返回 `reauthentication_needed`，错误映射里已有文案（"出于安全考虑，请重新登录后再修改密码"）。
 - 重置流程的两种进入方式：验证码走 `verifyOtp({ type: "recovery" })`，链接走 `?code=` → `exchangeCodeForSession`。链接方式会**跳过验证码输入**——它本身已经带齐了凭据，再要求手输一次没有意义。
+- 同一邮箱同时用 Google 与验证码/密码登录时的行为（含必须自测的一条）见 **第 7 小节**。
+
+### 7. 同一邮箱的多种登录方式（身份链接）
+
+同一邮箱既用 Google 登录、又用邮箱验证码登录时，**结果是同一个账号，不会分成两个**。这是 Supabase Auth 的默认行为（自动链接），我们没有开过 Manual Linking（仓库内搜不到该配置）：
+
+> "Supabase Auth automatically links identities with the same email address to a single user."
+> —— [Identity Linking](https://supabase.com/docs/guides/auth/auth-identity-linking)
+
+三条配套规则：
+
+- **只对已验证邮箱自动链接**。未验证的邮箱不链接——那是"预占位接管"：攻击者用未验证邮箱抢注，等受害者用 OAuth 登录时被链进攻击者的用户上。
+- 链接发生时，同邮箱下**其他未确认的身份会被删除**，所以不会留下半成品账号。
+- 因为只有一个 user id，`profiles` 与 `quota_usage` 都是同一份：**换登录方式不重置额度，也刷不出第二个免费账号。**
+
+#### 用户会看到什么
+
+| 现象 | 原因 |
+|---|---|
+| Google 徽章与头像不再显示 | `providerOf()`（`apps/web/lib/verbia-auth.ts`）读的是 `app_metadata.provider`，用验证码登录后它会变成 `email`。**纯外观**，账号没变 |
+| 「设置或修改密码」仍然可用 | 官方 FAQ 明确：给 OAuth 账号加邮箱 / 密码登录就是 `updateUser({ password })`。GoTrue 另有 `email_identity_on_password_test.go`，覆盖的正是"给 OAuth 用户设密码会补一个 email 身份" |
+| 套餐与用量都不变 | 同一个 user id |
+
+`services/api/src/app.ts` 的 `createSessionHandoff` 里有一道对应的保险：
+
+```ts
+const { data } = await admin.auth.admin.generateLink({ type: "magiclink", email });
+if (data.user.id !== auth.userId) throw new Error("Session handoff user mismatch");
+```
+
+`generateLink` 是**按邮箱**找人的。正常情况下邮箱唯一、不存在歧义，但一旦出现错配，这条断言会让交接**硬失败**，而不是把别人的会话交给扩展。
+
+#### 一条未确证的点（改文案前先自测）
+
+官方文档只写了**正向**顺序（用户用 OAuth 登录时，Auth 会去找同邮箱的既有用户），**没有写反向**顺序（先 Google、再用邮箱验证码）。2026-09-16 查 GoTrue 源码时拿到的是较旧修订版：`/otp` → `MagicLink`，对"已存在且已确认"的用户是直接发信 + 空 200 响应，没有报错分支——但**当前托管版本是否会给一个从未有过 email 身份的纯 OAuth 账号发信并补上该身份，未从代码或文档确证**。
+
+这里有个陷阱：为防账号枚举，这类接口的成功响应是**模糊的**——**即使一封邮件都没发出，界面也会照常显示「验证码已发送」**。所以界面提示不能作为判断依据，**只能看收件箱**：
+
+1. Dashboard → Authentication → Users → 打开该账号，看 **Identities**（纯 Google 用户此刻只有 `google`）；
+2. 退出登录，在 `/account` 用**同一邮箱**请求验证码；
+3. **收到邮件** → 用码登录 → 再回 Dashboard：Identities 应为 `google + email`，且 **user id 不变** → 两边都通，代码无需改；
+4. **收不到邮件** → 说明这条路径对纯 OAuth 账号不可用，界面文案必须挡住它（不能让 Google 用户以为验证码会到）。
+
+#### 安全边界
+
+自动链接把账号的信任边界从「**Google 账号**」扩成「**Google 账号或收件箱**」。这与「重置密码」是同一个信任假设，不是新增漏洞——但它正是 Supabase 只在邮箱**已验证**时才链接的原因（否则用未验证邮箱就能抢注他人账号）。对本产品是净收益：Google 用户多了一条找回通道。
+
+#### 已知的界面缺口（可选改进）
+
+徽章现在只读 `app_metadata.provider`，所以用验证码登录过的 Google 用户会看到 Google 标记消失，容易误以为"绑定丢了"。`user.identities` 里其实同时有 `google` 与 `email`，可以直接显示「Google · 邮箱」。未做。
+
