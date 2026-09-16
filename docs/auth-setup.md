@@ -348,19 +348,23 @@ Supabase 默认的 **Magic Link** 模板只含 `{{ .ConfirmationURL }}`——**�
 
 三点注意：
 
-- **前端无法判断账号是否已设过密码**：Supabase 的 user 对象里 `provider: "email"` 同时覆盖"魔法链接用户"和"密码用户"，没有可读的标记。所以文案只能写成「设置或修改」这类通用说法，不能按状态切换。**唯一的例外是下一条。**
-- **纯 OAuth 账号（Google 或 Microsoft；`identities` 里没有 `email`）用单独一套文案**：这种账号一定没设过密码——**设密码正是产生 email 身份的那个动作**。所以对它写成「备用登录方式 / 可选。设置后也能用邮箱 + 密码登录；现有登录方式始终可用」，而不是「设置或修改密码」；区块**照旧显示**，因为对这类账号它是唯一的备用通道。文案刻意**不点名具体提供方**，以后再接新的 OAuth 就不用再改一次。
-  - 判定只用 `user.identities`，**绝不能用 `app_metadata.provider`**：后者表示"最近一次怎么进来的"，同一账号会在 Google 与邮箱之间翻转，密码区会忽隐忽现。
-  - 反向不成立：**有 email 身份 ≠ 有密码**（只用过验证码的账号也有 email 身份）。
+- **前端无法判断账号是否已设过密码**：Supabase 的 user 对象里 `provider: "email"` 同时覆盖"魔法链接用户"和"密码用户"，也没有 `has_password` 这类标记（对比：Clerk 有 `passwordEnabled`）。所以文案只能写成「设置或修改」这类通用说法，不能按状态切换。**这一点对"前端直连 Supabase"成立**；能否由我们自己的 Worker 回答，见下面两条。
+- **纯 OAuth 账号（Google 或 Microsoft；`identities` 里没有 `email`）用单独一套文案**：写成「备用登录方式 / 可选。多一条邮箱 + 密码的登录方式；现有登录方式始终可用」，按钮用「设置或修改密码」，区块**照旧显示**——对这类账号它是唯一的备用通道。文案刻意**不点名具体提供方**，以后再接新的 OAuth 就不用再改一次。
+  - **动词必须是"设置或修改"，不能是"设置"**：这种账号到底有没有密码，我们判断不了（见下一条），不做状态假设的写法在任何状态下都成立。
+  - 判定只用 `user.identities`，不用 `app_metadata.provider`：后者说明的是账号**创建 / 链接时**用的身份，回答不了"有没有密码"（实测中它也不会因为换一种方式登录而改变，见第 7 小节）。
+- **已确证（2026-09-16，Dashboard 的 Raw JSON）：OAuth 账号不会补 email 身份**。设过密码、也用验证码登录过之后，该用户的 `providers` 与 `raw_app_meta_data.providers` **都仍只有 `["google"]`**，`raw_user_meta_data` 里只有 Google 的数据（`iss` / `sub` / `picture`）——设密码与验证码流程没有留下任何痕迹。
+  - 因此"设密码 = 补 email 身份"这条推断**不成立**，`identities` / `providers` **永远回答不了"有没有密码"**。
+  - 所以上一条的"动词用设置或修改"不是保险，而是**必需**：否则一个已经设过密码的账号会永远显示"设置备用密码"。
+  - 若要精确知道"是否已设密码"，唯一的路是数据库：`auth.users.encrypted_password` 是该列的存储，可用一个 `SECURITY DEFINER` 的 `public.has_password(uid)` 暴露给 Worker，由 `/v1/account/usage` 顺带返回 `hasPassword`（未做，需要重跑 schema SQL）。**2026-09-16 决定暂不实现**——当前文案已能覆盖两种状态。
 - **业内做法（2026-09-16 调研）**：**Figma** 按注册方式决定——Google 注册的账号不能在站内改邮箱/密码（理由写作 "Managed by Google"），但官方文档给出了替代路径：**走登录页的 Reset password 设置新密码**（也就是说，"忘记密码"就是这类账号的设密码入口）。**Notion** 一律提供，措辞是"设置一个永久密码，**替代临时验证码**"，并允许移除密码（Supabase 客户端没有删除密码的接口，这条我们做不到）。**Linear / Vercel / Slack** 干脆只有 SSO + 邮箱验证码、没有密码。**Clerk** 的 user 对象直接提供 `passwordEnabled` 布尔值，**Supabase 没有这个字段**，因此我们只能用 `identities` 近似。
-- **要不要把 OAuth 账号那块入口隐藏，取决于一条未验证的事实**：纯 OAuth 账号（Google / Microsoft）能否收到验证码 / 重置邮件（自测见第 7 小节）。**收得到** → 可以按 Figma 那样隐藏，并把用户引到「忘记密码？」；**收不到** → 隐藏等于把账号永久锁死在那个提供方上，**绝不能隐藏**。当前的选择是**不隐藏**。
+- **要不要把 OAuth 账号那块入口隐藏——已确证（2026-09-16 实测）**：纯 OAuth 账号**能收到**验证码邮件并用它登录（见第 7 小节），备用通道确实存在，所以按 Figma 那样隐藏**技术上已经安全**。但当前仍选择**不隐藏**：现在的「备用登录方式」文案已经做了状态中立处理（见上一条），隐藏只省一行字，代价是这个能力变得不可发现。
 - 若项目开了 **Secure password change**（修改密码要求近期登录），会返回 `reauthentication_needed`，错误映射里已有文案（"出于安全考虑，请重新登录后再修改密码"）。
 - 重置流程的两种进入方式：验证码走 `verifyOtp({ type: "recovery" })`，链接走 `?code=` → `exchangeCodeForSession`。链接方式会**跳过验证码输入**——它本身已经带齐了凭据，再要求手输一次没有意义。
 - 同一邮箱同时用 Google 与验证码/密码登录时的行为（含必须自测的一条）见 **第 7 小节**。
 
 ### 7. 同一邮箱的多种登录方式（身份链接）
 
-同一邮箱既用 Google 登录、又用邮箱验证码登录时，**结果是同一个账号，不会分成两个**。这是 Supabase Auth 的默认行为（自动链接），我们没有开过 Manual Linking（仓库内搜不到该配置）：
+同一邮箱既用 Google 登录、又用邮箱验证码登录时，**结果是同一个账号，不会分成两个**。这是 Supabase Auth 的默认行为（自动链接），我们没有开过 Manual Linking（仓库内搜不到该配置）。**2026-09-16 实测确认**：用 Google 账号的邮箱走验证码登录后拿到的是同一个 user id，数据库没有新增用户记录。
 
 > "Supabase Auth automatically links identities with the same email address to a single user."
 > —— [Identity Linking](https://supabase.com/docs/guides/auth/auth-identity-linking)
@@ -375,7 +379,7 @@ Supabase 默认的 **Magic Link** 模板只含 `{{ .ConfirmationURL }}`——**�
 
 | 现象 | 原因 |
 |---|---|
-| Google 徽章与头像不再显示 | `providerOf()`（`apps/web/lib/verbia-auth.ts`）读的是 `app_metadata.provider`，用验证码登录后它会变成 `email`。**纯外观**，账号没变 |
+| Google 徽章与头像**照旧显示** | 实测里，用验证码登录**没有**改变 `app_metadata.provider`——它反映的是账号创建 / 链接时用的身份，不是最近一次怎么登录。原先这里写"会变成 `email`、徽章消失"，已被实测推翻 |
 | 「设置或修改密码」仍然可用 | 官方 FAQ 明确：给 OAuth 账号加邮箱 / 密码登录就是 `updateUser({ password })`。GoTrue 另有 `email_identity_on_password_test.go`，覆盖的正是"给 OAuth 用户设密码会补一个 email 身份" |
 | 套餐与用量都不变 | 同一个 user id |
 
@@ -388,22 +392,40 @@ if (data.user.id !== auth.userId) throw new Error("Session handoff user mismatch
 
 `generateLink` 是**按邮箱**找人的。正常情况下邮箱唯一、不存在歧义，但一旦出现错配，这条断言会让交接**硬失败**，而不是把别人的会话交给扩展。
 
-#### 一条未确证的点（改文案前先自测）
+#### 已确证的结果（2026-09-16 实测）
 
-官方文档只写了**正向**顺序（用户用 OAuth 登录时，Auth 会去找同邮箱的既有用户），**没有写反向**顺序（先 Google、再用邮箱验证码）。2026-09-16 查 GoTrue 源码时拿到的是较旧修订版：`/otp` → `MagicLink`，对"已存在且已确认"的用户是直接发信 + 空 200 响应，没有报错分支——但**当前托管版本是否会给一个从未有过 email 身份的纯 OAuth 账号发信并补上该身份，未从代码或文档确证**。
+这里原先留了一个未确证的点：官方文档只写了**正向**顺序（用户用 OAuth 登录时，Auth 会去找同邮箱的既有用户），**没有写反向**顺序（先 Google、再用邮箱验证码）。**现在已实测，结论是通的。**
 
-这里有个陷阱：为防账号枚举，这类接口的成功响应是**模糊的**——**即使一封邮件都没发出，界面也会照常显示「验证码已发送」**。所以界面提示不能作为判断依据，**只能看收件箱**：
+| 问题 | 结果 |
+|---|---|
+| 纯 OAuth（Google）账号能否收到验证码邮件 | **能**。注意这类接口的成功响应是**模糊的**（为防账号枚举）：**即使一封邮件都没发出，界面也会照常显示「验证码已发送」**，所以界面提示不能当依据，只能看收件箱 |
+| 登录到哪个账号 | **同一个 user id**，数据库**没有**新增用户记录 |
+| `identities` 是否多出 `email` | **没有**（仍只有 `google`）。后续又测了"设密码 → 邮箱 + 密码登录"，Raw JSON 显示 `providers` **仍只有 `["google"]`**——两个动作都不会补 email 身份 |
+| `app_metadata.provider` 是否变成 `email` | **没有**，徽章与头像照旧显示 |
 
-1. Dashboard → Authentication → Users → 打开该账号，看 **Identities**（纯 Google 用户此刻只有 `google`）；
-2. 退出登录，在 `/account` 用**同一邮箱**请求验证码；
-3. **收到邮件** → 用码登录 → 再回 Dashboard：Identities 应为 `google + email`，且 **user id 不变** → 两边都通，代码无需改；
-4. **收不到邮件** → 说明这条路径对纯 OAuth 账号不可用，界面文案必须挡住它（不能让 Google 用户以为验证码会到）。
+两点由此更正（代码已按实测工作，无需改动）：
+
+- 密码区块对这类账号显示「备用登录方式」，在**用过验证码之后**依然准确——他确实还没有密码。
+- 判定只能看 `identities`；换成 `app_metadata.provider` 会得出"这个账号是邮箱身份"的错误结论。
+
+**这一步已经做了（2026-09-16）**：设一次备用密码后用邮箱 + 密码登录成功，进的是**同一个 user id**、数据库没有新增记录；但 `providers` 仍只有 `["google"]`，"设密码 = 补 email 身份"**不成立**。密码区块因此仍显示「备用登录方式」——文案已改成不做状态假设，所以不会说错。
 
 #### 安全边界
 
-自动链接把账号的信任边界从「**Google 账号**」扩成「**Google 账号或收件箱**」。这与「重置密码」是同一个信任假设，不是新增漏洞——但它正是 Supabase 只在邮箱**已验证**时才链接的原因（否则用未验证邮箱就能抢注他人账号）。对本产品是净收益：Google 用户多了一条找回通道。
+自动链接把账号的信任边界从「**Google 账号**」扩成「**Google 账号或收件箱**」——2026-09-16 实测确认：邮箱验证码确实能登进 Google 创建的账号。这与「重置密码」是同一个信任假设，不是新增漏洞——但它正是 Supabase 只在邮箱**已验证**时才链接的原因（否则用未验证邮箱就能抢注他人账号）。对本产品是净收益：OAuth 用户多了一条找回通道。
 
-#### 已知的界面缺口（可选改进）
+#### 徽章改为按身份显示（2026-09-16 改，已实现）
 
-徽章现在只读 `app_metadata.provider`，所以用验证码登录过的 Google 用户会看到 Google 标记消失，容易误以为"绑定丢了"。`user.identities` 里其实同时有 `google` 与 `email`，可以直接显示「Google · 邮箱」。未做。
+原先徽章读 `app_metadata.provider`，实测就撞上了这个漏洞：`henri@henriz.dev` 先用邮箱验证码注册，之后用**同一个邮箱的 Microsoft 账号**登录 → 身份变成 `["email","azure"]`、**同一个 user id**（文档描述的正向顺序成立 ✔），但 `provider` 仍是 `email` → 页面**一个徽章都不显示** ✗。
+
+现在 `socialProvidersOf()`（`apps/web/lib/verbia-auth.ts`）与 `sessionProviders()`（`apps/extension/src/auth/supabase.ts`）都改为读 `user.identities`：有几个 OAuth 身份就显示几个（Google / Microsoft 各一个）；会话里没有 `identities` 时回退到 `provider`，老会话不会丢标记。头像同理（只有 Google 有照片）。扩展侧通过 `AuthState.providers` 传这组值（原来的单个 `provider` 字段已移除）。
+
+由此确认的一处**不对称**，值得单独记住：
+
+| 动作 | 会不会往 `identities` / `providers` 里加一项 |
+|---|---|
+| 邮箱账号 → 用同一个邮箱走 **OAuth** 登录 | **会**：`["email"]` → `["email","azure"]`，同一个 user id |
+| OAuth 账号 → 用同一个邮箱走**验证码 / 设密码** | **不会**（见上一条确证） |
+
+也就是说：**身份列表只会被 OAuth 登录加项**，邮箱相关的动作一次都不加。这就是为什么"有没有密码"永远无法从身份列表读出来，而"用过哪些第三方登录"可以。
 

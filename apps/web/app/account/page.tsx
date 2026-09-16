@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import {
-  AUTH_CONFIGURED, API_BASE, VERIFY_EMAIL_KEY, accountState, authErrorCopy, avatarUrlOf, getClient, onExtensionSignOutRequest, providerOf, sendEmailCode, signInWithAzure, signInWithGoogle, signInWithPasswordEmail, signOut, syncSignedInSessionToExtension, updatePassword
+  AUTH_CONFIGURED, API_BASE, VERIFY_EMAIL_KEY, accountState, authErrorCopy, avatarUrlOf, getClient, onExtensionSignOutRequest, sendEmailCode, signInWithAzure, signInWithGoogle, signInWithPasswordEmail, signOut, socialProvidersOf, syncSignedInSessionToExtension, updatePassword
 } from "../../lib/verbia-auth";
 import { ProCheckout } from "../../components/pro-checkout";
 import { Captcha, type CaptchaHandle } from "../../components/captcha";
@@ -62,8 +62,8 @@ const T = {
     // one, so this copy says optional out loud. It names no provider on purpose —
     // another one must not mean another copy change.
     passwordBackupTitle: "Backup sign-in",
-    passwordBackupBody: "Optional. Adds email + password sign-in; your existing sign-in method keeps working.",
-    passwordBackupToggle: "Set a backup password",
+    passwordBackupBody: "Optional. Adds email + password as another way in; your existing sign-in method keeps working.",
+    passwordBackupToggle: "Set or change password",
     passwordNewLabel: "New password",
     passwordConfirmLabel: "Confirm password",
     passwordSave: "Save password",
@@ -121,8 +121,8 @@ const T = {
     // 对那种账号，密码是"多一条路"而不是"替代唯一的路"，所以说清是可选项。
     // 刻意不点名提供方——以后再加登录方式就不用再改一次文案。
     passwordBackupTitle: "备用登录方式",
-    passwordBackupBody: "可选。设置后也能用邮箱 + 密码登录；现有登录方式始终可用。",
-    passwordBackupToggle: "设置备用密码",
+    passwordBackupBody: "可选。多一条邮箱 + 密码的登录方式；现有登录方式始终可用。",
+    passwordBackupToggle: "设置或修改密码",
     passwordNewLabel: "新密码",
     passwordConfirmLabel: "确认密码",
     passwordSave: "保存密码",
@@ -385,7 +385,7 @@ export default function AccountPage() {
     setUser(null); setUsage(null); setUsageStatus("idle"); setState("signed_out");
   }
 
-  const provider = user ? providerOf(user) : undefined;
+  const socialProviders = user ? socialProvidersOf(user) : [];
   const avatar = user ? avatarUrlOf(user) : undefined;
   const name = user?.email?.split("@")[0] ?? (user?.email ?? "Verbia");
 
@@ -476,8 +476,7 @@ export default function AccountPage() {
               <div className="account-identity-copy">
                 <span className="account-email-line">
                   <strong className="account-email">{user.email}</strong>
-                  {provider === "google" && <img className="provider-mark" src="/google.svg" alt={t.providerGoogle} width="14" height="14"/>}
-                  {provider === "azure" && <img className="provider-mark" src="/microsoft.svg" alt={t.providerMicrosoft} width="14" height="14"/>}
+                  {socialProviders.map(mark => <img key={mark} className="provider-mark" src={mark === "azure" ? "/microsoft.svg" : "/google.svg"} alt={mark === "azure" ? t.providerMicrosoft : t.providerGoogle} width="14" height="14"/>)}
                 </span>
                 <span className="account-badges">{usage?.plan === "premium" ? <><span className="account-badge plan"><img className="premium-mark" src="/premium.png" alt="" width="14" height="14"/>{t.planPremium}</span>{usage.premiumUntil && <span className="badge-until">{t.premiumUntil.replace("{date}", usage.premiumUntil)}</span>}</> : <span className="account-badge plan">{t.planFree}</span>}</span>
               </div>

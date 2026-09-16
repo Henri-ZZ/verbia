@@ -21,10 +21,11 @@ export type AccountUsage = {
 export type AuthState = {
   signedIn: boolean;
   email?: string;
-  // Which identity the account signs in with, as Supabase records it in
-  // app_metadata: "google" and "azure" are the two OAuth buttons, "email" covers
-  // a sign-in code or a password.
-  provider?: "google" | "azure" | "email";
+  // The OAuth identities the account has. Deliberately not app_metadata.provider,
+  // which only records the identity the account was created or last linked with —
+  // an email account that later added Microsoft still reports "email", and the
+  // badge would go missing (@see docs/auth-setup.md, §六.7).
+  providers?: ("google" | "azure")[];
   avatarUrl?: string;
   plan?: AccountUsage["plan"];
   usage?: Pick<AccountUsage, "used" | "limit" | "resetsAt" | "premiumUntil">;

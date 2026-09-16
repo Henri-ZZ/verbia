@@ -192,8 +192,30 @@ export function providerOf(user: User): "google" | "azure" | "email" | undefined
   return provider === "google" || provider === "azure" || provider === "email" ? provider : undefined;
 }
 
+// The OAuth identities the account actually has — which is what the marks have to
+// follow, not app_metadata.provider. That field records the identity the account
+// was created or last linked with, so an account that began with an email code and
+// later added Microsoft still reports "email" and would show no mark at all
+// (@see docs/auth-setup.md, §六.7).
+export function socialProvidersOf(user: User): ("google" | "azure")[] {
+  const identities = (user.identities ?? []).map(identity => identity.provider);
+  if (identities.length === 0) {
+    // A session stored before identities were part of what we read: fall back to
+    // the provider field, so an existing Google account keeps its mark.
+    const provider = providerOf(user);
+    return provider === "google" || provider === "azure" ? [provider] : [];
+  }
+  const social: ("google" | "azure")[] = [];
+  if (identities.includes("google")) social.push("google");
+  if (identities.includes("azure")) social.push("azure");
+  return social;
+}
+
 export function avatarUrlOf(user: User): string | undefined {
-  if (providerOf(user) !== "google") return undefined;
+  // Same rule as the marks, and the same reason: only Google hands us a picture
+  // (Microsoft does not), and an account that started with an email code and
+  // later linked Google has one even though its provider says "email".
+  if (!socialProvidersOf(user).includes("google")) return undefined;
   const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
   const raw = meta.avatar_url ?? meta.picture;
   if (typeof raw !== "string") return undefined;

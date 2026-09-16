@@ -307,7 +307,7 @@ function renderSignedIn(body: HTMLElement, state: AuthState) {
   const emailText = document.createElement("span");
   emailText.textContent = state.email ?? "";
   email.append(emailText);
-  if (state.provider === "google" || state.provider === "azure") email.append(createProviderBadge(state.provider));
+  for (const provider of state.providers ?? []) email.append(createProviderBadge(provider));
   const plan = document.createElement("span"); plan.className = "account-plan";
   if (state.plan === "premium") {
     const mark = document.createElement("img");

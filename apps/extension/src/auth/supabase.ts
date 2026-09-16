@@ -78,6 +78,9 @@ type PersistedSession = {
     id?: string;
     email?: string;
     app_metadata?: { provider?: string };
+    // The OAuth identities on the account. Optional on purpose: sessions stored
+    // before this was part of the shape fall back to app_metadata.provider.
+    identities?: { provider?: string }[];
     user_metadata?: { avatar_url?: string; picture?: string };
   } | null;
 };
@@ -153,21 +156,32 @@ export async function refreshStoredSession(): Promise<boolean> {
 export type AuthSnapshot = {
   signedIn: boolean;
   email?: string;
-  provider?: "google" | "azure" | "email";
+  providers?: ("google" | "azure")[];
   avatarUrl?: string;
 };
 
-// The sign-in method Supabase records on the user (app_metadata.provider):
-// "google" / "azure" for the two OAuth buttons, "email" for a sign-in code or a
-// password. Anything else (or an older session without it) reports no provider
-// so the UI shows no badge.
-function sessionProvider(user: PersistedSession["user"]): "google" | "azure" | "email" | undefined {
-  const provider = user?.app_metadata?.provider;
-  return provider === "google" || provider === "azure" || provider === "email" ? provider : undefined;
+// The OAuth identities on the account. This, not app_metadata.provider, is what
+// the badge follows: provider records the identity the account was created or last
+// linked with, so an account that began with an email code and later added
+// Microsoft still reports "email" and would show no mark at all
+// (@see docs/auth-setup.md, §六.7).
+function sessionProviders(user: PersistedSession["user"]): ("google" | "azure")[] {
+  const identities = user?.identities ?? [];
+  if (identities.length === 0) {
+    // A session stored before identities were part of what we read: fall back to
+    // the provider field, so an existing Google account keeps its mark.
+    const provider = user?.app_metadata?.provider;
+    return provider === "google" || provider === "azure" ? [provider] : [];
+  }
+  const providers: ("google" | "azure")[] = [];
+  if (identities.some(identity => identity.provider === "google")) providers.push("google");
+  if (identities.some(identity => identity.provider === "azure")) providers.push("azure");
+  return providers;
 }
 
 function sessionAvatarUrl(user: PersistedSession["user"]): string | undefined {
-  if (sessionProvider(user) !== "google") return undefined;
+  // Same rule as the badge: only Google hands us a picture.
+  if (!sessionProviders(user).includes("google")) return undefined;
   const raw = user?.user_metadata?.avatar_url ?? user?.user_metadata?.picture;
   if (!raw) return undefined;
   try {
@@ -185,7 +199,7 @@ export async function authSnapshot(): Promise<AuthSnapshot> {
   return {
     signedIn: true,
     email: session.user?.email ?? undefined,
-    provider: sessionProvider(session.user),
+    providers: sessionProviders(session.user),
     avatarUrl: sessionAvatarUrl(session.user)
   };
 }
