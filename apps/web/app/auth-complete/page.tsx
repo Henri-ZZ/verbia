@@ -55,8 +55,8 @@ export default function AuthCompletePage() {
   const copy = chinese ? {
     eyebrow: "账号登录", waiting: "正在完成登录…", waitingBody: "请稍候，我们正在安全地连接你的 Verbia 账号。",
     success: "登录成功", successBody: "你的 Verbia 账号已经连接，可以回到插件继续使用。",
-    error: "暂时无法确认登录", errorBody: "登录链接可能已过期，或者扩展没有完成连接。你可以回到 Dashboard 后重新尝试。",
-    dashboard: "回到 Dashboard", home: "回到首页"
+    error: "暂时无法确认登录", errorBody: "登录链接可能已过期，或者扩展没有完成连接。你可以回到控制面板后重新尝试。",
+    dashboard: "回到控制面板", home: "回到首页"
   } : {
     eyebrow: "ACCOUNT SIGN-IN", waiting: "Completing sign-in…", waitingBody: "Please wait while we securely connect your Verbia account.",
     success: "You’re signed in", successBody: "Your Verbia account is connected. You can return to the extension and continue.",

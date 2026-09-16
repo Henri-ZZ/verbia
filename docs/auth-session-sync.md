@@ -53,7 +53,7 @@ Worker 的处理顺序：
 ## 扩展登录，自动登录官网
 
 ```text
-扩展 Dashboard
+扩展控制面板
   → Supabase Google OAuth 或 Magic Link
   → https://verbia.henriz.dev/auth-complete?code=...
   → 扩展后台截获 code，并使用扩展 PKCE verifier 交换扩展 Session
@@ -64,7 +64,7 @@ Worker 的处理顺序：
   → /auth-complete 显示登录成功
 ```
 
-`/auth-complete` 不会自动跳转首页。用户可以选择“回到 Dashboard”或“回到首页”。只有官网独立 Session 创建成功后才显示登录成功；旧的官网 Session 不会让页面提前显示成功。
+`/auth-complete` 不会自动跳转首页。用户可以选择“回到控制面板”或“回到首页”。只有官网独立 Session 创建成功后才显示登录成功；旧的官网 Session 不会让页面提前显示成功。
 
 如果交接失败，扩展自身仍可能已经登录成功，但完成页会显示无法完成同步，避免误报“两端均已登录”。
 

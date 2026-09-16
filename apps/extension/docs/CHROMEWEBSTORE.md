@@ -71,7 +71,7 @@ Verbia 用你选择的语言、在你正在书写的页面上，起草你真正�
 • 其它网页同样可用。任何页面上，都可以用你选中的文字作为上下文（右键菜单加入），也可以不带上下文直接起草。
 • 说，不必打。语音输入把你说的内容变成草稿。
 • 一切都由你决定。Verbia 只生成草稿，由你插入、修改并亲手发送；它绝不会替你发送、提交或发布任何内容。
-• 31 种界面语言，可随时在 Dashboard 中切换。
+• 31 种界面语言，可随时在控制面板中切换。
 • 免费版每天 10 次生成，Premium 提升到每天 100 次。
 
 使用方法
@@ -80,12 +80,12 @@ Verbia 用你选择的语言、在你正在书写的页面上，起草你真正�
 2. 用快捷键（默认 Alt+Shift+Y，可在 chrome://extensions/shortcuts 修改）或点击工具栏图标打开回复面板。
 3. 先看面板中展示的上下文——那就是将要发送的内容。
 4. 输入或说出你的意图，例如「礼貌拒绝，但保持后续可能」。
-5. 选择回复语言、语气与长度，然后点击 Generate。
+5. 选择回复语言、语气与长度，然后点击「生成」。
 6. 检查草稿，再插入页面或复制。
 
 隐私
 
-Verbia 只在你主动唤起后才读取页面内容，且只读取你正在操作的那个输入框周围。在你点击 Generate 或「AI 识别」之前不会发送任何内容；发送的是面板中可见的上下文加上你的意图，仅用于生成这一份草稿。消息文本不用于分析，也不会在返回草稿后保留。偏好设置保存在你的设备上，账号用于保存这些设置并统计每日生成次数。
+Verbia 只在你主动唤起后才读取页面内容，且只读取你正在操作的那个输入框周围。在你点击「生成」或「AI 识别」之前不会发送任何内容；发送的是面板中可见的上下文加上你的意图，仅用于生成这一份草稿。消息文本不用于分析，也不会在返回草稿后保留。偏好设置保存在你的设备上，账号用于保存这些设置并统计每日生成次数。
 
 权限
 
@@ -95,7 +95,7 @@ Verbia 只在你主动唤起后才读取页面内容，且只读取你正在操�
 
 支持
 
-遇到无法使用的站点、Bug 或建议：可通过扩展设置里的 Contact 联系我们，或发邮件至 henri@henriz.dev。隐私政策：https://verbia.henriz.dev/privacy
+遇到无法使用的站点、Bug 或建议：可通过扩展设置里的「联系与反馈」联系我们，或发邮件至 henri@henriz.dev。隐私政策：https://verbia.henriz.dev/privacy
 
 Verbia 支持 Chrome 与 Microsoft Edge，Firefox 版本正在计划中。
 
@@ -115,7 +115,11 @@ Verbia 支持 Chrome 与 Microsoft Edge，Firefox 版本正在计划中。
 
 > 可直接复制的 **Description**（31 种语言）见 [`CHROMEWEBSTORE-COPY.md`](CHROMEWEBSTORE-COPY.md)。
 
-> **不要在描述里枚举第三方站点，也不要列举全部界面语言。** 2026-09-15 的提交因这一行被判定为 Keyword Spam（`Yellow Argon`）拒绝：`On 163, Yahoo, Proton, iCloud, Fastmail, Zoho, GMX, mail.com, Yandex, Naver, Daum`——11 个品牌名连排会被读成"为搜索堆词"。现在描述里只保留产品自身的核心集成（Reddit / Gmail / Outlook / QQ 邮箱），其余一律写成「其它邮箱」「任意其他邮箱」；界面语言只写数量与切换位置（`22 interface languages, switchable any time in the Dashboard.`）。**站点全集只放官网，不要放回商店描述。**
+> **不要在描述里枚举第三方站点，也不要列举全部界面语言。** 2026-09-15 的提交因这一行被判定为 Keyword Spam（`Yellow Argon`）拒绝：`On 163, Yahoo, Proton, iCloud, Fastmail, Zoho, GMX, mail.com, Yandex, Naver, Daum`——11 个品牌名连排会被读成"为搜索堆词"。现在描述里只保留产品自身的核心集成（Reddit / Gmail / Outlook / QQ 邮箱），其余一律写成「其它邮箱」「任意其他邮箱」；界面语言只写数量与切换位置（`31 interface languages, switchable any time in the Dashboard.`）。
+
+> **界面里的专有名词必须用产品内的译法，别在中 / 日 / 韩等语言里直接写英文。** 权威口径是 `packages/shared/src/ui-strings.ts`：中文写「控制面板」（不是 Dashboard）、「生成」（不是 Generate）、「联系与反馈」（不是 Contact），日文写「お問い合わせ」、德文写 „Kontakt"，以此类推。只有**全语言统一不译**的词才保留英文，例如 Premium（`planPremium` 各语言都是 Premium）。
+
+> **站点全集只放官网，不要放回商店描述。**
 
 ### Español (es)
 

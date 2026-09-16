@@ -38,7 +38,7 @@
 | Universal Mode（通用模式） | 其它网站：聚焦输入框 + 可选手动加入的上下文 |
 | 站点模式（Site Mode） | 三档行为的判定：**auto**（有专用适配器的站点 → 适配器读页面、面板自动弹出）、**email**（白名单邮箱 → 靠 AI 识别）、**universal**（其它页面 → 全部手动）。只看域名与适配器，不猜页面内容（`src/content/site-mode.ts`） |
 | 自动适配 | 某个网站“开箱即用”的接入（当前支持 Reddit、Gmail 网页版、Outlook 网页版、QQ 邮箱） |
-| Dashboard/账号 | 官网 `/account` 与插件设置页的账号中心 |
+| 控制面板/账号 | 官网 `/account` 与插件设置页的账号中心 |
 
 ---
 
