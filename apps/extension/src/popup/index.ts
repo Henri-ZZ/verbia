@@ -1,5 +1,5 @@
 import { DEFAULT_SETTINGS, UI_STRINGS, isRtl, resolveUiLang, type AuthState } from "@verbia/shared";
-import { webSignInUrl } from "../auth/supabase";
+import { accountPageUrl, webSignInUrl } from "../auth/supabase";
 import { ACTION_NOTICE_KEY } from "../runtime";
 import { renderShortcutKeys } from "../ui/shortcut";
 
@@ -89,7 +89,13 @@ async function renderAuth() {
     copy.className = "account-copy";
     const email = document.createElement("p");
     email.className = "account-email";
-    const emailText = document.createElement("span");
+    // The address is the one thing in this row with more behind it than a 400px
+    // popup can show, so it opens the website account page.
+    const emailText = document.createElement("a");
+    emailText.className = "account-email-link";
+    emailText.href = accountPageUrl(lang);
+    emailText.target = "_blank";
+    emailText.rel = "noopener";
     emailText.textContent = state.email ?? "";
     email.append(emailText);
     for (const provider of state.providers ?? []) email.append(createProviderBadge(provider));

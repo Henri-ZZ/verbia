@@ -1,5 +1,5 @@
 import { DEFAULT_SETTINGS, LENGTH_VALUES, REPLY_LANGUAGE_OPTIONS, TONE_VALUES, UI_LANGUAGE_OPTIONS, UI_STRINGS, VOICE_LANGUAGE_OPTIONS, isRtl, resolveUiLang, type AuthState, type UiLang, type UserSettings } from "@verbia/shared";
-import { AUTH_STORAGE_KEY, webSignInUrl } from "../auth/supabase";
+import { AUTH_STORAGE_KEY, accountPageUrl, webSignInUrl } from "../auth/supabase";
 import { setStatusMessage, type MsgKind } from "../ui/message";
 import { renderShortcutKeys } from "../ui/shortcut";
 import { reviewUrl } from "../ui/stores";
@@ -425,7 +425,14 @@ function renderSignedIn(body: HTMLElement, state: AuthState) {
   const copy = document.createElement("div"); copy.className = "account-copy";
   const email = document.createElement("p");
   email.className = "account-email";
-  const emailText = document.createElement("span");
+  // The address is the one thing in this card that has more behind it than the
+  // settings page can show (plan, usage, password, sign-out), so it links to the
+  // website account page.
+  const emailText = document.createElement("a");
+  emailText.className = "account-email-link";
+  emailText.href = accountPageUrl(lang);
+  emailText.target = "_blank";
+  emailText.rel = "noopener";
   emailText.textContent = state.email ?? "";
   email.append(emailText);
   for (const provider of state.providers ?? []) email.append(createProviderBadge(provider));

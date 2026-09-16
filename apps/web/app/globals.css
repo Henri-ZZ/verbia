@@ -1563,6 +1563,38 @@ button:focus-visible {
   flex-basis: 100%;
   color: var(--outline);
 }
+/* Label left, count right, bar underneath — the extension's usage block in this
+   palette: the track is one step darker than the block it sits on, the fill is
+   the brand green, and both go red once the day's allowance is used up. Kept to
+   full-basis rows because the block itself is a wrapping flex row. */
+.account-usage .usage-line {
+  display: flex;
+  flex-basis: 100%;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.account-usage .usage-track {
+  display: block;
+  flex-basis: 100%;
+  height: 7px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: var(--mid);
+}
+.account-usage .usage-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--primary);
+  transition: width 0.2s ease;
+}
+.account-usage .usage-fill.is-limit {
+  background: var(--danger);
+}
+.account-usage strong.is-limit {
+  color: var(--danger);
+}
 .account-loading {
   display: inline-flex;
   align-items: center;

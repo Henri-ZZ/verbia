@@ -30,6 +30,16 @@ export function webSignInUrl(): string {
   return `${WEB_AUTH_ORIGIN}/account?from=extension`;
 }
 
+// Opened by clicking the account address on the popup and the settings page: the
+// details behind that address (plan, usage, password, sign-out) live on the
+// website, not in a 400px card. The page ships in English and Chinese only, so
+// the extension's 31 locales collapse to those two here rather than sending a
+// language it would ignore.
+export function accountPageUrl(uiLang: string): string {
+  const locale = uiLang.toLowerCase().startsWith("zh") ? "zh" : "en";
+  return `${WEB_AUTH_ORIGIN}/account?locale=${locale}&from=extension`;
+}
+
 // Left behind when the extension signs out, and read by the website's bridge on
 // its next load: a website with no open tab would otherwise never hear about it.
 // Cleared at the one place an extension session can come into being, so a stale

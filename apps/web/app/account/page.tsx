@@ -16,6 +16,19 @@ type Usage = { plan: "free" | "premium"; used: number; limit: number | null; res
 // How long a confirmation stays up before dismissing itself.
 const NOTICE_MS = 5_000;
 
+// The daily-allowance bar, same rules as the extension's (@see makeUsage in the
+// popup): clamped at 100%, and counted as reached once the allowance is used up.
+// Clamping matters because the API can report more used than the limit after a
+// plan change, which would otherwise overflow the track.
+function usageFillPercent(current: NonNullable<Usage>): number {
+  if (current.limit === null || current.limit <= 0) return 0;
+  return Math.min((current.used / current.limit) * 100, 100);
+}
+
+function usageReached(current: NonNullable<Usage>): boolean {
+  return current.limit !== null && current.limit > 0 && current.used >= current.limit;
+}
+
 const T = {
   en: {
     eyebrow: "VERBIA ACCOUNT",
@@ -488,9 +501,16 @@ export default function AccountPage() {
               </div>
             ) : (
               <div className="account-usage">
-                <span>{t.usageLabel}</span>
-                {usage === null ? <em>{t.usageUnavailable}</em>
-                  : <strong>{usage.limit === null ? t.unlimited : t.usedOf(usage.used, usage.limit)}</strong>}
+                <span className="usage-line">
+                  <span>{t.usageLabel}</span>
+                  {usage === null ? <em>{t.usageUnavailable}</em>
+                    : <strong className={usageReached(usage) ? "is-limit" : undefined}>{usage.limit === null ? t.unlimited : t.usedOf(usage.used, usage.limit)}</strong>}
+                </span>
+                {usage !== null && usage.limit !== null && usage.limit > 0 && (
+                  <span className="usage-track" role="progressbar" aria-valuemin={0} aria-valuemax={usage.limit} aria-valuenow={Math.min(usage.used, usage.limit)}>
+                    <span className={`usage-fill${usageReached(usage) ? " is-limit" : ""}`} style={{ width: `${usageFillPercent(usage)}%` }} />
+                  </span>
+                )}
                 {usage?.resetsAt && <small>{t.resets(usage.resetsAt)}</small>}
               </div>
             )}

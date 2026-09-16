@@ -17,6 +17,24 @@
   gap: 6px;
 }
 
+/* The address is the one thing in this card with more behind it, so it opens the
+   website account page. It keeps the row's type and only underlines on hover. */
+.account-email-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.account-email-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.account-email-link:focus-visible {
+  border-radius: 4px;
+  outline: 3px solid #0f6e5633;
+  outline-offset: 2px;
+}
+
 .account-email .provider-badge {
   display: block;
   flex: none;
