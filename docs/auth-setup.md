@@ -1,6 +1,6 @@
 # Verbia — Supabase 登录接入
 
-Verbia 的账号体系：Google 第三方登录 + 邮箱 Magic Link（免密），由 Supabase Auth 托管。
+Verbia 的账号体系：Google / Microsoft 第三方登录 + 邮箱验证码（免密，密码可选），由 Supabase Auth 托管。
 扩展在本地通过 PKCE 完成登录；`services/api` 网关校验 Bearer token，把用量归属到账号。
 **未登录完全不影响现有功能**（匿名照常起草），登录只提供云端身份，为额度与付费预留。
 
@@ -74,6 +74,30 @@ Verbia 的账号体系：Google 第三方登录 + 邮箱 Magic Link（免密）�
 
    > 提示：Resend 域名验证会自动配好 SPF/DKIM；发往 QQ/163 等国内邮箱仍可能进
    > 垃圾箱，正式上线前建议用常见邮箱各实测一封。
+6. **Auth → Providers → Azure（Microsoft 登录）**：开启后即可让 outlook.com / hotmail / live
+   与企业 Microsoft 账户登录。**这一步全部免费**（Entra ID 免费层就能完成应用注册），
+   也没有 Apple 那种半年密钥轮换、邮件中继域名注册或付费会员。
+   在 [Azure Portal](https://portal.azure.com) → **Microsoft Entra ID** → **应用注册** 里做：
+
+   | 步骤 | 取值 |
+   |---|---|
+   | 新建注册 | 名称随意；**支持的账户类型**选「任何组织目录中的账户和个人 Microsoft 账户」——多租户 + 个人账户，两类账号都能登录 |
+   | 重定向 URI | 平台选 **Web**，填 `https://pthfyoejvlcwxboskrjr.supabase.co/auth/v1/callback` |
+   | 客户端密码 | 「证书和密码」→ 新建客户端密码 → 记下**值（Value）**，不是「密码 ID」 |
+   | 复制 | **应用程序（客户端）ID** 与上面那个密码**值** |
+
+   然后在 Supabase 面板的 Azure 里填 **Application (client) ID** 与 **Secret**；
+   **Azure Tenant URL 留空**即可——默认走 `common` 租户，正好对应"多租户 + 个人账户"。
+
+   三点注意：
+
+   - **客户端密码有有效期**（最长 24 个月）。到期前要在 Azure 里新建一个并同步更新到
+     Supabase，否则登录直接失败——建议现在就在日历上留提醒。这与 Google 的 client secret
+     不同（Google 的不会自己过期）。
+   - **必须请求 `email` scope**：Azure 不主动返回邮箱地址，而 Supabase Auth 需要邮箱才能建账号。
+     代码里已经固定（`signInWithAzure`，`apps/web/lib/verbia-auth.ts`）。
+   - 项目用的是**多租户 + 个人账户**，因此不落在 Supabase 文档提到的"单租户未验证邮箱域"
+     风险里，**无需**额外配置 `xms_edov` 可选声明。
 
 > 发布到 Chrome Web Store 后，商店版扩展 ID 由商店开发者账号派生，会与本地
 > `ndkpnij…` 不同。上架后把商店版 ID 的 redirect 也加进第 3 步即可。
@@ -144,8 +168,8 @@ pnpm db:check
 | `docs/supabase-schema.sql` | profiles / quota_usage / 账单表 / 原子套餐与额度 RPC / RLS |
 | `packages/shared/src/ui-strings.ts` | account.* 文案，31 种语言与 EN 逐键对称 |
 | `packages/shared/src/messages.ts` | `GET_AUTH_STATE` / `SIGN_OUT` 消息 |
-| `apps/extension/src/auth/supabase.ts` | PKCE client + chrome.storage 会话适配器 + `signInWithGoogle`（标签授权 + 等 session 落盘） |
-| `apps/extension/src/options/index.ts` | Account 登录卡片（Google / 邮箱 Magic Link / 登出） |
+| `apps/extension/src/auth/supabase.ts` | PKCE client + chrome.storage 会话适配器 + `webSignInUrl`（登录统一在官网进行） |
+| `apps/extension/src/options/index.ts` | Account 卡片（登录按钮打开官网 / 身份徽章 / 登出） |
 | `apps/extension/src/popup/index.ts` | popup 底部登录态 |
 | `apps/extension/src/background/index.ts` | generate 注入 Bearer、静默刷新、GET_AUTH_STATE、**回跳 code 捕获监听** |
 | `services/api/src/server.ts` | Bearer 校验 + 可选配额 gate |
@@ -169,7 +193,7 @@ pnpm db:check
   https://verbia.henriz.dev/account/callback
   ```
   （与第三节里的扩展回跳 `https://...supabase.co/` 互不冲突；这是同一个项目里同时允许多个落地地址。）
-- **Auth → Providers → Google** 与 **Email** 的设置不用改 —— 扩展走项目根，官网走自身域名，Supabase 用同一个 Google OAuth client。
+- **Auth → Providers → Google**、**Azure** 与 **Email** 的设置不用改 —— 扩展走项目根，官网走自身域名，Supabase 用同一套 Google / Microsoft 应用凭据。
 
 ### 2. 配置文件
 

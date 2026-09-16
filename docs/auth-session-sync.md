@@ -54,7 +54,7 @@ Worker 的处理顺序：
 
 ```text
 扩展控制面板
-  → Supabase Google OAuth 或 Magic Link
+  → Supabase Google / Microsoft OAuth 或 Magic Link
   → https://verbia.henriz.dev/auth-complete?code=...
   → 扩展后台截获 code，并使用扩展 PKCE verifier 交换扩展 Session
   → 扩展后台以扩展 Access Token 请求 /v1/auth/session-handoff
@@ -72,7 +72,7 @@ Worker 的处理顺序：
 
 ```text
 官网 /account
-  → Supabase Google OAuth 或 Magic Link
+  → Supabase Google / Microsoft OAuth 或 Magic Link
   → /account/callback?code=...
   → 官网使用自己的 PKCE verifier 交换官网 Session
   → 页面发出一次“同步扩展”事件

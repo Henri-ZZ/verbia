@@ -307,7 +307,7 @@ function renderSignedIn(body: HTMLElement, state: AuthState) {
   const emailText = document.createElement("span");
   emailText.textContent = state.email ?? "";
   email.append(emailText);
-  if (state.provider === "google") email.append(createGoogleBadge());
+  if (state.provider === "google" || state.provider === "azure") email.append(createProviderBadge(state.provider));
   const plan = document.createElement("span"); plan.className = "account-plan";
   if (state.plan === "premium") {
     const mark = document.createElement("img");
@@ -394,11 +394,13 @@ function createAccountAvatar(state: AuthState): HTMLElement {
   return avatar;
 }
 
-function createGoogleBadge(): HTMLImageElement {
+// The mark the user saw on the sign-in button, so the badge says where this
+// account comes from without a word of copy. Both live in assets/.
+function createProviderBadge(provider: "google" | "azure"): HTMLImageElement {
   const badge = document.createElement("img");
   badge.className = "provider-badge";
-  badge.src = "assets/google.svg";
-  badge.alt = "Google";
+  badge.src = provider === "azure" ? "assets/microsoft.svg" : "assets/google.svg";
+  badge.alt = provider === "azure" ? "Microsoft" : "Google";
   badge.width = 14;
   badge.height = 14;
   return badge;

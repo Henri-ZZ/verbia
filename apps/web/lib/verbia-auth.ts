@@ -62,17 +62,30 @@ export async function accountState(): Promise<AccountState> {
   return user ? { status: "signed_in", user } : { status: "signed_out" };
 }
 
-export async function signInWithGoogle(): Promise<{ ok: true } | { ok: false; message: string }> {
+// Both OAuth buttons go through here, so only the provider name and its scopes
+// can differ between them.
+async function signInWithProvider(provider: "google" | "azure", scopes?: string): Promise<{ ok: true } | { ok: false; message: string }> {
   try {
     const client = await getClient();
     const { error } = await client.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: currentCallbackUrl() }
+      provider,
+      options: scopes ? { redirectTo: currentCallbackUrl(), scopes } : { redirectTo: currentCallbackUrl() }
     });
     return error ? { ok: false, message: error.message } : { ok: true };
   } catch (error) {
     return { ok: false, message: error instanceof Error ? error.message : "Sign-in failed." };
   }
+}
+
+export function signInWithGoogle(): Promise<{ ok: true } | { ok: false; message: string }> {
+  return signInWithProvider("google");
+}
+
+// Microsoft must be asked for the email scope explicitly: Azure returns no email
+// address without it, and Supabase Auth needs one to create the account
+// (@see docs/auth-setup.md, §二.3).
+export function signInWithAzure(): Promise<{ ok: true } | { ok: false; message: string }> {
+  return signInWithProvider("azure", "email");
 }
 
 export async function sendMagicLink(email: string): Promise<{ ok: true } | { ok: false; message: string }> {
@@ -174,9 +187,9 @@ export function onExtensionSignOutRequest(handler: () => void): () => void {
   return () => window.removeEventListener("verbia:web-sign-out", handler);
 }
 
-export function providerOf(user: User): "google" | "email" | undefined {
+export function providerOf(user: User): "google" | "azure" | "email" | undefined {
   const provider = user.app_metadata?.provider as string | undefined;
-  return provider === "google" || provider === "email" ? provider : undefined;
+  return provider === "google" || provider === "azure" || provider === "email" ? provider : undefined;
 }
 
 export function avatarUrlOf(user: User): string | undefined {

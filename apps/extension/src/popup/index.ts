@@ -92,7 +92,7 @@ async function renderAuth() {
     const emailText = document.createElement("span");
     emailText.textContent = state.email ?? "";
     email.append(emailText);
-    if (state.provider === "google") email.append(createGoogleBadge());
+    if (state.provider === "google" || state.provider === "azure") email.append(createProviderBadge(state.provider));
     const plan = document.createElement("span");
     plan.className = "account-plan";
     if (state.plan === "premium") {
@@ -177,11 +177,12 @@ function createAccountAvatar(state: AuthState): HTMLElement {
   return avatar;
 }
 
-function createGoogleBadge(): HTMLImageElement {
+// Same badge as the settings card, sized for the popup row.
+function createProviderBadge(provider: "google" | "azure"): HTMLImageElement {
   const badge = document.createElement("img");
   badge.className = "provider-badge";
-  badge.src = "assets/google.svg";
-  badge.alt = "Google";
+  badge.src = provider === "azure" ? "assets/microsoft.svg" : "assets/google.svg";
+  badge.alt = provider === "azure" ? "Microsoft" : "Google";
   badge.width = 13;
   badge.height = 13;
   return badge;

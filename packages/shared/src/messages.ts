@@ -21,7 +21,10 @@ export type AccountUsage = {
 export type AuthState = {
   signedIn: boolean;
   email?: string;
-  provider?: "google" | "email";
+  // Which identity the account signs in with, as Supabase records it in
+  // app_metadata: "google" and "azure" are the two OAuth buttons, "email" covers
+  // a sign-in code or a password.
+  provider?: "google" | "azure" | "email";
   avatarUrl?: string;
   plan?: AccountUsage["plan"];
   usage?: Pick<AccountUsage, "used" | "limit" | "resetsAt" | "premiumUntil">;

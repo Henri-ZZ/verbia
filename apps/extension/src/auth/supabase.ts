@@ -153,16 +153,17 @@ export async function refreshStoredSession(): Promise<boolean> {
 export type AuthSnapshot = {
   signedIn: boolean;
   email?: string;
-  provider?: "google" | "email";
+  provider?: "google" | "azure" | "email";
   avatarUrl?: string;
 };
 
 // The sign-in method Supabase records on the user (app_metadata.provider):
-// "google" for the OAuth button, "email" for Magic Link. Anything else (or an
-// older session without it) reports no provider so the UI shows no badge.
-function sessionProvider(user: PersistedSession["user"]): "google" | "email" | undefined {
+// "google" / "azure" for the two OAuth buttons, "email" for a sign-in code or a
+// password. Anything else (or an older session without it) reports no provider
+// so the UI shows no badge.
+function sessionProvider(user: PersistedSession["user"]): "google" | "azure" | "email" | undefined {
   const provider = user?.app_metadata?.provider;
-  return provider === "google" || provider === "email" ? provider : undefined;
+  return provider === "google" || provider === "azure" || provider === "email" ? provider : undefined;
 }
 
 function sessionAvatarUrl(user: PersistedSession["user"]): string | undefined {

@@ -1665,15 +1665,17 @@ button:focus-visible {
     font-size: 26px;
   }
 }
-.account-google.button {
+/* Both OAuth buttons (Google, Microsoft) share one dark treatment, so the pair
+   reads as one group under the email form. */
+.account-oauth.button {
   background: #1e2a24;
   color: #fff;
   border: 0;
 }
-.account-google.button:hover {
+.account-oauth.button:hover {
   background: #15201b;
 }
-.account-google.button svg {
+.account-oauth.button svg {
   flex: none;
 }
 .account-upgrade {
