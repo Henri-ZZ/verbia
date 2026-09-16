@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import {
   AUTH_CONFIGURED, API_BASE, VERIFY_EMAIL_KEY, accountState, authErrorCopy, avatarUrlOf, getClient, onExtensionSignOutRequest, providerOf, sendEmailCode, signInWithGoogle, signInWithPasswordEmail, signOut, syncSignedInSessionToExtension, updatePassword
@@ -12,6 +12,9 @@ import { Captcha, type CaptchaHandle } from "../../components/captcha";
 
 type Locale = "en" | "zh";
 type Usage = { plan: "free" | "premium"; used: number; limit: number | null; resetsAt?: string; premiumUntil?: string } | null;
+
+// How long a confirmation stays up before dismissing itself.
+const NOTICE_MS = 5_000;
 
 const T = {
   en: {
@@ -31,7 +34,7 @@ const T = {
     codeLoginAction: "Sign in with an email code",
     passwordLoginHint: "Already have a password?",
     passwordLoginAction: "Sign in with a password",
-    signInHint: "Signing in with a password skips email entirely — set one once and use it from then on.",
+    signInHint: "Signing in the first time takes an email code. Once you are in, you can set a password — after that, either way works.",
     signedInTitle: "Signed in",
     planFree: "Free",
     planPremium: "Premium",
@@ -48,7 +51,10 @@ const T = {
     upgradeBody: "Get 100 context-aware replies per day.",
     checkoutSuccess: "Payment received. Your Premium status may take a moment to update.",
     passwordTitle: "Password",
-    passwordBody: "Set a password to sign in without waiting for an email — in the extension too.",
+    // Covers both setting one and changing it: the user object does not say
+    // whether a password is already on the account (@see onSavePassword).
+    passwordBody: "Set or change a password to sign in without waiting for an email — in the extension too.",
+    passwordToggle: "Set or change password",
     passwordNewLabel: "New password",
     passwordConfirmLabel: "Confirm password",
     passwordSave: "Save password",
@@ -80,7 +86,7 @@ const T = {
     codeLoginAction: "邮箱验证码登录",
     passwordLoginHint: "已经设置过密码？",
     passwordLoginAction: "使用密码登录",
-    signInHint: "密码登录不消耗邮件、也不怕邮件收不到：设置一次，之后一直用它。",
+    signInHint: "首次登录请使用邮箱验证码；登录后可以设置密码，之后两种方式都能用。",
     signedInTitle: "已登录",
     planFree: "免费版",
     // "Premium" stays untranslated: it is the product tier name, same in every locale.
@@ -98,7 +104,8 @@ const T = {
     upgradeBody: "每天可使用 100 次上下文回复。",
     checkoutSuccess: "付款已完成，Premium 状态可能需要片刻更新。",
     passwordTitle: "密码",
-    passwordBody: "设置密码后，无需等待邮件即可登录，在扩展里也一样。",
+    passwordBody: "设置或修改密码后，无需等待邮件即可登录，在扩展里也一样。",
+    passwordToggle: "设置或修改密码",
     passwordNewLabel: "新密码",
     passwordConfirmLabel: "确认密码",
     passwordSave: "保存密码",
@@ -143,9 +150,27 @@ export default function AccountPage() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [savingPassword, setSavingPassword] = useState(false);
+  // The password form is a setting, not what this page is for, so it stays
+  // collapsed until asked for. @see the toggle in the signed-in block.
+  const [showPassword, setShowPassword] = useState(false);
+  // Pending auto-dismiss for the notice below (@see flashNotice).
+  const noticeTimer = useRef<number | undefined>(undefined);
   const router = useRouter();
 
   const t = T[locale];
+
+  // Notices confirm something the user just did, so they expire: a confirmation
+  // that stays on screen stops being a confirmation and reads as a claim about
+  // the page instead ("Password saved." — but does that still describe anything?).
+  // Every write goes through this one function, so a new notice cancels the old
+  // timer rather than being wiped by it seconds later.
+  const flashNotice = useCallback((text: string) => {
+    window.clearTimeout(noticeTimer.current);
+    setNotice(text);
+    if (text) noticeTimer.current = window.setTimeout(() => setNotice(""), NOTICE_MS);
+  }, []);
+
+  useEffect(() => () => window.clearTimeout(noticeTimer.current), []);
 
   useEffect(() => {
     const preferred = (navigator.language || "en").toLowerCase();
@@ -166,19 +191,19 @@ export default function AccountPage() {
     if (state !== "signed_in" || synced.current) return;
     if (!fromExtension && hadSessionOnLoad.current !== false) return;
     synced.current = true;
-    void syncSignedInSessionToExtension().then(result => { if (result === "synced") setNotice(t.extensionSynced); });
-  }, [fromExtension, state, t.extensionSynced]);
+    void syncSignedInSessionToExtension().then(result => { if (result === "synced") flashNotice(t.extensionSynced); });
+  }, [flashNotice, fromExtension, state, t.extensionSynced]);
 
   // …and the other half of that state: when the extension signs out, this page
   // follows it out rather than sitting here signed in.
   useEffect(() => onExtensionSignOutRequest(() => {
     void signOut();
-    setUser(null); setUsage(null); setUsageStatus("idle"); setState("signed_out"); setNotice(""); setError("");
-  }), []);
+    setUser(null); setUsage(null); setUsageStatus("idle"); setState("signed_out"); flashNotice(""); setError("");
+  }), [flashNotice]);
 
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get("checkout") === "success") setNotice(t.checkoutSuccess);
-  }, [t.checkoutSuccess]);
+    if (new URLSearchParams(window.location.search).get("checkout") === "success") flashNotice(t.checkoutSuccess);
+  }, [flashNotice, t.checkoutSuccess]);
 
   useEffect(() => {
     if (started.current || !AUTH_CONFIGURED) return;
@@ -251,7 +276,7 @@ export default function AccountPage() {
   }
 
   async function onGoogle() {
-    setError(""); setNotice("");
+    setError(""); flashNotice("");
     const result = await signInWithGoogle();
     if (!result.ok) setError(result.message);
   }
@@ -283,7 +308,7 @@ export default function AccountPage() {
     if (!validEmail()) return;
     const captcha = takeCaptcha();
     if (captcha.blocked) return;
-    setSending(true); setError(""); setNotice("");
+    setSending(true); setError(""); flashNotice("");
     const result = await sendEmailCode(email, captcha.token);
     captchaWidget.current?.reset();
     setSending(false);
@@ -299,7 +324,7 @@ export default function AccountPage() {
     if (!validEmail()) return;
     const captcha = takeCaptcha();
     if (captcha.blocked) return;
-    setSending(true); setError(""); setNotice("");
+    setSending(true); setError(""); flashNotice("");
     const result = await signInWithPasswordEmail(email, password, captcha.token);
     captchaWidget.current?.reset();
     setSending(false);
@@ -318,18 +343,21 @@ export default function AccountPage() {
     // same is what stops the two from disagreeing (@see auth-setup.md).
     if (newPassword.length < 6) { setError(t.passwordTooShort); return; }
     if (newPassword !== confirmPassword) { setError(t.passwordMismatch); return; }
-    setSavingPassword(true); setError(""); setNotice("");
+    setSavingPassword(true); setError(""); flashNotice("");
     const result = await updatePassword(newPassword);
     setSavingPassword(false);
     if (!result.ok) { setError(authErrorCopy(locale, result.code)); return; }
     setNewPassword(""); setConfirmPassword("");
-    setNotice(t.passwordSaved);
+    // Collapse again: the form has done its job, and the notice carries the
+    // outcome from here.
+    setShowPassword(false);
+    flashNotice(t.passwordSaved);
   }
 
   async function onSignOut() {
     const confirmed = window.confirm(locale === "zh" ? "确定要退出登录吗？扩展会一起退出。" : "Sign out of Verbia? The extension signs out too.");
     if (!confirmed) return;
-    setError(""); setNotice("");
+    setError(""); flashNotice("");
     await signOut();
     setUser(null); setUsage(null); setUsageStatus("idle"); setState("signed_out");
   }
@@ -384,7 +412,7 @@ export default function AccountPage() {
               </form>
               <p className="account-hint muted">
                 {usePassword ? t.codeLoginHint : t.passwordLoginHint}
-                <button className="account-link" type="button" onClick={() => { setUsePassword(!usePassword); setPassword(""); setError(""); setNotice(""); }}>
+                <button className="account-link" type="button" onClick={() => { setUsePassword(!usePassword); setPassword(""); setError(""); flashNotice(""); }}>
                   {usePassword ? t.codeLoginAction : t.passwordLoginAction}
                 </button>
               </p>
@@ -429,14 +457,23 @@ export default function AccountPage() {
             <div className="account-password">
               <h2>{t.passwordTitle}</h2>
               <p className="muted">{t.passwordBody}</p>
-              <form className="account-magic" onSubmit={onSavePassword}>
-                <input type="password" autoComplete="new-password" required value={newPassword} onChange={event => setNewPassword(event.target.value)} placeholder={t.passwordNewLabel} aria-label={t.passwordNewLabel} />
-                <input type="password" autoComplete="new-password" required value={confirmPassword} onChange={event => setConfirmPassword(event.target.value)} placeholder={t.passwordConfirmLabel} aria-label={t.passwordConfirmLabel} />
-                <button className="button primary" type="submit" disabled={savingPassword}>{savingPassword ? t.passwordSaving : t.passwordSave}</button>
-              </form>
+              {/* Collapsed by default: a setting should not out-weigh the status
+                  it sits next to. Only the toggle shows until it is asked for. */}
+              {showPassword
+                ? <form className="account-magic" onSubmit={onSavePassword}>
+                    <input type="password" autoComplete="new-password" required value={newPassword} onChange={event => setNewPassword(event.target.value)} placeholder={t.passwordNewLabel} aria-label={t.passwordNewLabel} />
+                    <input type="password" autoComplete="new-password" required value={confirmPassword} onChange={event => setConfirmPassword(event.target.value)} placeholder={t.passwordConfirmLabel} aria-label={t.passwordConfirmLabel} />
+                    <button className="button primary" type="submit" disabled={savingPassword}>{savingPassword ? t.passwordSaving : t.passwordSave}</button>
+                  </form>
+                : <button className="button secondary" type="button" onClick={() => { setError(""); setShowPassword(true); }}>{t.passwordToggle}</button>}
             </div>
-            {fromExtension && <button className="button primary" type="button" onClick={() => window.dispatchEvent(new CustomEvent("verbia:open-dashboard"))}>{t.openExtension}</button>}
-            <button className="button secondary" type="button" onClick={() => void onSignOut()}>{t.signOut}</button>
+            {/* Same container the signed-out block uses for its buttons: bare
+                siblings here had no gap, so the sign-out button sat flush against
+                the save button in the password form above it. */}
+            <div className="account-buttons">
+              {fromExtension && <button className="button primary" type="button" onClick={() => window.dispatchEvent(new CustomEvent("verbia:open-dashboard"))}>{t.openExtension}</button>}
+              <button className="button secondary" type="button" onClick={() => void onSignOut()}>{t.signOut}</button>
+            </div>
           </>
         )}
 
