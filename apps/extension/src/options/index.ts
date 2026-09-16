@@ -8,6 +8,12 @@ const form = document.querySelector<HTMLFormElement>("#settings")!;
 const status = document.querySelector<HTMLElement>("#status")!;
 let statusTimer: number | undefined;
 let lang: UiLang = "en";
+let favoriteReplyLanguages = [...DEFAULT_SETTINGS.favoriteReplyLanguages];
+// Keyed by plain string on purpose: stored favourites are strings and may hold a
+// code the preset list no longer offers, which the caller handles by skipping the
+// row (@see renderFavoriteLanguages). The option list infers a literal union, so
+// the key type is widened here instead of at every lookup.
+const replyLanguageByValue = new Map<string, (typeof REPLY_LANGUAGE_OPTIONS)[number]>(REPLY_LANGUAGE_OPTIONS.map(option => [option.value, option]));
 
 // Release builds (Chrome Web Store) are compiled with VERBIA_RELEASE=1 and a
 // pinned gateway, so the Developer settings card is removed and the Backend
@@ -23,9 +29,9 @@ function renderOptions(strings: Record<string, string>) {
     items.map(item => ({ value: item.value, label: item.value === "auto" ? autoLabel : item.label }));
   fill("voice-language", withAuto(VOICE_LANGUAGE_OPTIONS));
   fill("ui-language", withAuto(UI_LANGUAGE_OPTIONS));
-  fill("output-language", REPLY_LANGUAGE_OPTIONS);
   fill("tone", TONE_VALUES.map(value => ({ value, label: strings[`opt.${value}`] ?? value })));
   fill("length", LENGTH_VALUES.map(value => ({ value, label: strings[`opt.${value}`] ?? value })));
+  renderFavoriteLanguages();
 }
 
 function fill(id: string, items: ReadonlyArray<{ value: string; label: string }>) {
@@ -48,7 +54,7 @@ function applyLanguage() {
   document.documentElement.dir = isRtl(lang) ? "rtl" : "ltr";
   for (const el of document.querySelectorAll<HTMLElement>("[data-i18n]")) {
     const key = el.dataset.i18n ?? "";
-    const text = strings[key];
+    const text = strings[key] ?? UI_STRINGS.en[key];
     if (!text) continue;
     const control = el instanceof HTMLLabelElement ? el.querySelector("input,select,textarea") : null;
     if (control) {
@@ -63,6 +69,10 @@ function applyLanguage() {
     }
   }
   document.title = `Verbia — ${strings["settings.title"] ?? "Settings"}`;
+  for (const el of document.querySelectorAll<HTMLInputElement>("[data-i18n-placeholder]")) {
+    const key = el.dataset.i18nPlaceholder ?? "";
+    el.placeholder = strings[key] ?? UI_STRINGS.en[key] ?? "";
+  }
   const sectionHeadings = document.querySelectorAll<HTMLElement>(".settings-section .section-heading h2");
   const sectionDescriptions = document.querySelectorAll<HTMLElement>(".settings-section .section-heading p");
   if (sectionHeadings[0]) sectionHeadings[0].textContent = strings["settings.replyDefaults"] ?? "Reply defaults";
@@ -72,8 +82,9 @@ function applyLanguage() {
   renderOptions(strings);
 }
 
-// Both the privacy card's link and the Support card's button open the same
-// contact page; one builder keeps the two from drifting apart.
+// The privacy card's link, the Support card's button and the platforms section's
+// request button all open the same contact page; one builder keeps them from
+// drifting apart.
 function feedbackUrl(): string {
   return `https://verbia.henriz.dev/${lang === "zh-CN" ? "zh/" : ""}contact?source=settings&version=${encodeURIComponent(chrome.runtime.getManifest().version)}`;
 }
@@ -84,7 +95,7 @@ function feedbackUrl(): string {
 function applyLinks() {
   const review = document.querySelector<HTMLAnchorElement>("#leave-review");
   if (review) review.href = reviewUrl();
-  for (const id of ["#contact-feedback", "#send-feedback"]) {
+  for (const id of ["#contact-feedback", "#send-feedback", "#platform-feedback"]) {
     const link = document.querySelector<HTMLAnchorElement>(id);
     if (link) link.href = feedbackUrl();
   }
@@ -93,10 +104,12 @@ function applyLinks() {
 async function load() {
   const response = await chrome.runtime.sendMessage({ type: "GET_SETTINGS" });
   const value = response?.ok ? response.data as UserSettings : DEFAULT_SETTINGS;
+  favoriteReplyLanguages = [...(value.favoriteReplyLanguages ?? DEFAULT_SETTINGS.favoriteReplyLanguages)];
   lang = resolveUiLang(value.uiLanguage, chrome.i18n.getUILanguage());
   applyLanguage();
   applyLinks();
-  set("backend", value.backendBaseUrl); set("voice-language", value.voiceLanguage); set("ui-language", value.uiLanguage); set("output-language", value.outputLanguage); set("tone", value.defaultTone); set("length", value.defaultLength);
+  set("backend", value.backendBaseUrl); set("voice-language", value.voiceLanguage); set("ui-language", value.uiLanguage); set("tone", value.defaultTone); set("length", value.defaultLength);
+  renderFavoriteLanguages();
   check("contextPreviewExpanded", value.contextPreviewExpanded); check("telemetryEnabled", value.telemetryEnabled);
   check("showLanguageInPanel", value.showLanguageInPanel); check("showToneInPanel", value.showToneInPanel); check("showLengthInPanel", value.showLengthInPanel);
   await applyShortcuts();
@@ -111,7 +124,114 @@ function isValidBackendUrl(raw: string): boolean {
   } catch { return false; }
 }
 
-function t(key: string) { return UI_STRINGS[lang][key] ?? key; }
+function t(key: string) { return UI_STRINGS[lang][key] ?? UI_STRINGS.en[key] ?? key; }
+
+function renderFavoriteLanguages() {
+  const container = document.querySelector<HTMLElement>("#favorite-languages");
+  if (!container) return;
+  container.textContent = "";
+  favoriteReplyLanguages.forEach((value, index) => {
+    const option = replyLanguageByValue.get(value);
+    if (!option) return;
+    const item = document.createElement("div");
+    item.className = "favorite-language";
+    item.setAttribute("role", "listitem");
+
+    const name = document.createElement("span");
+    name.className = "favorite-language-name";
+    name.textContent = option.label;
+    item.append(name);
+
+    if (index === 0) {
+      const badge = document.createElement("span");
+      badge.className = "default-language-badge";
+      badge.textContent = t("settings.defaultReplyLanguage");
+      item.append(badge);
+    }
+
+    const actions = document.createElement("span");
+    actions.className = "favorite-language-actions";
+    // Up/down, not left/right: the list is vertical, so the arrows follow the
+    // order it is read in rather than an axis the row does not have.
+    const controls = [
+      { action: "language-up", text: "↑", disabled: index === 0, label: t("settings.moveLanguageEarlier") },
+      { action: "language-down", text: "↓", disabled: index === favoriteReplyLanguages.length - 1, label: t("settings.moveLanguageLater") },
+      { action: "language-remove", text: "×", disabled: favoriteReplyLanguages.length === 1, label: t("settings.removeReplyLanguage") }
+    ];
+    for (const control of controls) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.dataset.action = control.action;
+      button.dataset.language = value;
+      button.textContent = control.text;
+      button.disabled = control.disabled;
+      button.setAttribute("aria-label", `${control.label}: ${option.label}`);
+      actions.append(button);
+    }
+    item.append(actions);
+    container.append(item);
+  });
+  const add = document.querySelector<HTMLButtonElement>("#add-reply-language");
+  if (add) add.disabled = favoriteReplyLanguages.length >= 5;
+}
+
+function renderLanguageResults(query = "") {
+  const results = document.querySelector<HTMLElement>("#reply-language-results");
+  if (!results) return;
+  const needle = query.trim().toLocaleLowerCase();
+  results.textContent = "";
+  for (const option of REPLY_LANGUAGE_OPTIONS) {
+    if (needle && !option.label.toLocaleLowerCase().includes(needle) && !option.value.toLocaleLowerCase().includes(needle)) continue;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "language-result";
+    button.dataset.language = option.value;
+    const selected = favoriteReplyLanguages.includes(option.value);
+    button.disabled = selected || favoriteReplyLanguages.length >= 5;
+    button.innerHTML = `<span>${option.label}</span><small>${selected ? t("settings.languageAdded") : option.value}</small>`;
+    button.setAttribute("role", "option");
+    button.setAttribute("aria-selected", String(selected));
+    results.append(button);
+  }
+}
+
+function saveFavorites() {
+  renderFavoriteLanguages();
+  void save();
+}
+
+document.querySelector("#favorite-languages")?.addEventListener("click", event => {
+  const button = (event.target as HTMLElement).closest<HTMLButtonElement>("button[data-action]");
+  const value = button?.dataset.language;
+  if (!button || !value) return;
+  const index = favoriteReplyLanguages.indexOf(value);
+  if (index < 0) return;
+  if (button.dataset.action === "language-up" && index > 0) [favoriteReplyLanguages[index - 1], favoriteReplyLanguages[index]] = [favoriteReplyLanguages[index]!, favoriteReplyLanguages[index - 1]!];
+  if (button.dataset.action === "language-down" && index < favoriteReplyLanguages.length - 1) [favoriteReplyLanguages[index + 1], favoriteReplyLanguages[index]] = [favoriteReplyLanguages[index]!, favoriteReplyLanguages[index + 1]!];
+  if (button.dataset.action === "language-remove" && favoriteReplyLanguages.length > 1) favoriteReplyLanguages.splice(index, 1);
+  saveFavorites();
+});
+
+const languageDialog = document.querySelector<HTMLDialogElement>("#reply-language-dialog");
+document.querySelector("#add-reply-language")?.addEventListener("click", () => {
+  if (!languageDialog || favoriteReplyLanguages.length >= 5) return;
+  const search = document.querySelector<HTMLInputElement>("#reply-language-search");
+  if (search) search.value = "";
+  renderLanguageResults();
+  languageDialog.showModal();
+  search?.focus();
+});
+document.querySelector("[data-action='close-language-dialog']")?.addEventListener("click", () => languageDialog?.close());
+languageDialog?.addEventListener("click", event => { if (event.target === languageDialog) languageDialog.close(); });
+document.querySelector<HTMLInputElement>("#reply-language-search")?.addEventListener("input", event => renderLanguageResults((event.target as HTMLInputElement).value));
+document.querySelector("#reply-language-results")?.addEventListener("click", event => {
+  const button = (event.target as HTMLElement).closest<HTMLButtonElement>("button[data-language]");
+  const value = button?.dataset.language;
+  if (!value || button?.disabled || favoriteReplyLanguages.length >= 5 || favoriteReplyLanguages.includes(value)) return;
+  favoriteReplyLanguages.push(value);
+  languageDialog?.close();
+  saveFavorites();
+});
 
 // Autosave: every change persists immediately. Changing the interface
 // language reloads the page so the new language takes over the whole form.
@@ -162,7 +282,8 @@ async function save(): Promise<boolean> {
     backendBaseUrl,
     uiLanguage: String(data.get("uiLanguage") ?? "auto"),
     voiceLanguage: String(data.get("voiceLanguage")),
-    outputLanguage: String(data.get("outputLanguage")),
+    outputLanguage: favoriteReplyLanguages[0] ?? DEFAULT_SETTINGS.outputLanguage,
+    favoriteReplyLanguages: [...favoriteReplyLanguages],
     defaultTone: String(data.get("defaultTone")) as UserSettings["defaultTone"],
     defaultLength: String(data.get("defaultLength")) as UserSettings["defaultLength"],
     showLanguageInPanel: data.has("showLanguageInPanel"),

@@ -3,6 +3,7 @@ import { RedditAdapter } from "./adapters/reddit";
 import { UniversalAdapter } from "./adapters/universal";
 import { OutlookAdapter } from "./adapters/outlook";
 import { QqMailAdapter } from "./adapters/qqmail";
+import { WhatsAppAdapter } from "./adapters/whatsapp";
 import { isSafeEditable, toTarget } from "./editor/editable";
 import { claimPage, dropPanelRoots, ownsPage, PANEL_ROOT_SELECTOR } from "./page-claim";
 import { resolveSiteMode } from "./site-mode";
@@ -38,6 +39,7 @@ if (!window.__verbiaLoaded) {
   const universal = new UniversalAdapter();
   const outlook = new OutlookAdapter();
   const qqmail = new QqMailAdapter();
+  const whatsapp = new WhatsAppAdapter();
   const url = new URL(location.href);
 
   // Gmail injects the content script into every frame of mail.google.com
@@ -54,6 +56,7 @@ if (!window.__verbiaLoaded) {
   // QQ Mail is a single-document SPA with no frames at all, so the host is the
   // whole check — its composer comes and goes with the route.
   const onQqMailHost = qqmail.matches(url);
+  const onWhatsAppHost = whatsapp.matches(url);
   const isTopFrame = window === window.top;
   const startDormant = onGmailHost && !isTopFrame;
 
@@ -61,8 +64,8 @@ if (!window.__verbiaLoaded) {
   else bootActive();
 
   function bootActive() {
-    const site: SiteAdapter = onQqMailHost ? qqmail : onOutlookHost ? outlook : onGmailHost ? gmail : reddit.matches(url) ? reddit : universal;
-    const autoAdapter = site === reddit || site === gmail || site === outlook || site === qqmail ? site : null;
+    const site: SiteAdapter = onWhatsAppHost ? whatsapp : onQqMailHost ? qqmail : onOutlookHost ? outlook : onGmailHost ? gmail : reddit.matches(url) ? reddit : universal;
+    const autoAdapter = site === reddit || site === gmail || site === outlook || site === qqmail || site === whatsapp ? site : null;
     // Which of the three behaviours this page gets (@see SiteMode). Resolved once
     // per page: it follows the host and the adapter, never the contents.
     const mode = resolveSiteMode(site, url);
@@ -133,7 +136,7 @@ if (!window.__verbiaLoaded) {
       // Generalized mail mode floats for the same reason: those pages put the
       // reply box inside a long reading view, where an inline panel is far from
       // what the user is looking at.
-      const floating = adapter === gmail || adapter === outlook || adapter === qqmail || mode === "email";
+      const floating = adapter === gmail || adapter === outlook || adapter === qqmail || adapter === whatsapp || mode === "email";
       const anchorFor = () => (floating ? element : findReplyAnchor(element));
       // Already open for this editor and still on the page: nothing to rebuild.
       // The check goes through the panel, not the document: host pages re-render

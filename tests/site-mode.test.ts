@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { isEmailHost, resolveSiteMode } from "../apps/extension/src/content/site-mode";
 import { GmailAdapter } from "../apps/extension/src/content/adapters/gmail";
 import { QqMailAdapter } from "../apps/extension/src/content/adapters/qqmail";
+import { WhatsAppAdapter } from "../apps/extension/src/content/adapters/whatsapp";
 import { UniversalAdapter } from "../apps/extension/src/content/adapters/universal";
 
 // The mode is resolved from the host and the adapter, never from what the page
@@ -26,6 +27,7 @@ describe("site mode", () => {
   it("keeps a site with an adapter on auto, mail host or not", () => {
     expect(resolveSiteMode(new GmailAdapter(), new URL("https://mail.google.com/mail/u/0"))).toBe("auto");
     expect(resolveSiteMode(new QqMailAdapter(), new URL("https://wx.mail.qq.com/home"))).toBe("auto");
+    expect(resolveSiteMode(new WhatsAppAdapter(), new URL("https://web.whatsapp.com/"))).toBe("auto");
   });
 
   it("matches hosts case-insensitively and never by suffix", () => {

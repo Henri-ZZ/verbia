@@ -4,6 +4,7 @@ import { VerbiaPanel } from "../apps/extension/src/content/ui/panel";
 import { QqMailAdapter } from "../apps/extension/src/content/adapters/qqmail";
 import { RedditAdapter } from "../apps/extension/src/content/adapters/reddit";
 import { UniversalAdapter } from "../apps/extension/src/content/adapters/universal";
+import { WhatsAppAdapter } from "../apps/extension/src/content/adapters/whatsapp";
 import { toTarget } from "../apps/extension/src/content/editor/editable";
 import { DEFAULT_SETTINGS, UI_STRINGS, type ContextEnvelope } from "@verbia/shared";
 
@@ -48,6 +49,26 @@ async function render(confidence: ContextEnvelope["confidence"]): Promise<string
 const detailsTag = (html: string) => html.match(/<details class="context"[^>]*>/)?.[0] ?? "";
 
 describe("panel context warnings", () => {
+  it("labels WhatsApp context as a conversation and identifies both sides", async () => {
+    const editor = document.createElement("div");
+    editor.setAttribute("contenteditable", "true");
+    document.body.append(editor);
+    const panel = new VerbiaPanel(new WhatsAppAdapter(), toTarget(editor), {
+      relation: "unknown",
+      target: { body: "Contact: Are you free?\nYou: After six." },
+      truncated: false,
+      extractorVersion: "test",
+      confidence: "high"
+    }, () => {});
+    panel.mountAfter(editor);
+    await panel.open(false);
+    const text = document.querySelector<HTMLElement>("[data-verbia-root='true']")?.shadowRoot?.textContent ?? "";
+    expect(text).toContain(UI_STRINGS.en["context.recentConversation"]);
+    expect(text).toContain(`${UI_STRINGS.en["context.contact"]}: Are you free?`);
+    expect(text).toContain(`${UI_STRINGS.en["context.you"]}: After six.`);
+    expect(text).not.toContain(UI_STRINGS.en["context.originalMessage"]);
+  });
+
   // Regression: the two warning rows were built from single-quoted strings
   // inside the template literal, so the panel rendered the source code
   // `${this.t("panel.warningLow")}` instead of the sentence.

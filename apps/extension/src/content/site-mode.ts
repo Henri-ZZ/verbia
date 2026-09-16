@@ -5,8 +5,8 @@ import type { SiteAdapter } from "@verbia/shared";
 // mode only decides how the panel is summoned, where it is placed, what fills the
 // context before the user acts, and what a request reports as its platform.
 //
-//   auto      — a site with an adapter of its own (Reddit, Gmail, Outlook, QQ
-//               Mail): the adapter reads the page and the panel opens itself.
+//   auto      — a site with an adapter of its own (Reddit, WhatsApp, Gmail,
+//               Outlook, QQ Mail): the adapter reads the page and the panel opens itself.
 //   email     — every other webmail host: there is no site-specific read at all,
 //               so the context comes from an explicit identification instead.
 //               Manual summon, floating panel, mail wording.

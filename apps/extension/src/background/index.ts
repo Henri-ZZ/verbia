@@ -22,7 +22,13 @@ chrome.runtime.onInstalled.addListener(async details => {
       // (en/zh-CN) instead of storing "auto". "auto" would otherwise be
       // re-resolved per surface with potentially different results. The user
       // can change it on the Settings page afterwards.
-      const initial: UserSettings = { ...DEFAULT_SETTINGS, uiLanguage: resolveUiLang("auto", chrome.i18n.getUILanguage()) };
+      const uiLanguage = resolveUiLang("auto", chrome.i18n.getUILanguage());
+      const favoriteReplyLanguages = [...new Set([DEFAULT_SETTINGS.outputLanguage, uiLanguage])];
+      const initial: UserSettings = {
+        ...DEFAULT_SETTINGS,
+        uiLanguage,
+        favoriteReplyLanguages
+      };
       await chrome.storage.local.set({ settings: initial });
     }
     // Welcome page after first install.

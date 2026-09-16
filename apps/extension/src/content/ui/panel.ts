@@ -21,6 +21,7 @@ select:hover{border-color:#8fae9b}
 select:focus-visible{border-color:#0F6E56;box-shadow:0 0 0 1px #0F6E5626}
 .head-actions{display:flex;align-items:center;gap:2px}.remove-panel{display:none;color:#87362f}.remove-panel:hover{background:#fae3df}.panel.collapsed .remove-panel{display:grid}.panel.collapsed .head-actions .icon svg{transform:none}.panel.collapsed .head-actions [data-action="collapse"] svg{transform:rotate(180deg)}
 .row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-block-start:10px}
+.language-control{display:grid;grid-template-columns:minmax(0,1fr) 32px;gap:5px}.language-more{display:grid;place-items:center;min-block-size:32px;border:1px solid #cad6cc;border-radius:9px;background:#fff;color:#355143;font-weight:800;cursor:pointer}.language-more:hover{border-color:#8fae9b;background:#f4f8f5}.language-dialog{inline-size:min(390px,calc(100% - 24px));max-block-size:min(520px,calc(100% - 24px));margin:auto;border:1px solid #d3ded5;border-radius:14px;padding:0;background:#fff;color:#172019;box-shadow:0 20px 60px #17201938}.language-dialog::backdrop{background:#17201966}.language-dialog-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:15px 15px 10px}.language-dialog-head strong{font-size:.9rem}.language-dialog-head p{margin:3px 0 0;color:#718078;font-size:.68rem}.dialog-close{display:grid;place-items:center;flex:none;inline-size:30px;block-size:30px;border:0;border-radius:8px;background:#edf2ed;color:#526159;font-size:1.2rem}.language-search{inline-size:calc(100% - 30px);min-block-size:34px;margin:0 15px 9px;border:1px solid #cad6cc;border-radius:9px;padding:7px 9px}.language-results{max-block-size:330px;overflow:auto;border-block-start:1px solid #edf1ed;padding:6px}.language-result{display:flex;align-items:center;justify-content:space-between;inline-size:100%;min-block-size:36px;border:0;border-radius:8px;padding:7px 9px;background:transparent;color:#172019;font-size:.75rem;font-weight:700;text-align:start}.language-result:hover{background:#edf6f0}.language-result small{color:#86928a;font-size:.62rem}
 .identify{display:flex;flex-direction:column;align-items:flex-start;gap:6px;margin-block-start:10px}.identify-status{margin:0;font-size:.75rem;line-height:1.4;color:#526057}.identify-status.error{color:#9c3c34}.identify-hint{margin:0;font-size:.7rem;line-height:1.4;color:#718078}.primary,.secondary,.danger{min-block-size:32px;border:0;border-radius:9px;padding:8px 12px;font-weight:750}.primary{background:#0F6E56;color:white}.secondary{background:#e7eee8;color:#214531}.danger{background:#fae3df;color:#87362f}.primary:disabled,.secondary:disabled{opacity:.45;cursor:not-allowed}.status{min-block-size:18px;margin:8px 0 0;color:#526057;font-size:.75rem;display:flex;align-items:center;gap:6px}.status img{inline-size:14px;block-size:14px;flex:none}.status.recording{display:block;color:#a72c25;font-weight:800}.foot{font-size:.7rem;color:#718078;margin:10px 0 0}.insert-choice{border:1px solid #efcf8b;background:#fff9e8;padding:10px;border-radius:10px;margin-block-start:10px}.hidden{display:none!important}@container (max-width:380px){.row{grid-template-columns:1fr}}
 `;
 
@@ -43,7 +44,7 @@ export class VerbiaPanel {
   private context: ContextEnvelope;
   private settings: UserSettings = DEFAULT_SETTINGS;
   private lang: UiLang = "en";
-  private t(key: string) { return UI_STRINGS[this.lang][key] ?? key; }
+  private t(key: string) { return UI_STRINGS[this.lang][key] ?? UI_STRINGS.en[key] ?? key; }
   private phase: Phase = "idle";
   private draft = "";
   private requestId?: string;
@@ -120,6 +121,10 @@ export class VerbiaPanel {
 
   private onInput = (rawEvent: Event) => {
     const target = rawEvent.target as HTMLElement | null;
+    if (target?.classList?.contains("language-search")) {
+      this.renderLanguageResults((target as HTMLInputElement).value);
+      return;
+    }
     if (!target?.classList?.contains("draft")) return;
     // Editing the draft after an insert re-enables the Insert button so the
     // user can apply the revised draft.
@@ -134,7 +139,10 @@ export class VerbiaPanel {
   private onChange = (event: Event) => {
     const target = event.target as HTMLSelectElement | null;
     if (!target?.id) return;
-    if (target.id === "language") this.settings.outputLanguage = target.value;
+    if (target.id === "language") {
+      this.settings.outputLanguage = target.value;
+      this.syncPanelRows(target.value);
+    }
     else if (target.id === "tone") this.settings.defaultTone = target.value as UserSettings["defaultTone"];
     else if (target.id === "length") this.settings.defaultLength = target.value as UserSettings["defaultLength"];
     else return;
@@ -367,6 +375,7 @@ export class VerbiaPanel {
     }
     // Brand names that read the same in every language stay inline (Reddit, QQ
     // Mail); only labels that need translating live in the string table.
+    if (this.adapter.id === "whatsapp") return "WhatsApp";
     const source = this.mode === "email" ? this.t("context.email") : this.mode === "universal" ? this.t("context.universal") : this.adapter.id === "reddit" ? "Reddit" : this.adapter.id === "qqmail" ? "QQ Mail" : this.adapter.id === "gmail" ? this.t("context.gmail") : this.adapter.id === "outlook" ? this.t("context.outlook") : this.t("context.universal");
     const relation = this.t(`context.rel.${this.context.relation}`);
     return `${source} · ${relation}`;
@@ -391,7 +400,9 @@ export class VerbiaPanel {
     // the model reported, because the relation is one of the things the reader is
     // checking: an identification that came back with task "unknown" on a mail page
     // is still a subject and a message, not a post title and a target comment.
+    const whatsapp = this.adapter.id === "whatsapp";
     const mail = isMailSite(this.mode, this.adapter.id) || this.context.relation === "reply_to_email";
+    const messageLike = mail || whatsapp;
     const parts: string[] = [];
     // Who it came from, when the reader knows. It comes first because it is what
     // makes the context verifiable at a glance: the message text alone does not
@@ -405,12 +416,18 @@ export class VerbiaPanel {
     // Oldest first in mail: the list arrives newest-first (depth 1 is the round
     // right before this message) and reads better ending on what is being
     // answered.
-    for (const item of mail ? [...earlier].reverse() : earlier) {
-      parts.push(`${this.t(mail ? "context.earlierMessages" : "context.parentComment")}\n${item.body}`);
+    for (const item of messageLike ? [...earlier].reverse() : earlier) {
+      parts.push(`${this.t(messageLike ? "context.earlierMessages" : "context.parentComment")}\n${item.body}`);
     }
     if (this.context.target?.body) {
-      const label = this.t(mail ? "context.originalMessage" : "context.targetComment");
-      parts.push(`${label}\n${this.context.target.body}`);
+      const label = this.t(whatsapp ? "context.recentConversation" : messageLike ? "context.originalMessage" : "context.targetComment");
+      const body = whatsapp
+        ? this.context.target.body
+            .replace(/^You:/gm, `${this.t("context.you")}:`)
+            .replace(/^Contact:/gm, `${this.t("context.contact")}:`)
+            .replace(/^Participant:/gm, `${this.t("context.participant")}:`)
+        : this.context.target.body;
+      parts.push(`${label}\n${body}`);
     }
     if (this.context.selectedText) parts.push(`${this.t("context.selectedText")}\n${this.context.selectedText}`);
     return parts.join("\n\n") || this.t("context.noText");
@@ -419,7 +436,11 @@ export class VerbiaPanel {
   // Three preset cells (language / tone / length). Rebuilt from current
   // settings so a rebuilt .row is always consistent with stored show-* flags.
   private rowCells(settings: UserSettings) {
-    const languageCell = `<div><label for="language">${this.t("panel.replyLanguage")}</label><select id="language">${REPLY_LANGUAGE_OPTIONS.map(lang => `<option value="${lang.value}">${lang.label}</option>`).join("")}</select></div>`;
+    const favorites = settings.favoriteReplyLanguages?.length ? settings.favoriteReplyLanguages : DEFAULT_SETTINGS.favoriteReplyLanguages;
+    const favoriteOptions = favorites.map(value => REPLY_LANGUAGE_OPTIONS.find(option => option.value === value)).filter((option): option is (typeof REPLY_LANGUAGE_OPTIONS)[number] => Boolean(option));
+    // No quick-pick chips next to the select: it already lists every favourite
+    // language, and the extra buttons competed with the row for attention.
+    const languageCell = `<div class="language-cell"><label for="language">${this.t("panel.replyLanguage")}</label><div class="language-control"><select id="language">${favoriteOptions.map(lang => `<option value="${lang.value}">${lang.label}</option>`).join("")}</select><button class="language-more" data-action="more-languages" type="button" aria-label="${this.t("panel.moreLanguages")}">＋</button></div></div>`;
     const toneCell = `<div><label for="tone">${this.t("panel.replyTone")}</label><select id="tone">${TONE_VALUES.map(v => `<option value="${v}">${this.t(`opt.${v}`)}</option>`).join("")}</select></div>`;
     const lengthCell = `<div><label for="length">${this.t("panel.replyLength")}</label><select id="length">${LENGTH_VALUES.map(v => `<option value="${v}">${this.t(`opt.${v}`)}</option>`).join("")}</select></div>`;
     return `${settings.showLanguageInPanel ? languageCell : ""}${settings.showToneInPanel ? toneCell : ""}${settings.showLengthInPanel ? lengthCell : ""}`;
@@ -427,14 +448,17 @@ export class VerbiaPanel {
 
   // A cell that was just hidden may no longer have a select in the DOM; fall
   // back to the stored setting so the rebuilt row reflects the new snapshot.
-  private syncPanelRows() {
+  private syncPanelRows(language?: string) {
     const row = this.root.querySelector(".row");
     if (!row) return;
-    const current = (id: string) => this.root.querySelector<HTMLSelectElement>(`#${id}`)?.value;
+    const currentLanguage = language ?? this.root.querySelector<HTMLSelectElement>("#language")?.value ?? this.settings.outputLanguage;
+    const currentTone = this.root.querySelector<HTMLSelectElement>("#tone")?.value ?? this.settings.defaultTone;
+    const currentLength = this.root.querySelector<HTMLSelectElement>("#length")?.value ?? this.settings.defaultLength;
     row.innerHTML = this.rowCells(this.settings);
-    this.setSelect("language", current("language") ?? this.settings.outputLanguage);
-    this.setSelect("tone", current("tone") ?? this.settings.defaultTone);
-    this.setSelect("length", current("length") ?? this.settings.defaultLength);
+    this.ensureLanguageOption(currentLanguage);
+    this.setSelect("language", currentLanguage);
+    this.setSelect("tone", currentTone);
+    this.setSelect("length", currentLength);
   }
 
   // Settings changed in the Options page (or any other context) while this
@@ -453,7 +477,8 @@ export class VerbiaPanel {
     if (prev?.defaultLength !== next.defaultLength) this.setSelect("length", next.defaultLength);
     if (prev?.showLanguageInPanel !== next.showLanguageInPanel
       || prev?.showToneInPanel !== next.showToneInPanel
-      || prev?.showLengthInPanel !== next.showLengthInPanel) {
+      || prev?.showLengthInPanel !== next.showLengthInPanel
+      || JSON.stringify(prev?.favoriteReplyLanguages) !== JSON.stringify(next.favoriteReplyLanguages)) {
       this.syncPanelRows();
     }
   }
@@ -477,7 +502,7 @@ export class VerbiaPanel {
     // empty context is worse than no draft.
     const needsIdentification = this.mode === "email" && this.identify !== "done" && !hasContextBody(this.context);
     const showContext = this.settings.contextPreviewExpanded || low || this.identify === "done";
-    this.root.innerHTML = `<style>${styles}</style><div class="inline-shell"><section class="panel" role="region" aria-labelledby="verbia-title"><header class="head"><div><h2 class="brand" id="verbia-title"><img src="${runtimeUrl("icons/verbia-horizontal-logo.svg")}" alt="Verbia" class="wordmark"></h2><p class="slogan">${this.t("brand.slogan")}</p></div><button class="icon" data-action="collapse" type="button" aria-expanded="true" aria-label="${this.t("panel.collapseAria")}"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 10l4-4 4 4"/></svg></button></header><div class="panel-body"><div class="chip">${escapeHtml(this.contextLabel())}</div>${needsIdentification ? `<p class="warning">${this.t("panel.warningNoContext")}</p>` : ""}${low ? `<p class="warning">${this.t(lowWarning)}</p>` : ""}${this.context.truncated ? `<p class="warning">${this.t("panel.warningTruncated")}</p>` : ""}<details class="context" ${showContext ? "open" : ""}><summary>${this.t("panel.summaryContext")}</summary><div class="context-body">${escapeHtml(this.contextText())}</div><button class="remove-context" data-action="remove-context" type="button">${this.t("panel.removeContext")}</button></details>${this.identifyBlock()}<label for="intent">${this.t("brand.uxLine")}</label><textarea class="intent" id="intent" maxlength="2000" placeholder="${this.t("panel.intentPlaceholder")}">${escapeHtml(intent)}</textarea><div class="actions"><button class="secondary" data-action="record" type="button">${this.t("panel.speak")}</button><button class="secondary" data-action="clear" type="button">${this.t("panel.clear")}</button></div><div class="row">${this.rowCells(this.settings)}</div><div class="actions"><button class="primary" data-action="generate" type="button">${this.t("panel.generate")}</button><button class="danger hidden" data-action="cancel" type="button">${this.t("panel.cancel")}</button></div><p class="status" role="status" aria-live="polite"></p><section class="draft-area hidden"><label for="draft">${this.t("panel.draftLabel")}</label><textarea class="draft" id="draft"></textarea><div class="actions"><button class="primary" data-action="insert" type="button">${this.t("panel.insert")}</button><button class="secondary" data-action="regenerate" type="button">${this.t("panel.regenerate")}</button><button class="secondary" data-action="copy" type="button">${this.t("panel.copy")}</button></div><div class="insert-choice hidden"><strong>${this.t("panel.editorHasText")}</strong><div class="actions"><button class="secondary" data-action="append" type="button">${this.t("panel.append")}</button><button class="danger" data-action="replace" type="button">${this.t("panel.replace")}</button><button class="secondary" data-action="choice-cancel" type="button">${this.t("panel.cancel")}</button></div></div></section><p class="foot">${this.t("panel.foot")}</p></div></section></div>`;
+    this.root.innerHTML = `<style>${styles}</style><div class="inline-shell"><section class="panel" role="region" aria-labelledby="verbia-title"><header class="head"><div><h2 class="brand" id="verbia-title"><img src="${runtimeUrl("icons/verbia-horizontal-logo.svg")}" alt="Verbia" class="wordmark"></h2><p class="slogan">${this.t("brand.slogan")}</p></div><button class="icon" data-action="collapse" type="button" aria-expanded="true" aria-label="${this.t("panel.collapseAria")}"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 10l4-4 4 4"/></svg></button></header><div class="panel-body"><div class="chip">${escapeHtml(this.contextLabel())}</div>${needsIdentification ? `<p class="warning">${this.t("panel.warningNoContext")}</p>` : ""}${low ? `<p class="warning">${this.t(lowWarning)}</p>` : ""}${this.context.truncated ? `<p class="warning">${this.t("panel.warningTruncated")}</p>` : ""}<details class="context" ${showContext ? "open" : ""}><summary>${this.t("panel.summaryContext")}</summary><div class="context-body">${escapeHtml(this.contextText())}</div><button class="remove-context" data-action="remove-context" type="button">${this.t("panel.removeContext")}</button></details>${this.identifyBlock()}<label for="intent">${this.t("brand.uxLine")}</label><textarea class="intent" id="intent" maxlength="2000" placeholder="${this.t("panel.intentPlaceholder")}">${escapeHtml(intent)}</textarea><div class="actions"><button class="secondary" data-action="record" type="button">${this.t("panel.speak")}</button><button class="secondary" data-action="clear" type="button">${this.t("panel.clear")}</button></div><div class="row">${this.rowCells(this.settings)}</div><div class="actions"><button class="primary" data-action="generate" type="button">${this.t("panel.generate")}</button><button class="danger hidden" data-action="cancel" type="button">${this.t("panel.cancel")}</button></div><p class="status" role="status" aria-live="polite"></p><section class="draft-area hidden"><label for="draft">${this.t("panel.draftLabel")}</label><textarea class="draft" id="draft"></textarea><div class="actions"><button class="primary" data-action="insert" type="button">${this.t("panel.insert")}</button><button class="secondary" data-action="regenerate" type="button">${this.t("panel.regenerate")}</button><button class="secondary" data-action="copy" type="button">${this.t("panel.copy")}</button></div><div class="insert-choice hidden"><strong>${this.t("panel.editorHasText")}</strong><div class="actions"><button class="secondary" data-action="append" type="button">${this.t("panel.append")}</button><button class="danger" data-action="replace" type="button">${this.t("panel.replace")}</button><button class="secondary" data-action="choice-cancel" type="button">${this.t("panel.cancel")}</button></div></div></section><p class="foot">${this.t("panel.foot")}</p></div></section></div><dialog class="language-dialog"><div class="language-dialog-head"><div><strong>${this.t("panel.replyLanguage")}</strong><p>${this.t("settings.favoriteReplyLanguagesHint")}</p></div><button class="dialog-close" data-action="close-language-dialog" type="button" aria-label="${this.t("panel.closeLanguagePicker")}">×</button></div><input class="language-search" type="search" placeholder="${this.t("settings.searchLanguages")}" aria-label="${this.t("settings.searchLanguages")}"><div class="language-results" role="listbox"></div></dialog>`;
     this.renderHeadActions();
     this.setSelect("language", this.settings.outputLanguage);
     this.setSelect("tone", this.settings.defaultTone);
@@ -499,6 +524,16 @@ export class VerbiaPanel {
     if (action === "choice-cancel") this.el("insert-choice")?.classList.add("hidden");
     if (action === "copy") void this.copy();
     if (action === "record") this.toggleRecording();
+    if (action === "more-languages") this.openLanguagePicker();
+    if (action === "close-language-dialog") this.root.querySelector<HTMLDialogElement>(".language-dialog")?.close();
+    if (action === "pick-language") {
+      const language = (event.target as HTMLElement).closest<HTMLElement>("[data-language]")?.dataset.language;
+      if (language) {
+        this.ensureLanguageOption(language);
+        this.setSelect("language", language);
+        this.root.querySelector<HTMLDialogElement>(".language-dialog")?.close();
+      }
+    }
   };
 
   private async generate() {
@@ -1017,6 +1052,37 @@ export class VerbiaPanel {
     if (this.floating) this.scheduleFloat();
   }
   private value(id: string, fallback: string) { return this.root.querySelector<HTMLSelectElement>(`#${id}`)?.value || fallback; }
+  private ensureLanguageOption(value: string) {
+    const select = this.root.querySelector<HTMLSelectElement>("#language");
+    if (!select || [...select.options].some(option => option.value === value)) return;
+    const language = REPLY_LANGUAGE_OPTIONS.find(option => option.value === value);
+    if (!language) return;
+    const option = document.createElement("option");
+    option.value = language.value;
+    option.textContent = language.label;
+    select.prepend(option);
+  }
+
+  private openLanguagePicker() {
+    const dialog = this.root.querySelector<HTMLDialogElement>(".language-dialog");
+    if (!dialog) return;
+    const search = this.root.querySelector<HTMLInputElement>(".language-search");
+    if (search) search.value = "";
+    this.renderLanguageResults();
+    dialog.showModal();
+    search?.focus();
+  }
+
+  private renderLanguageResults(query = "") {
+    const results = this.root.querySelector<HTMLElement>(".language-results");
+    if (!results) return;
+    const needle = query.trim().toLocaleLowerCase();
+    results.innerHTML = REPLY_LANGUAGE_OPTIONS
+      .filter(option => !needle || option.label.toLocaleLowerCase().includes(needle) || option.value.toLocaleLowerCase().includes(needle))
+      .map(option => `<button class="language-result" data-action="pick-language" data-language="${option.value}" type="button" role="option"><span>${option.label}</span><small>${option.value}</small></button>`)
+      .join("");
+  }
+
   private setSelect(id: string, value: string) { const select = this.root.querySelector<HTMLSelectElement>(`#${id}`); if (select && [...select.options].some(option => option.value === value)) select.value = value; }
   private el<T extends HTMLElement = HTMLElement>(className: string) { return this.root.querySelector<T>(`.${className}`); }
   private action(name: string) { return this.root.querySelector<HTMLButtonElement>(`[data-action='${name}']`); }

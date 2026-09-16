@@ -338,6 +338,7 @@ export type UserSettings = {
   uiLanguage: string;
   voiceLanguage: string;
   outputLanguage: string;
+  favoriteReplyLanguages: string[];
   defaultTone: Tone;
   defaultLength: ReplyLength;
   showLanguageInPanel: boolean;
@@ -353,6 +354,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   uiLanguage: "auto",
   voiceLanguage: "auto",
   outputLanguage: "en",
+  favoriteReplyLanguages: ["en", "zh-CN"],
   defaultTone: "auto",
   defaultLength: "short",
   showLanguageInPanel: true,

@@ -1,6 +1,6 @@
 # Chrome Web Store Listing — Verbia
 
-> Last Updated: 2026-09-15
+> Last Updated: 2026-09-16
 
 ## Store Listing
 
@@ -24,7 +24,7 @@ Verbia drafts the reply you mean, in the language you choose, on the page you ar
 FEATURES
 
 • Write in your language, send in theirs. Type or speak what you want to say — any language — and Verbia writes the reply in the reply language, tone, and length you pick.
-• It knows what you are answering. On Reddit, Gmail, Outlook, and QQ Mail, Verbia reads the conversation as the reply box opens and shows it before generating: the post and its reply chain, or the original email.
+• It knows what you are answering. On Reddit, WhatsApp Web, Gmail, Outlook, and QQ Mail, Verbia reads the relevant visible conversation as the reply box opens and shows it before generating: the post and its reply chain, recent chat messages, or the original email.
 • Other webmail works too. On any other mail site, press “AI identify this email” and the message around your reply box is read for you.
 • Anywhere else you type. On any other page, use the text you selected as context — add it from the right-click menu — or use no context at all.
 • Speak instead of typing. Voice input turns what you say into the draft.
@@ -66,7 +66,7 @@ Verbia 用你选择的语言、在你正在书写的页面上，起草你真正�
 功能
 
 • 用你的语言写，用对方的语言发。说出或输入你想表达的内容，Verbia 按你选择的语言、语气与长度写出回复草稿。
-• 知道你在回复什么。在 Reddit、Gmail、Outlook 与 QQ 邮箱上，回复框打开时 Verbia 会读取相关对话并在生成前展示：帖子与回复链，或正在回复的那封邮件。
+• 知道你在回复什么。在 Reddit、WhatsApp 网页版、Gmail、Outlook 与 QQ 邮箱上，回复框打开时 Verbia 会读取相关的可见对话并在生成前展示：帖子与回复链、最近的聊天消息，或正在回复的那封邮件。
 • 其它邮箱也能用。在任意其他邮箱的网页版，点击「AI 识别当前邮件上下文」，Verbia 会替你读取回复框周围的邮件内容。
 • 其它网页同样可用。任何页面上，都可以用你选中的文字作为上下文（右键菜单加入），也可以不带上下文直接起草。
 • 说，不必打。语音输入把你说的内容变成草稿。
@@ -115,7 +115,7 @@ Verbia 支持 Chrome 与 Microsoft Edge，Firefox 版本正在计划中。
 
 > 可直接复制的 **Description**（31 种语言）见 [`CHROMEWEBSTORE-COPY.md`](CHROMEWEBSTORE-COPY.md)。
 
-> **不要在描述里枚举第三方站点，也不要列举全部界面语言。** 2026-09-15 的提交因这一行被判定为 Keyword Spam（`Yellow Argon`）拒绝：`On 163, Yahoo, Proton, iCloud, Fastmail, Zoho, GMX, mail.com, Yandex, Naver, Daum`——11 个品牌名连排会被读成"为搜索堆词"。现在描述里只保留产品自身的核心集成（Reddit / Gmail / Outlook / QQ 邮箱），其余一律写成「其它邮箱」「任意其他邮箱」；界面语言只写数量与切换位置（`31 interface languages, switchable any time in the Dashboard.`）。
+> **不要在描述里枚举第三方站点，也不要列举全部界面语言。** 2026-09-15 的提交因这一行被判定为 Keyword Spam（`Yellow Argon`）拒绝：`On 163, Yahoo, Proton, iCloud, Fastmail, Zoho, GMX, mail.com, Yandex, Naver, Daum`——11 个品牌名连排会被读成"为搜索堆词"。现在描述里只保留产品自身的核心集成（Reddit / WhatsApp / Gmail / Outlook / QQ 邮箱），其余一律写成「其它邮箱」「任意其他邮箱」；界面语言只写数量与切换位置（`31 interface languages, switchable any time in the Dashboard.`）。
 
 > **界面里的专有名词必须用产品内的译法，别在中 / 日 / 韩等语言里直接写英文。** 权威口径是 `packages/shared/src/ui-strings.ts`：中文写「控制面板」（不是 Dashboard）、「生成」（不是 Generate）、「联系与反馈」（不是 Contact），日文写「お問い合わせ」、德文写 „Kontakt"，以此类推。只有**全语言统一不译**的词才保留英文，例如 Premium（`planPremium` 各语言都是 Premium）。
 
@@ -329,6 +329,7 @@ Verbia membaca konten halaman hanya setelah Anda memanggilnya, membatasi akses p
 | https://mail.google.com/*                                                 | host_permissions | Lets the content script run in Gmail's message-composer frame (all_frames + match_about_blank) so Verbia can draft replies inside the email composer the user is writing. Reads only the email being replied to after the composer is opened. |
 | outlook origins (`outlook.live.com`, `outlook.office.com`, `outlook.com`) | host_permissions | Lets the content script locate the message composer in Outlook on the web and read only the email being replied to after the user opens a reply.                                                                                              |
 | https://wx.mail.qq.com/*                                                  | host_permissions | Lets the content script locate the message composer in QQ Mail's web app and read only the message being answered after the user opens the composer.                                                                                          |
+| https://web.whatsapp.com/*                                                | host_permissions | Lets the content script detect WhatsApp Web's chat composer, read an explicitly quoted message or up to six visible text messages from the current conversation segment, show that context for review, and insert only the draft the user chooses. |
 | https://pthfyoejvlcwxboskrjr.supabase.co/*                                | host_permissions | Completes user-initiated Google or email sign-in with Verbia's Supabase project and refreshes the resulting account session.                                                                                                                  |
 
 ## Privacy & Data Use
@@ -368,10 +369,27 @@ Verbia membaca konten halaman hanya setelah Anda memanggilnya, membatasi akses p
 
 | Version | Date       | Changes                                                                                                                                                                                                                                                                                                          | Status |
 | ------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| 0.1.6   | 2026-09-16 | WhatsApp Web automatic mode: distinguishes the user from the contact, respects quoted replies and conversation time gaps, previews the current text conversation, and inserts a draft only after user review.                                                                                                     | Draft  |
 | 0.1.5   | 2026-09-15 | QQ Mail on the web; a generalized email mode for other webmail where “AI identify this email” reads the message around the reply box; 10 new interface languages (22 total, Arabic right-to-left); failed or unusable generations no longer count against the daily allowance; clearer context and identification wording | Draft  |
 | 0.1.4   | 2026-09-13 | （本文档未登记；见 git `39ec204` / `21d1949`）QQ Mail 支持、AI 识别邮件上下文                                                                                                                                                                                                                                    | Draft  |
 | 0.1.1–0.1.3 | —      | 未登记。建议按 git log 回填后再提交，商店的版本历史对用户可见                                                                                                                                                                                                                                                    | Draft  |
 | 0.1.0   | 2026-09-06 | Reddit inline reply assistant, removable reply panels with clean-session reopening, Universal reply drafting, dashboard access from the popup, Google profile identity, and visible daily free-usage allowance                                                                                                  | Draft  |
+
+### What’s new (0.1.6)
+
+> 商店后台每次更新都有独立的 “What’s new” 字段（不是 Description 字段，粘贴下面这段）。
+
+**English**
+
+• Automatic mode now supports WhatsApp Web.
+• Verbia distinguishes your messages from the contact's, prioritizes an explicitly quoted message, and stops at a two-hour conversation gap (up to six text messages).
+• Images, video, voice messages, stickers, and attachments are not read. You review every draft and send it yourself.
+
+**中文**
+
+• 自动模式现已支持 WhatsApp 网页版。
+• Verbia 会区分“你 / 对方”，优先读取明确引用的消息，并在对话间隔超过 2 小时时停止向前读取（最多 6 条文字消息）。
+• 不读取图片、视频、语音、贴纸或附件；所有草稿都由你检查并亲自发送。
 
 ### What’s new (0.1.5)
 

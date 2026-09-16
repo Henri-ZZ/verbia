@@ -34,7 +34,7 @@ export function readEditable(element: HTMLElement): string {
   return element.innerText;
 }
 
-export async function insertText(target: EditableTarget, text: string, mode: "replace" | "append", newlines: "text" | "html" = "text"): Promise<InsertResult> {
+export async function insertText(target: EditableTarget, text: string, mode: "replace" | "append", strategy: "text" | "html" | "paste" = "text"): Promise<InsertResult> {
   const element = target.element;
   if (!isSafeEditable(element)) return { ok: false, reason: "The original editor is no longer available." };
   const current = readEditable(element);
@@ -53,10 +53,9 @@ export async function insertText(target: EditableTarget, text: string, mode: "re
   }
 
   // Framework-controlled contenteditable (e.g. Reddit's editor): it intercepts
-  // execCommand and applies the edit asynchronously, so the synchronous
-  // fallback write below raced the framework's own queued apply and produced
-  // the draft twice back-to-back. Fire exactly one native input primitive and
-  // do NOT layer a synthetic input/change event on top.
+  // execCommand and applies the edit asynchronously, so do NOT also queue a
+  // synchronous fallback write — that raced the framework's own apply and
+  // produced the draft twice back-to-back.
   element.focus();
   const selection = window.getSelection();
   const range = document.createRange();
@@ -65,27 +64,63 @@ export async function insertText(target: EditableTarget, text: string, mode: "re
   selection?.addRange(range);
   if (mode === "append") range.collapse(false);
 
-  // `execCommand("insertText", ...)` treats the argument as plain text and
-  // some contenteditables (Gmail, Outlook web) drop embedded "\n", collapsing
-  // multi-line drafts onto one line. Those editors accept `insertHTML` with
-  // `<br>` separators instead. Which one to use is a property of the *site*,
-  // so each adapter passes it in ("html" for Gmail/Outlook) rather than the
-  // shared layer sniffing hostnames — adding a site never edits this file.
+  // Which primitive to use is a property of the *site*, so each adapter passes it
+  // in rather than this layer sniffing hostnames — adding a site never edits this
+  // file:
+  //   "text"  execCommand("insertText"). Plain text, but some editors drop the
+  //           embedded "\n" and collapse a multi-line draft onto one line.
+  //   "html"  execCommand("insertHTML") with <br> separators (Gmail, Outlook).
+  //   "paste" a synthetic paste event (WhatsApp Web). Editors that keep their own
+  //           document model — Lexical, ProseMirror, Quill — ignore execCommand
+  //           and discard a plain textContent write, because neither goes through
+  //           the model. A paste does, and it is the only insert the site will
+  //           actually send.
   const payload = mode === "append" && current ? `\n${text}` : text;
-  if (newlines === "html") {
+  if (strategy === "paste") {
+    pasteText(element, payload);
+  } else if (strategy === "html") {
     document.execCommand("insertHTML", false, escapeHtml(payload).replace(/\n/g, "<br>"));
   } else {
     document.execCommand("insertText", false, payload);
   }
 
-  // Fall back to a direct write only if the framework did not apply the text
-  // within a short window. Delayed, not synchronous, to avoid the duplicate.
-  window.setTimeout(() => {
-    if (!element.isConnected) return;
-    const applied = readEditable(element).trim().includes(text.trim());
-    if (!applied) element.textContent = next;
-  }, 300);
-  return { ok: true };
+  // Success is read back, not assumed. Reporting "inserted" while the box stayed
+  // empty is worse than reporting a failure the user can act on — the panel
+  // answers a failed insert by offering the clipboard instead.
+  if (await appliedText(element, text)) return { ok: true };
+
+  // Last resort: write the DOM directly. Editors with their own model discard
+  // that on their next render, which is why it is the fallback rather than the
+  // first move — and why it still has to be verified before being called success.
+  if (element.isConnected) {
+    element.textContent = next;
+    if (await appliedText(element, text)) return { ok: true };
+  }
+  return { ok: false, reason: "The editor did not accept the text." };
+}
+
+// A paste event is how a rich-text editor expects to receive foreign text: it
+// runs the editor's own insert path, so the text lands in its model.
+function pasteText(element: HTMLElement, payload: string): void {
+  try {
+    const data = new DataTransfer();
+    data.setData("text/plain", payload);
+    element.dispatchEvent(new ClipboardEvent("paste", { bubbles: true, cancelable: true, clipboardData: data }));
+  } catch {
+    // Engines that cannot construct a DataTransfer/ClipboardEvent: use the plain
+    // text primitive rather than doing nothing at all.
+    document.execCommand("insertText", false, payload);
+  }
+}
+
+// Editors apply asynchronously, so give the page a moment and then read it back.
+async function appliedText(element: HTMLElement, text: string): Promise<boolean> {
+  for (const delay of [120, 300]) {
+    await new Promise(resolve => window.setTimeout(resolve, delay));
+    if (!element.isConnected) return false;
+    if (readEditable(element).trim().includes(text.trim())) return true;
+  }
+  return false;
 }
 
 function escapeHtml(value: string): string {
