@@ -57,11 +57,12 @@ const T = {
     // whether a password is already on the account (@see onSavePassword).
     passwordBody: "Set or change a password to sign in without waiting for an email.",
     passwordToggle: "Set or change password",
-    // The Google-only account's version of this same block (@see googleOnly in
-    // the page): there a password adds a second way in rather than replacing the
-    // only one, so this copy says optional out loud.
+    // The OAuth-only account's version of this same block (@see oauthOnly in the
+    // page): there a password adds a second way in rather than replacing the only
+    // one, so this copy says optional out loud. It names no provider on purpose —
+    // another one must not mean another copy change.
     passwordBackupTitle: "Backup sign-in",
-    passwordBackupBody: "Optional. Adds email + password sign-in; Google sign-in keeps working either way.",
+    passwordBackupBody: "Optional. Adds email + password sign-in; your existing sign-in method keeps working.",
     passwordBackupToggle: "Set a backup password",
     passwordNewLabel: "New password",
     passwordConfirmLabel: "Confirm password",
@@ -116,10 +117,11 @@ const T = {
     passwordTitle: "密码",
     passwordBody: "设置或修改密码后，无需等待邮件即可登录。",
     passwordToggle: "设置或修改密码",
-    // 纯 Google 账号用的同一块文案（见页面里的 googleOnly）：对那种账号，
-    // 密码是"多一条路"而不是"替代唯一的路"，所以说清是可选项。
+    // 纯 OAuth 账号（Google / Microsoft）用的同一块文案（见页面里的 oauthOnly）：
+    // 对那种账号，密码是"多一条路"而不是"替代唯一的路"，所以说清是可选项。
+    // 刻意不点名提供方——以后再加登录方式就不用再改一次文案。
     passwordBackupTitle: "备用登录方式",
-    passwordBackupBody: "可选。设置后也能用邮箱 + 密码登录；Google 登录始终可用。",
+    passwordBackupBody: "可选。设置后也能用邮箱 + 密码登录；现有登录方式始终可用。",
     passwordBackupToggle: "设置备用密码",
     passwordNewLabel: "新密码",
     passwordConfirmLabel: "确认密码",
@@ -387,20 +389,21 @@ export default function AccountPage() {
   const avatar = user ? avatarUrlOf(user) : undefined;
   const name = user?.email?.split("@")[0] ?? (user?.email ?? "Verbia");
 
-  // An account with no email identity is one that has only ever signed in with
-  // Google — and setting a password is exactly what creates an email identity
-  // (@see docs/auth-setup.md, §六.6). That makes this the one password fact we can
-  // know for certain: no email identity means no password, and no way in without
-  // Google. The block still shows — for that account it is the only backup route
-  // there is — but it reads as the optional extra it is.
+  // An account with no email identity has only ever signed in through an OAuth
+  // provider (Google or Microsoft) — and setting a password is exactly what
+  // creates an email identity (@see docs/auth-setup.md, §六.6). That makes this
+  // the one password fact we can know for certain: no email identity means no
+  // password, and no way in without that provider. The block still shows — for
+  // such an account it is the only backup route there is — but it reads as the
+  // optional extra it is.
   //
   // The check is on identities, never on app_metadata.provider: the latter says
   // how the user signed in last, so the same account would flip between the two
   // wordings depending on which button they pressed today.
   const identities = user?.identities ?? [];
-  const googleOnly = !identities.some(identity => identity.provider === "email")
-    && identities.some(identity => identity.provider === "google");
-  const passwordCopy = googleOnly
+  const oauthOnly = !identities.some(identity => identity.provider === "email")
+    && identities.some(identity => identity.provider === "google" || identity.provider === "azure");
+  const passwordCopy = oauthOnly
     ? { title: t.passwordBackupTitle, body: t.passwordBackupBody, toggle: t.passwordBackupToggle }
     : { title: t.passwordTitle, body: t.passwordBody, toggle: t.passwordToggle };
 
