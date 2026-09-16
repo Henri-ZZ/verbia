@@ -55,6 +55,12 @@ const T = {
     // whether a password is already on the account (@see onSavePassword).
     passwordBody: "Set or change a password to sign in without waiting for an email.",
     passwordToggle: "Set or change password",
+    // The Google-only account's version of this same block (@see googleOnly in
+    // the page): there a password adds a second way in rather than replacing the
+    // only one, so this copy says optional out loud.
+    passwordBackupTitle: "Backup sign-in",
+    passwordBackupBody: "Optional. Adds email + password sign-in; Google sign-in keeps working either way.",
+    passwordBackupToggle: "Set a backup password",
     passwordNewLabel: "New password",
     passwordConfirmLabel: "Confirm password",
     passwordSave: "Save password",
@@ -106,6 +112,11 @@ const T = {
     passwordTitle: "密码",
     passwordBody: "设置或修改密码后，无需等待邮件即可登录。",
     passwordToggle: "设置或修改密码",
+    // 纯 Google 账号用的同一块文案（见页面里的 googleOnly）：对那种账号，
+    // 密码是"多一条路"而不是"替代唯一的路"，所以说清是可选项。
+    passwordBackupTitle: "备用登录方式",
+    passwordBackupBody: "可选。设置后也能用邮箱 + 密码登录；Google 登录始终可用。",
+    passwordBackupToggle: "设置备用密码",
     passwordNewLabel: "新密码",
     passwordConfirmLabel: "确认密码",
     passwordSave: "保存密码",
@@ -366,6 +377,23 @@ export default function AccountPage() {
   const avatar = user ? avatarUrlOf(user) : undefined;
   const name = user?.email?.split("@")[0] ?? (user?.email ?? "Verbia");
 
+  // An account with no email identity is one that has only ever signed in with
+  // Google — and setting a password is exactly what creates an email identity
+  // (@see docs/auth-setup.md, §六.6). That makes this the one password fact we can
+  // know for certain: no email identity means no password, and no way in without
+  // Google. The block still shows — for that account it is the only backup route
+  // there is — but it reads as the optional extra it is.
+  //
+  // The check is on identities, never on app_metadata.provider: the latter says
+  // how the user signed in last, so the same account would flip between the two
+  // wordings depending on which button they pressed today.
+  const identities = user?.identities ?? [];
+  const googleOnly = !identities.some(identity => identity.provider === "email")
+    && identities.some(identity => identity.provider === "google");
+  const passwordCopy = googleOnly
+    ? { title: t.passwordBackupTitle, body: t.passwordBackupBody, toggle: t.passwordBackupToggle }
+    : { title: t.passwordTitle, body: t.passwordBody, toggle: t.passwordToggle };
+
   if (!AUTH_CONFIGURED) {
     return (
       <main className="account-main shell">
@@ -455,8 +483,8 @@ export default function AccountPage() {
             <p className="account-note muted">{t.accountNote}</p>
 
             <div className="account-password">
-              <h2>{t.passwordTitle}</h2>
-              <p className="muted">{t.passwordBody}</p>
+              <h2>{passwordCopy.title}</h2>
+              <p className="muted">{passwordCopy.body}</p>
               {/* Collapsed by default: a setting should not out-weigh the status
                   it sits next to. Only the toggle shows until it is asked for. */}
               {showPassword
@@ -465,7 +493,7 @@ export default function AccountPage() {
                     <input type="password" autoComplete="new-password" required value={confirmPassword} onChange={event => setConfirmPassword(event.target.value)} placeholder={t.passwordConfirmLabel} aria-label={t.passwordConfirmLabel} />
                     <button className="button primary" type="submit" disabled={savingPassword}>{savingPassword ? t.passwordSaving : t.passwordSave}</button>
                   </form>
-                : <button className="button secondary" type="button" onClick={() => { setError(""); setShowPassword(true); }}>{t.passwordToggle}</button>}
+                : <button className="button secondary" type="button" onClick={() => { setError(""); setShowPassword(true); }}>{passwordCopy.toggle}</button>}
             </div>
             {/* Same container the signed-out block uses for its buttons: bare
                 siblings here had no gap, so the sign-out button sat flush against
