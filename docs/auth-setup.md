@@ -45,7 +45,7 @@ Verbia 的账号体系：Google 第三方登录 + 邮箱 Magic Link（免密）�
 
    | 设置 | 值 | 为什么 |
    |---|---|---|
-   | Minimum password length | **6** | 产品决定；`apps/web/app/account/verify/page.tsx` 的前端校验与文案必须与这个数字一致，改一处就要改三处（后台 + 前端校验 + 中英文案） |
+   | Minimum password length | **6** | 产品决定。前端有**三处**校验必须与它一致：`account/verify`（注册设密码）、`account`（登录后设置/修改）、`account/reset`（找回）——每处都含中英文案，改这个数字时三处一起改 |
    | Password requirements | 不选 | 字符类别规则把人推向 `Password1!` 这类可预测模式，收益不如长度 |
    | Secure password change | 开 | 要求 24 小时内近期登录；我们的主流程（刚验证完就设密码）不受影响 |
    | Require current password when updating | **必须保持关闭** | 开启后无法给「还没有密码」的账号设第一个密码（Google 用户、刚注册用户） |
@@ -310,5 +310,20 @@ Supabase 默认的 **Magic Link** 模板只含 `{{ .ConfirmationURL }}`——**�
 - 因此**跨设备可用**：手机上发码、想在电脑上登录时，把那封邮件里的**邮箱和验证码一起填上**即可——这是去掉链接后必须补上的能力。
 - **`This code expires in …` 要和后台一致**：Supabase 的 **Email OTP Expiration 默认 3600 秒（60 分钟）**。模板写 10 分钟就必须把后台也改成 600，否则文案是错的。
 - 新注册用户若收到的是另一封模板（Confirm signup），**同样加上 `{{ .Token }}`**，否则新老用户的体验会不一致。
+- **Reset Password 模板**（找回密码用）也要有 `{{ .Token }}`。`/account/reset` 两种进入方式都支持——邮件里的验证码（`verifyOtp({ type: "recovery" })`）和邮件链接（`?code=`）——所以模板给哪种都能走通；两种都给也可以，页面会按 URL 里有没有 `code` 自动选择。
 - 模板是**项目级**的，Supabase 不支持按用户语言切换——31 种界面语言的用户会收到同一封邮件。要本地化只能自建邮件通道，目前按单一语言（建议英文或中英并列）处理。
 - 改完模板后要**重新发一封**验证新内容；已发出的邮件仍带旧模板。
+
+### 6. 密码：设置、修改、找回
+
+| 入口 | 位置 | 机制 |
+|---|---|---|
+| 注册时设密码 | `/account/verify` 的「设置密码」步骤（**仅账号创建后 2 分钟内**出现） | `updateUser({ password })` |
+| 登录后设置/修改 | `/account` 卡片里的「密码」区块 | 同上，依赖活跃会话 |
+| 忘记密码 | `/account/reset`（入口：账号页密码登录模式下的「忘记密码？」） | 发重置邮件 → 验证码或链接 → 再 `updateUser` |
+
+三点注意：
+
+- **前端无法判断账号是否已设过密码**：Supabase 的 user 对象里 `provider: "email"` 同时覆盖"魔法链接用户"和"密码用户"，没有可读的标记。所以文案只能写成「设置或修改」这类通用说法，不能按状态切换。
+- 若项目开了 **Secure password change**（修改密码要求近期登录），会返回 `reauthentication_needed`，错误映射里已有文案（"出于安全考虑，请重新登录后再修改密码"）。
+- 重置流程的两种进入方式：验证码走 `verifyOtp({ type: "recovery" })`，链接走 `?code=` → `exchangeCodeForSession`。链接方式会**跳过验证码输入**——它本身已经带齐了凭据，再要求手输一次没有意义。

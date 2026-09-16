@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AUTH_CONFIGURED, VERIFY_EMAIL_KEY, authErrorCopy, sendEmailCode, syncSignedInSessionToExtension, updatePassword, verifyEmailCode
 } from "../../../lib/verbia-auth";
-import { Captcha, type CaptchaHandle } from "../../../components/captcha";
+import { CAPTCHA_ENABLED, Captcha, type CaptchaHandle } from "../../../components/captcha";
 
 type Locale = "en" | "zh";
 type Step = "verify" | "password" | "done";
@@ -95,6 +95,10 @@ export default function VerifyPage() {
   // is always part of what this page submits, and it is the only thing that
   // makes signing in on a second device possible.
   const [emailRemembered, setEmailRemembered] = useState(false);
+  // The CAPTCHA widget is rendered only after a resend is asked for, and this
+  // says whether we are waiting for it to be solved.
+  const [resendRequested, setResendRequested] = useState(false);
+  const [resendPending, setResendPending] = useState(false);
   // Only the resend path needs this; it stays null wherever no site key is set,
   // which keeps the check around it a no-op.
   const captchaWidget = useRef<CaptchaHandle | null>(null);
@@ -150,6 +154,30 @@ export default function VerifyPage() {
     setBusy(false);
     if (!result.ok) { setError(authErrorCopy(locale, result.code)); return; }
     await afterVerified(result.createdAt);
+  }
+
+  // Resending is a second sign-in request, so it needs its own CAPTCHA token —
+  // but the widget only appears once someone asks to resend. This page is mostly
+  // read, and a challenge in front of a person typing the code they were just
+  // sent is noise. The first click brings the widget up and waits for it; solving
+  // it sends the code, so nobody has to click twice.
+  function requestResend() {
+    if (cooldown > 0 || busy) return;
+    setResendRequested(true);
+    if (CAPTCHA_ENABLED && !captchaWidget.current?.token()) {
+      setError("");
+      setNotice(authErrorCopy(locale, "captcha_required"));
+      setResendPending(true);
+      return;
+    }
+    void onResend();
+  }
+
+  function onCaptchaSolved() {
+    if (!resendPending) return;
+    setResendPending(false);
+    setNotice("");
+    void onResend();
   }
 
   // Resending is a second sign-in request, so it needs its own CAPTCHA token:
@@ -210,7 +238,7 @@ export default function VerifyPage() {
           <>
             <h1>{t.verifyTitle}</h1>
             <p className="muted">{email ? t.verifyBody(email) : t.verifyBodyUnknown}</p>
-            <form className="account-magic account-code" onSubmit={onVerify}>
+            <form className="account-magic" onSubmit={onVerify}>
               <input
                 type="email"
                 inputMode="email"
@@ -239,9 +267,9 @@ export default function VerifyPage() {
             <p className="account-resend">
               {cooldown > 0
                 ? t.resendIn(cooldown)
-                : <button className="account-link" type="button" disabled={busy} onClick={() => void onResend()}>{t.resend}</button>}
+                : <button className="account-link" type="button" disabled={busy} onClick={requestResend}>{t.resend}</button>}
             </p>
-            <Captcha handleRef={captchaWidget} locale={locale} />
+            {resendRequested && <Captcha handleRef={captchaWidget} locale={locale} onSolved={onCaptchaSolved} />}
           </>
         )}
 

@@ -255,7 +255,7 @@ const AUTH_ERROR_COPY = {
     reauthentication_needed: "For security, sign in again before changing your password.",
     rate_limited: "Too many attempts. Wait a minute and try again.",
     captcha_failed: "The anti-bot check failed. Reload the page and try again.",
-    captcha_required: "Complete the human check above first.",
+    captcha_required: "Complete the human check first.",
     not_configured: "Sign-in is not configured on this site.",
     unknown: "Something went wrong. Please try again."
   },
@@ -268,7 +268,7 @@ const AUTH_ERROR_COPY = {
     reauthentication_needed: "出于安全考虑，请重新登录后再修改密码。",
     rate_limited: "尝试过于频繁，请等一分钟再试。",
     captcha_failed: "人机校验未通过，请刷新页面重试。",
-    captcha_required: "请先完成上方的人机校验。",
+    captcha_required: "请先完成人机校验。",
     not_configured: "本站尚未配置登录。",
     unknown: "出错了，请重试。"
   }
@@ -317,6 +317,19 @@ export async function verifyEmailCode(email: string, token: string): Promise<Ver
 // into the URL. That is also why the verify page asks for the address when it does
 // not already know it: a code is verified against the email it was sent to, and
 // only the tab that requested it has that address to hand.
+
+// The code from the password-recovery email. Same shape as a sign-in code but a
+// different type, which is what keeps the two from being interchangeable: a
+// sign-in code cannot be spent on a password reset, and the other way round.
+export async function verifyRecoveryCode(email: string, token: string): Promise<Verified> {
+  try {
+    const client = await getClient();
+    const { data, error } = await client.auth.verifyOtp({ email, token, type: "recovery" });
+    return error ? { ok: false, code: authErrorCode(error) } : { ok: true, createdAt: data.user?.created_at };
+  } catch {
+    return { ok: false, code: "not_configured" };
+  }
+}
 
 // Setting a password is the last step of a sign-up, never a way in on its own:
 // this only works on a live session, which is why it is called right after the

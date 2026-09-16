@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import {
-  AUTH_CONFIGURED, API_BASE, VERIFY_EMAIL_KEY, accountState, authErrorCopy, avatarUrlOf, getClient, onExtensionSignOutRequest, providerOf, sendEmailCode, signInWithGoogle, signInWithPasswordEmail, signOut, syncSignedInSessionToExtension
+  AUTH_CONFIGURED, API_BASE, VERIFY_EMAIL_KEY, accountState, authErrorCopy, avatarUrlOf, getClient, onExtensionSignOutRequest, providerOf, sendEmailCode, signInWithGoogle, signInWithPasswordEmail, signOut, syncSignedInSessionToExtension, updatePassword
 } from "../../lib/verbia-auth";
 import { ProCheckout } from "../../components/pro-checkout";
 import { Captcha, type CaptchaHandle } from "../../components/captcha";
@@ -27,9 +27,11 @@ const T = {
     sent: "Check your inbox — we sent a sign-in code.",
     passwordPlaceholder: "Your password",
     passwordSubmit: "Sign in",
-    passwordToggle: "Sign in with a password instead",
-    codeToggle: "Email me a sign-in code instead",
-    signInHint: "A sign-in code is all you need to start. Once you are in, you can set a password — or keep using codes.",
+    codeLoginHint: "First time here?",
+    codeLoginAction: "Sign in with an email code",
+    passwordLoginHint: "Already have a password?",
+    passwordLoginAction: "Sign in with a password",
+    signInHint: "Signing in with a password skips email entirely — set one once and use it from then on.",
     signedInTitle: "Signed in",
     planFree: "Free",
     planPremium: "Premium",
@@ -45,6 +47,16 @@ const T = {
     upgradeTitle: "Upgrade to Verbia Premium",
     upgradeBody: "Get 100 context-aware replies per day.",
     checkoutSuccess: "Payment received. Your Premium status may take a moment to update.",
+    passwordTitle: "Password",
+    passwordBody: "Set a password to sign in without waiting for an email — in the extension too.",
+    passwordNewLabel: "New password",
+    passwordConfirmLabel: "Confirm password",
+    passwordSave: "Save password",
+    passwordSaving: "Saving…",
+    passwordSaved: "Password saved.",
+    passwordTooShort: "Use at least 6 characters.",
+    passwordMismatch: "The two passwords do not match.",
+    forgotPassword: "Forgot your password?",
     accountNote: "This is the same Verbia account your browser extension uses. The website and the extension share one sign-in state — signing out here signs out the extension too.",
     extensionHint: "Opening this page from the extension? Sign in below and the extension picks it up on its own — then use “Back to the extension”.",
     extensionSynced: "Signed in — the extension has this session too.",
@@ -64,9 +76,11 @@ const T = {
     sent: "请查收邮件，登录验证码已发送。",
     passwordPlaceholder: "你的密码",
     passwordSubmit: "登录",
-    passwordToggle: "改用密码登录",
-    codeToggle: "改用邮箱验证码",
-    signInHint: "先用验证码即可开始。登录后可以设置密码，也可以继续用验证码。",
+    codeLoginHint: "首次登录用户请使用",
+    codeLoginAction: "邮箱验证码登录",
+    passwordLoginHint: "已经设置过密码？",
+    passwordLoginAction: "使用密码登录",
+    signInHint: "密码登录不消耗邮件、也不怕邮件收不到：设置一次，之后一直用它。",
     signedInTitle: "已登录",
     planFree: "免费版",
     // "Premium" stays untranslated: it is the product tier name, same in every locale.
@@ -83,6 +97,16 @@ const T = {
     upgradeTitle: "升级到 Premium",
     upgradeBody: "每天可使用 100 次上下文回复。",
     checkoutSuccess: "付款已完成，Premium 状态可能需要片刻更新。",
+    passwordTitle: "密码",
+    passwordBody: "设置密码后，无需等待邮件即可登录，在扩展里也一样。",
+    passwordNewLabel: "新密码",
+    passwordConfirmLabel: "确认密码",
+    passwordSave: "保存密码",
+    passwordSaving: "保存中…",
+    passwordSaved: "密码已保存。",
+    passwordTooShort: "请至少使用 6 位。",
+    passwordMismatch: "两次输入的密码不一致。",
+    forgotPassword: "忘记密码？",
     accountNote: "这就是你的浏览器扩展使用的同一个 Verbia 账号。网站与扩展共用一个登录状态——在这里退出，扩展也会一起退出。",
     extensionHint: "从扩展打开本页？在下面登录后扩展会自动接上——然后点「回到扩展」。",
     extensionSynced: "已登录，扩展也已同步。",
@@ -99,7 +123,10 @@ export default function AccountPage() {
   const [usageStatus, setUsageStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [usePassword, setUsePassword] = useState(false);
+  // Password first. Codes cost an email every time and depend on mail arriving
+  // at all, so the form opens on the path that does not; the code link below is
+  // for people who have not set a password yet.
+  const [usePassword, setUsePassword] = useState(true);
   const [sending, setSending] = useState(false);
   const [notice, setNotice] = useState<string>("");
   const [error, setError] = useState<string>("");
@@ -113,6 +140,9 @@ export default function AccountPage() {
   // which is what makes the check in takeCaptcha() a no-op wherever CAPTCHA is
   // not set up.
   const captchaWidget = useRef<CaptchaHandle | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [savingPassword, setSavingPassword] = useState(false);
   const router = useRouter();
 
   const t = T[locale];
@@ -276,6 +306,26 @@ export default function AccountPage() {
     if (!result.ok) setError(authErrorCopy(locale, result.code));
   }
 
+  // Setting or changing the password. It runs on the live session this page
+  // already has, so nobody has to prove anything else — unless the project asks
+  // for a fresh sign-in, which arrives as reauthentication_needed (@see the
+  // error copy). supabase-js replaces whatever password existed, which is why
+  // the wording here covers both setting one and changing it: the user object
+  // does not say whether a password is already on the account.
+  async function onSavePassword(event: React.FormEvent) {
+    event.preventDefault();
+    // 6 is the floor the project enforces in Supabase; keeping this number the
+    // same is what stops the two from disagreeing (@see auth-setup.md).
+    if (newPassword.length < 6) { setError(t.passwordTooShort); return; }
+    if (newPassword !== confirmPassword) { setError(t.passwordMismatch); return; }
+    setSavingPassword(true); setError(""); setNotice("");
+    const result = await updatePassword(newPassword);
+    setSavingPassword(false);
+    if (!result.ok) { setError(authErrorCopy(locale, result.code)); return; }
+    setNewPassword(""); setConfirmPassword("");
+    setNotice(t.passwordSaved);
+  }
+
   async function onSignOut() {
     const confirmed = window.confirm(locale === "zh" ? "确定要退出登录吗？扩展会一起退出。" : "Sign out of Verbia? The extension signs out too.");
     if (!confirmed) return;
@@ -332,7 +382,13 @@ export default function AccountPage() {
                 <Captcha handleRef={captchaWidget} locale={locale} />
                 <button className="button primary" type="submit" disabled={sending}>{sending ? t.sending : usePassword ? t.passwordSubmit : t.send}</button>
               </form>
-              <button className="account-link" type="button" onClick={() => { setUsePassword(!usePassword); setPassword(""); setError(""); }}>{usePassword ? t.codeToggle : t.passwordToggle}</button>
+              <p className="account-hint muted">
+                {usePassword ? t.codeLoginHint : t.passwordLoginHint}
+                <button className="account-link" type="button" onClick={() => { setUsePassword(!usePassword); setPassword(""); setError(""); setNotice(""); }}>
+                  {usePassword ? t.codeLoginAction : t.passwordLoginAction}
+                </button>
+              </p>
+              {usePassword && <Link className="account-link" href="/account/reset">{t.forgotPassword}</Link>}
               <p className="account-hint muted">{t.signInHint}</p>
               {fromExtension && <p className="account-hint muted">{t.extensionHint}</p>}
             </div>
@@ -369,6 +425,16 @@ export default function AccountPage() {
             {usageStatus === "ready" && usage?.plan !== "premium" && <div className="account-upgrade"><strong>{t.upgradeTitle}<img className="premium-mark" src="/premium.png" alt="" width="14" height="14"/></strong><p>{t.upgradeBody}</p><ProCheckout locale={locale} compact/></div>}
 
             <p className="account-note muted">{t.accountNote}</p>
+
+            <div className="account-password">
+              <h2>{t.passwordTitle}</h2>
+              <p className="muted">{t.passwordBody}</p>
+              <form className="account-magic" onSubmit={onSavePassword}>
+                <input type="password" autoComplete="new-password" required value={newPassword} onChange={event => setNewPassword(event.target.value)} placeholder={t.passwordNewLabel} aria-label={t.passwordNewLabel} />
+                <input type="password" autoComplete="new-password" required value={confirmPassword} onChange={event => setConfirmPassword(event.target.value)} placeholder={t.passwordConfirmLabel} aria-label={t.passwordConfirmLabel} />
+                <button className="button primary" type="submit" disabled={savingPassword}>{savingPassword ? t.passwordSaving : t.passwordSave}</button>
+              </form>
+            </div>
             {fromExtension && <button className="button primary" type="button" onClick={() => window.dispatchEvent(new CustomEvent("verbia:open-dashboard"))}>{t.openExtension}</button>}
             <button className="button secondary" type="button" onClick={() => void onSignOut()}>{t.signOut}</button>
           </>

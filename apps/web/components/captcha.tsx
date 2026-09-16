@@ -46,6 +46,11 @@ declare global {
 export const PROVIDER: ProviderName = process.env.NEXT_PUBLIC_CAPTCHA_PROVIDER?.toLowerCase() === "hcaptcha" ? "hcaptcha" : "turnstile";
 const SITE_KEY = process.env.NEXT_PUBLIC_CAPTCHA_SITE_KEY ?? "";
 
+// Whether a challenge will be rendered at all. A page that has to decide whether
+// to wait for one reads this instead of asking the widget: on the click that
+// brings the widget up, there is no widget to ask yet.
+export const CAPTCHA_ENABLED = Boolean(SITE_KEY);
+
 function api(): CaptchaApi | undefined {
   return PROVIDER === "turnstile" ? window.turnstile : window.hcaptcha;
 }
@@ -78,9 +83,12 @@ function loadScript(language: string): Promise<void> {
   return scriptPromise;
 }
 
-export function Captcha({ handleRef, locale }: { handleRef: { current: CaptchaHandle | null }; locale: "en" | "zh" }) {
+export function Captcha({ handleRef, locale, onSolved }: { handleRef: { current: CaptchaHandle | null }; locale: "en" | "zh"; onSolved?: () => void }) {
   const container = useRef<HTMLDivElement | null>(null);
   const widgetId = useRef<string | undefined>(undefined);
+  // Held in a ref so a new closure on every render does not rebuild the widget.
+  const solved = useRef(onSolved);
+  solved.current = onSolved;
 
   useEffect(() => {
     if (!SITE_KEY) return;
@@ -91,6 +99,10 @@ export function Captcha({ handleRef, locale }: { handleRef: { current: CaptchaHa
       widgetId.current = captcha.render(container.current, {
         sitekey: SITE_KEY,
         theme: "light",
+        // Fires when the challenge is passed — by the visitor, or by the widget
+        // clearing it on its own. A page that was waiting for a token continues
+        // from here rather than asking for a second click.
+        callback: () => solved.current?.(),
         ...PROVIDERS[PROVIDER].options
       });
       handleRef.current = {
