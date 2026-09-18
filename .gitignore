@@ -12,3 +12,9 @@ coverage/
 *.log
 .workbuddy/
 .wrangler/
+
+# YouTube caption uploader: OAuth credentials and local venv never get committed.
+promo-materials/captions/client_secret.json
+promo-materials/captions/token.json
+promo-materials/captions/.venv/
+promo-materials/captions/__pycache__/

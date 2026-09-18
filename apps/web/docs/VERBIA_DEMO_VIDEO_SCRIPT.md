@@ -650,6 +650,110 @@ Editable target-language reply
 
 ---
 
+### 场景四：Outlook AI 识别邮件上下文
+
+**演示目标**
+
+展示 Verbia 的 AI 邮件理解能力：从一封独立的德语商务邮件中识别发件人、续约事项、确认期限和账单要求。用户随后使用中文说明回复意图，Verbia生成德语邮件。
+
+宣传视频中建议使用 `Smart email understanding` 或 `Understand any email`，不要使用 `Fallback`、`Unsupported` 等措辞。
+
+**邮件主题**
+
+> Bestätigung unserer Vertragsverlängerung
+
+**联系人**
+
+> Anna Keller <anna.keller@nordblick-demo.de>
+
+**公司**
+
+> Nordblick GmbH
+
+**需要回复的德语邮件**
+
+> Hallo Alex,
+>
+> unser aktueller Vertrag läuft Ende dieses Monats aus. Wir würden die Zusammenarbeit gerne um weitere zwölf Monate verlängern. Könnten Sie uns bitte bis Freitag bestätigen, ob die bisherigen Konditionen weiterhin gelten? Außerdem möchten wir die Rechnungen künftig vierteljährlich statt jährlich erhalten.
+>
+> Vielen Dank im Voraus.
+>
+> Freundliche Grüße
+> Anna Keller
+
+**邮件中文含义｜仅供制作时参考，不出现在 DOM 中**
+
+> 你好 Alex，
+>
+> 我们目前的合同将在本月底到期。我们希望将合作再延长十二个月。请在周五之前确认现有条款是否继续有效。另外，我们以后希望按季度而不是按年度收取账单。
+>
+> 提前感谢。
+>
+> 此致
+> Anna Keller
+
+**AI 识别后建议展示的上下文摘要**
+
+- Sender: `Anna Keller · Nordblick GmbH`
+- Request: `12-month contract renewal`
+- Deadline: `Confirmation by Friday`
+- Billing preference: `Quarterly invoices`
+
+如果界面只显示一段摘要，可以使用：
+
+> Anna Keller would like to renew the current contract for 12 months, keep the existing terms, receive confirmation by Friday, and switch to quarterly billing.
+
+**用户对 Verbia 说的话｜中文 Intent**
+
+> 告诉她我们很高兴继续合作，现有价格和服务条款都不变，也可以改成按季度付款。我会在周五之前把更新后的合同发给她。语气专业但友好。
+
+**较短的输入版本｜适合录屏**
+
+> 跟她说我们很高兴续约，现有条款不变，可以改成季度付款。更新后的合同周五前发给她，语气专业友好。
+
+**Verbia 生成的德语回复**
+
+> Hallo Frau Keller,
+>
+> vielen Dank für Ihre Nachricht. Wir freuen uns sehr, die Zusammenarbeit mit Nordblick um weitere zwölf Monate fortzusetzen. Die bisherigen Preise und Servicebedingungen bleiben unverändert. Eine vierteljährliche Rechnungsstellung ist ebenfalls problemlos möglich.
+>
+> Den aktualisierten Vertrag sende ich Ihnen bis Freitag zu.
+>
+> Freundliche Grüße
+> Alex
+
+**德语回复中文含义｜仅供制作时参考，不出现在 DOM 中**
+
+> Keller 女士，您好：
+>
+> 感谢您的来信。我们很高兴与 Nordblick 的合作再延长十二个月。现有价格和服务条款保持不变，也完全可以改为按季度开具账单。
+>
+> 我会在周五之前把更新后的合同发给您。
+>
+> 此致
+> Alex
+
+**建议设置**
+
+- Source language: `German · AI detected`
+- Intent language: `Chinese`
+- Reply language: `German`
+- Tone: `Professional`
+- Length: `Standard`
+
+**建议录制动作**
+
+1. 打开这封邮件，保持整封正文在视窗内可见。
+2. 调起 Verbia 邮件面板。
+3. 点击 `AI 识别`。
+4. 停留在识别动画约 1–2 秒。
+5. 展示识别出的发件人、续约、周五期限和季度账单四个要点。
+6. 输入精简版中文 Intent。
+7. 回复语言选择 `German`，语气选择 `Professional`。
+8. 生成德语回复并插入 Outlook 编辑器，但不发送。
+
+---
+
 ## 视频中建议实际说出的中文台词
 
 如果正式视频只录一次完整语音输入，优先使用 WhatsApp 场景，因为跨语言转换最容易让观众理解 Verbia 的价值：

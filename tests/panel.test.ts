@@ -102,6 +102,27 @@ describe("panel context warnings", () => {
     expect(html).not.toContain(UI_STRINGS.en["panel.warningLow"]);
   });
 
+  it("expands selected context immediately regardless of the saved preference", async () => {
+    const editor = document.createElement("div");
+    editor.setAttribute("contenteditable", "true");
+    document.body.append(editor);
+    const panel = new VerbiaPanel(new QqMailAdapter(), toTarget(editor), context("high"), () => {});
+    panel.mountAfter(editor);
+    await panel.open(false);
+
+    const root = document.querySelector<HTMLElement>("[data-verbia-root='true']")?.shadowRoot;
+    expect(root?.querySelector<HTMLDetailsElement>("details.context")?.open).toBe(false);
+    root?.querySelector<HTMLElement>("[data-action='collapse']")?.click();
+    expect(root?.querySelector(".panel")?.classList.contains("collapsed")).toBe(true);
+
+    expect(panel.mergeContextSelection("The text selected from the page.", false)).toBe(true);
+
+    expect(root?.querySelector(".panel")?.classList.contains("collapsed")).toBe(false);
+    expect(root?.querySelector<HTMLDetailsElement>("details.context")?.open).toBe(true);
+    expect(root?.querySelector(".context-body")?.textContent).toContain("The text selected from the page.");
+    expect(root?.querySelector(".status")?.textContent).toContain(UI_STRINGS.en["panel.status.contextAdded"]);
+  });
+
   it("says so when the context was truncated", async () => {
     const editor = document.createElement("div");
     editor.setAttribute("contenteditable", "true");

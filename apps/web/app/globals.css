@@ -496,30 +496,50 @@ blockquote {
 .section-heading > p:last-child {
   margin-top: 10px;
 }
-.video-placeholder {
+/* Cover-first video. The section ships one local image; the YouTube iframe is
+   built on click (@see components/promo-video.tsx), so no third party is
+   contacted until the visitor asks for the video. The box is 16:9 — the
+   player's own shape — so the swap moves nothing on the page. */
+.promo-video {
   position: relative;
-  display: grid;
-  place-content: center;
-  text-align: center;
   aspect-ratio: 16/9;
   max-width: 900px;
   margin: auto;
   border-radius: 18px;
   overflow: hidden;
-  background: radial-gradient(circle at 50% 40%, #376b57, #1a2e26 58%, #151d19);
-  color: white;
+  background: #151d19;
   box-shadow: 0 18px 48px -12px rgba(23, 32, 25, 0.2);
 }
-.video-placeholder > .mark {
+.promo-cover {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+/* <picture> is inline by default; as a block it hands the img a definite box to
+   fill, instead of leaving its 100% height to inline layout. */
+.promo-cover picture {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+/* The tile is 1571x1001 (1.57:1), so a 16:9 box crops a sliver off the top and
+   bottom rather than showing bars. */
+.promo-cover img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.promo-play {
   position: absolute;
-  width: 320px;
-  height: 320px;
-  opacity: 0.09;
   inset: 50% auto auto 50%;
   transform: translate(-50%, -50%);
-}
-.video-placeholder button {
-  position: relative;
+  display: grid;
+  place-items: center;
   width: 78px;
   height: 78px;
   border-radius: 50%;
@@ -528,15 +548,21 @@ blockquote {
   color: white;
   font-size: 29px;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+  transition: background 0.15s ease, transform 0.15s ease;
 }
-.video-placeholder p,
-.video-placeholder small {
-  position: relative;
-  margin: 16px 0 0;
+.promo-cover:hover .promo-play {
+  background: var(--primary-dark);
+  transform: translate(-50%, -50%) scale(1.04);
 }
-.video-placeholder small {
-  margin-top: 0;
-  color: rgba(255, 255, 255, 0.7);
+.promo-cover:focus-visible .promo-play {
+  outline: 3px solid rgba(255, 255, 255, 0.75);
+  outline-offset: 3px;
+}
+.promo-frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
 }
 .chapters {
   max-width: 900px;
@@ -1131,12 +1157,13 @@ button:focus-visible {
   .section {
     padding-block: 60px;
   }
-  .video-placeholder {
-    aspect-ratio: 4/3;
-  }
-  .video-placeholder > .mark {
-    width: 200px;
-    height: 200px;
+  /* The video box stays 16:9 on small screens: that is the player's own shape,
+     and a 4:3 box would letterbox the video inside it. Only the play button
+     shrinks, so it stays proportionate on a narrow screen. */
+  .promo-play {
+    width: 62px;
+    height: 62px;
+    font-size: 23px;
   }
   .chapters,
   .card-grid.three,

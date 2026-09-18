@@ -4,6 +4,7 @@ import { InstallLink } from "../components/install-link";
 import { SiteHeader } from "../components/site-header";
 import { LanguageRedirect } from "../components/language-redirect";
 import { ProCheckout } from "../components/pro-checkout";
+import { PromoVideo } from "../components/promo-video";
 import { SiteFooter } from "../components/site-footer";
 import { RedditLogo } from "../components/reddit-logo";
 import { EmailPlatformLogos } from "../components/email-platform-logos";
@@ -49,7 +50,7 @@ export default function HomePage() {
 
     <section className="principle shell"><p className="eyebrow">THE CORE PRINCIPLE</p><h2>You already know what you mean.</h2><h3>Verbia helps you find the right words.</h3><p>Communication shouldn’t be trapped behind language friction, tone anxiety, or awkward translations. You bring the perspective, nuance, and judgment. Verbia helps it arrive naturally.</p></section>
 
-    <section className="walkthrough shell" id="demo-video"><SectionHeading eyebrow="PRODUCT WALKTHROUGH" title="See the flow in sixty seconds." body="A quick walkthrough of how Verbia detects context, takes speech or text, and crafts a polished reply."/><div className="video-placeholder"><Mark/><button type="button" aria-label="Product walkthrough video coming soon"><span aria-hidden="true">▶</span></button><p>Verbia in action</p><small>Walkthrough coming soon</small></div><div className="chapters"><span>Context detection</span><span>Voice or text intent</span><span>Tone adaptation</span><span>Reply insertion</span></div></section>
+    <section className="walkthrough shell" id="demo-video"><SectionHeading eyebrow="PRODUCT WALKTHROUGH" title="See the flow in sixty seconds." body="A quick walkthrough of how Verbia detects context, takes speech or text, and crafts a polished reply."/><PromoVideo label="Play the Verbia product walkthrough"/><div className="chapters"><span>Context detection</span><span>Voice or text intent</span><span>Tone adaptation</span><span>Reply insertion</span></div></section>
 
     <section className="section shell" id="how-it-works"><SectionHeading eyebrow="FRICTIONLESS PROCESS" title="Just tell Verbia what you mean."/><div className="card-grid three">{steps.map(([number,title,body,note]) => <article className="card step-card" key={number}><div><span className="number">{number}</span><h3>{title}</h3><p>{body}</p></div><small>● {note}</small></article>)}</div></section>
 

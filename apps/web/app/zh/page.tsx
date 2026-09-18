@@ -4,6 +4,7 @@ import { InstallLink } from "../../components/install-link";
 import { RememberLocale } from "../../components/language-redirect";
 import { SiteHeader } from "../../components/site-header";
 import { ProCheckout } from "../../components/pro-checkout";
+import { PromoVideo } from "../../components/promo-video";
 import { SiteFooter } from "../../components/site-footer";
 import { RedditLogo } from "../../components/reddit-logo";
 import { EmailPlatformLogos } from "../../components/email-platform-logos";
@@ -56,7 +57,7 @@ export default function ChineseHomePage() {
 
     <section className="principle shell"><p className="eyebrow">核心理念</p><h2>你已经知道自己想表达什么。</h2><h3>Verbia 帮你找到合适的说法。</h3><p>语言障碍、语气顾虑和生硬翻译不该限制沟通。你提供观点、判断和分寸，Verbia 帮它们自然地传达出去。</p></section>
 
-    <section className="walkthrough shell" id="demo-video"><SectionHeading eyebrow="产品演示" title="一分钟了解完整流程。" body="看看 Verbia 如何识别上下文、接收语音或文字输入，并整理出自然回复。"/><div className="video-placeholder"><Mark/><button type="button" aria-label="产品演示视频即将上线"><span aria-hidden="true">▶</span></button><p>Verbia 使用演示</p><small>演示视频即将上线</small></div><div className="chapters"><span>识别上下文</span><span>语音或文字意图</span><span>调整语气</span><span>插入回复</span></div></section>
+    <section className="walkthrough shell" id="demo-video"><SectionHeading eyebrow="产品演示" title="一分钟了解完整流程。" body="看看 Verbia 如何识别上下文、接收语音或文字输入，并整理出自然回复。"/><PromoVideo label="播放 Verbia 产品演示视频"/><div className="chapters"><span>识别上下文</span><span>语音或文字意图</span><span>调整语气</span><span>插入回复</span></div></section>
 
     <section className="section shell" id="how-it-works"><SectionHeading eyebrow="简单流畅" title="只需告诉 Verbia 你真正想表达什么。"/><div className="card-grid three">{steps.map(([number,title,body,note]) => <article className="card step-card" key={number}><div><span className="number">{number}</span><h3>{title}</h3><p>{body}</p></div><small>● {note}</small></article>)}</div></section>
 

@@ -489,7 +489,7 @@ export class VerbiaPanel {
   // identification opens it as well — the answer just replaced the context, and
   // reading the context is how the user checks it. A plain read keeps the user's
   // own contextPreviewExpanded preference.
-  private renderPanel(intent = "") {
+  private renderPanel(intent = "", forceContextExpanded = false) {
     const low = this.context.confidence === "low";
     // Two different lows: an adapter's own read, which the user has to check and
     // can repair with the button, and a low confidence in an answer the user just
@@ -501,7 +501,7 @@ export class VerbiaPanel {
     // the button — is the whole onboarding of this mode; a draft generated from an
     // empty context is worse than no draft.
     const needsIdentification = this.mode === "email" && this.identify !== "done" && !hasContextBody(this.context);
-    const showContext = this.settings.contextPreviewExpanded || low || this.identify === "done";
+    const showContext = forceContextExpanded || this.settings.contextPreviewExpanded || low || this.identify === "done";
     this.root.innerHTML = `<style>${styles}</style><div class="inline-shell"><section class="panel" role="region" aria-labelledby="verbia-title"><header class="head"><div><h2 class="brand" id="verbia-title"><img src="${runtimeUrl("icons/verbia-horizontal-logo.svg")}" alt="Verbia" class="wordmark"></h2><p class="slogan">${this.t("brand.slogan")}</p></div><button class="icon" data-action="collapse" type="button" aria-expanded="true" aria-label="${this.t("panel.collapseAria")}"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 10l4-4 4 4"/></svg></button></header><div class="panel-body"><div class="chip">${escapeHtml(this.contextLabel())}</div>${needsIdentification ? `<p class="warning">${this.t("panel.warningNoContext")}</p>` : ""}${low ? `<p class="warning">${this.t(lowWarning)}</p>` : ""}${this.context.truncated ? `<p class="warning">${this.t("panel.warningTruncated")}</p>` : ""}<details class="context" ${showContext ? "open" : ""}><summary>${this.t("panel.summaryContext")}</summary><div class="context-body">${escapeHtml(this.contextText())}</div><button class="remove-context" data-action="remove-context" type="button">${this.t("panel.removeContext")}</button></details>${this.identifyBlock()}<label for="intent">${this.t("brand.uxLine")}</label><textarea class="intent" id="intent" maxlength="2000" placeholder="${this.t("panel.intentPlaceholder")}">${escapeHtml(intent)}</textarea><div class="actions"><button class="secondary" data-action="record" type="button">${this.t("panel.speak")}</button><button class="secondary" data-action="clear" type="button">${this.t("panel.clear")}</button></div><div class="row">${this.rowCells(this.settings)}</div><div class="actions"><button class="primary" data-action="generate" type="button">${this.t("panel.generate")}</button><button class="danger hidden" data-action="cancel" type="button">${this.t("panel.cancel")}</button></div><p class="status" role="status" aria-live="polite"></p><section class="draft-area hidden"><label for="draft">${this.t("panel.draftLabel")}</label><textarea class="draft" id="draft"></textarea><div class="actions"><button class="primary" data-action="insert" type="button">${this.t("panel.insert")}</button><button class="secondary" data-action="regenerate" type="button">${this.t("panel.regenerate")}</button><button class="secondary" data-action="copy" type="button">${this.t("panel.copy")}</button></div><div class="insert-choice hidden"><strong>${this.t("panel.editorHasText")}</strong><div class="actions"><button class="secondary" data-action="append" type="button">${this.t("panel.append")}</button><button class="danger" data-action="replace" type="button">${this.t("panel.replace")}</button><button class="secondary" data-action="choice-cancel" type="button">${this.t("panel.cancel")}</button></div></div></section><p class="foot">${this.t("panel.foot")}</p></div></section></div><dialog class="language-dialog"><div class="language-dialog-head"><div><strong>${this.t("panel.replyLanguage")}</strong><p>${this.t("settings.favoriteReplyLanguagesHint")}</p></div><button class="dialog-close" data-action="close-language-dialog" type="button" aria-label="${this.t("panel.closeLanguagePicker")}">×</button></div><input class="language-search" type="search" placeholder="${this.t("settings.searchLanguages")}" aria-label="${this.t("settings.searchLanguages")}"><div class="language-results" role="listbox"></div></dialog>`;
     this.renderHeadActions();
     this.setSelect("language", this.settings.outputLanguage);
@@ -909,8 +909,9 @@ export class VerbiaPanel {
   }
   // The right-click menu ("Add to Verbia context") fired while this panel is
   // mounted on the page. Adopt the selection as the context's selectedText —
-  // the newest selection replaces any earlier one. Typed intent, draft text
-  // and the folded/unfolded state survive. Returns false when this panel is
+  // the newest selection replaces any earlier one. Typed intent and draft text
+  // survive, while the panel and context preview open as immediate confirmation
+  // of the explicit user action. Returns false when this panel is
   // no longer attached to the DOM; the caller then stages the selection for
   // the next OPEN_VERBIA instead.
   mergeContextSelection(text: string, truncated: boolean): boolean {
@@ -922,15 +923,23 @@ export class VerbiaPanel {
       truncated: this.context.truncated || truncated,
       confidence: "high"
     };
-    // Recording / generating / inserting rebuild the DOM asynchronously, and a
-    // folded panel has no visible body to update: keep the merged data and let
-    // the next render pick it up.
+    // Recording / generating / inserting rebuild the DOM asynchronously, so do
+    // not replace their controls. Update the existing preview in place instead.
+    // Its expansion is itself the feedback, without replacing the more useful
+    // in-flight status (for example "Generating…").
     const busy = this.phase === "recording" || this.phase === "generating" || this.phase === "inserting";
-    if (busy || this.root.querySelector(".panel")?.classList.contains("collapsed")) return true;
+    if (busy) {
+      this.setCollapsed(false);
+      const preview = this.root.querySelector<HTMLDetailsElement>("details.context");
+      const body = this.root.querySelector<HTMLElement>(".context-body");
+      if (body) body.textContent = this.contextText();
+      if (preview) preview.open = true;
+      return true;
+    }
     const intent = this.el<HTMLTextAreaElement>("intent")?.value ?? "";
     const draftText = this.el<HTMLTextAreaElement>("draft")?.value ?? "";
     const draftVisible = !this.el("draft-area")?.classList.contains("hidden");
-    this.renderPanel(intent);
+    this.renderPanel(intent, true);
     if (draftText) { const draft = this.el<HTMLTextAreaElement>("draft"); if (draft) draft.value = draftText; }
     if (draftVisible) this.el("draft-area")?.classList.remove("hidden");
     this.status(this.t("panel.status.contextAdded"), "success");
