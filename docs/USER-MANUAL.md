@@ -121,7 +121,7 @@
 > 名单是**数据不是代码**（`src/content/site-mode.ts` 的 `EMAIL_HOSTS`）：加一家邮箱只改一行，不需要了解该邮箱的任何 DOM 结构。QQ 邮箱的名字虽然也在名单里，但它有专属适配器——**适配器总是优先**，所以它走自动模式。
 
 1. 打开一封邮件，点击回复框；
-2. 按快捷键（默认 `Alt+Shift+Y`）或点插件图标 → 面板浮在编辑区上，不会进入邮件正文；
+2. 按快捷键（默认 `Alt+R`）或点插件图标 → 面板浮在编辑区上，不会进入邮件正文；
 3. 此时**没有上下文**，面板会提示「未读取到邮件内容」；
 4. 点 **「AI 识别当前邮件上下文」**（按钮下方常驻一行说明：“AI 读取回复框周围的邮件内容，消耗 1 次每日额度”）→ 模型读取回复框周围的邮件区域，判断你在回复哪封邮件；
 5. 核对识别结果（成功后上下文会自动展开），再输入意图 → Generate。
@@ -194,8 +194,8 @@
 ## 9. 快捷键
 
 默认（可在浏览器内自定义）：
-- Windows/Linux：`Alt+Shift+Y`
-- macOS：`⌥⇧Y`（即 `Alt+Shift+Y`；Chromium 在 macOS 上把 `Alt` 视作 Option 键）
+- Windows/Linux：`Alt+R`
+- macOS：`⌥R`（即 `Alt+R`；Chromium 在 macOS 上把 `Alt` 视作 Option 键）
 
 自定义：`chrome://extensions` → 左下角“键盘快捷键”（插件 options 页也有“Open shortcut settings”入口）。
 说明文字（“唤起回复面板”等）在 popup 与 options 中会按当前实际绑定实时显示（由 `chrome.commands.getAll()` 读取）；按键符号**按平台区分**——macOS 显示 `⌘⇧⌥⌃` 字形，Windows/Linux 显示 `Ctrl` / `Alt` / `Shift` 文字（实现在 `apps/extension/src/ui/shortcut.ts`）。
@@ -274,7 +274,7 @@
 | `src/ui/shortcut.ts` | 快捷键展示（popup + options 共用）：平台感知的按键字形 + 两种返回形态的拆分 |
 | `src/ui/stores.ts` | 扩展商店链接：按 `update_url` 判断来自哪个商店，供 Support 卡的评分按钮使用 |
 | `src/auth/supabase.ts` | PKCE 客户端 + chrome.storage 会话适配器 + local-scope 登出 |
-| `manifest.json` | 命令 `open-verbia`（默认 `Alt+Shift+Y`，macOS 上即 `⌥⇧Y`）；`web_accessible_resources` 需列出注入页面会请求的资源（如 `icons/*.svg`、`assets/*`） |
+| `manifest.json` | 命令 `open-verbia`（默认 `Alt+R`，macOS 上即 `⌥R`）；`web_accessible_resources` 需列出注入页面会请求的资源（如 `icons/*.svg`、`assets/*`） |
 
 ### 共享包（`packages/shared/`）
 | 路径 | 职责 |

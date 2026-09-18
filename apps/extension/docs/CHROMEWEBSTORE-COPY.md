@@ -19,7 +19,7 @@ FEATURES
 HOW TO USE
 
 1. Sign in, then focus the field you are replying in.
-2. Open the reply panel with the Verbia shortcut (Alt+Shift+Y by default, configurable at chrome://extensions/shortcuts) or with the toolbar icon.
+2. Open the reply panel with the Verbia shortcut (Alt+R by default, configurable at chrome://extensions/shortcuts) or with the toolbar icon.
 3. Check the context shown in the panel — that is what will be sent.
 4. Type or say your intent, for example "decline politely, keep the door open".
 5. Choose the reply language, tone, and length, then Generate.
@@ -63,7 +63,7 @@ Verbia is available for Chrome and Microsoft Edge; Firefox support is in the wor
 طريقة الاستخدام
 
 1. سجّل الدخول، ثم ضع المؤشر في الحقل الذي تردّ فيه.
-2. افتح لوحة الردّ باختصار Verbia (Alt+Shift+Y افتراضيًا، ويمكن تغييره في chrome://extensions/shortcuts) أو بأيقونة شريط الأدوات.
+2. افتح لوحة الردّ باختصار Verbia (Alt+R افتراضيًا، ويمكن تغييره في chrome://extensions/shortcuts) أو بأيقونة شريط الأدوات.
 3. تحقّق من السياق المعروض في اللوحة، فهو ما سيُرسل.
 4. اكتب أو قُل ما تريده، مثل «الاعتذار بلباقة مع إبقاء الباب مفتوحًا».
 5. اختر لغة الردّ والنبرة والطول، ثم اضغط توليد.
@@ -107,7 +107,7 @@ Verbia 用你选择的语言、在你正在书写的页面上，起草你真正�
 使用方法
 
 1. 登录后，聚焦你正在回复的输入框。
-2. 用快捷键（默认 Alt+Shift+Y，可在 chrome://extensions/shortcuts 修改）或点击工具栏图标打开回复面板。
+2. 用快捷键（默认 Alt+R，可在 chrome://extensions/shortcuts 修改）或点击工具栏图标打开回复面板。
 3. 先看面板中展示的上下文——那就是将要发送的内容。
 4. 输入或说出你的意图，例如「礼貌拒绝，但保持后续可能」。
 5. 选择回复语言、语气与长度，然后点击「生成」。
@@ -151,7 +151,7 @@ Verbia 用你選擇的語言、在你正在書寫的頁面上，起草你真正�
 使用方式
 
 1. 登入後，將游標放在你要回覆的輸入框。
-2. 用快速鍵（預設 Alt+Shift+Y，可在 chrome://extensions/shortcuts 修改）或工具列圖示開啟回覆面板。
+2. 用快速鍵（預設 Alt+R，可在 chrome://extensions/shortcuts 修改）或工具列圖示開啟回覆面板。
 3. 先確認面板顯示的上下文——那就是會送出的內容。
 4. 輸入或說出你的意圖，例如「禮貌婉拒，但保留後續可能」。
 5. 選擇回覆語言、語氣與長度，然後按「生成」。
@@ -195,7 +195,7 @@ FUNKCE
 JAK POUŽÍVAT
 
 1. Přihlaste se a umístěte kurzor do pole, ve kterém odpovídáte.
-2. Otevřete panel odpovědi zkratkou Verbia (výchozí Alt+Shift+Y, lze změnit na chrome://extensions/shortcuts) nebo ikonou na panelu nástrojů.
+2. Otevřete panel odpovědi zkratkou Verbia (výchozí Alt+R, lze změnit na chrome://extensions/shortcuts) nebo ikonou na panelu nástrojů.
 3. Zkontrolujte kontext zobrazený v panelu — právě ten se odešle.
 4. Napište nebo řekněte, co potřebujete, například „zdvořile odmítnout, nechat dveře otevřené".
 5. Zvolte jazyk odpovědi, tón a délku a klikněte na Generovat.
@@ -239,7 +239,7 @@ FUNKTIONER
 SÅDAN BRUGER DU DET
 
 1. Log ind, og sæt markøren i det felt, du svarer i.
-2. Åbn svarpanelet med Verbia-genvejen (Alt+Shift+Y som standard, kan ændres på chrome://extensions/shortcuts) eller med ikonet i værktøjslinjen.
+2. Åbn svarpanelet med Verbia-genvejen (Alt+R som standard, kan ændres på chrome://extensions/shortcuts) eller med ikonet i værktøjslinjen.
 3. Tjek konteksten i panelet — det er den, der sendes.
 4. Skriv eller sig din hensigt, for eksempel »afslå høfligt, hold døren åben«.
 5. Vælg sprog, tone og længde for svaret, og tryk Generer.
@@ -283,7 +283,7 @@ FUNCTIES
 GEBRUIK
 
 1. Log in en zet de cursor in het veld waarin je antwoordt.
-2. Open het antwoordpaneel met de Verbia-sneltoets (standaard Alt+Shift+Y, aan te passen via chrome://extensions/shortcuts) of met het pictogram in de werkbalk.
+2. Open het antwoordpaneel met de Verbia-sneltoets (standaard Alt+R, aan te passen via chrome://extensions/shortcuts) of met het pictogram in de werkbalk.
 3. Controleer de context in het paneel — dat is wat er wordt verzonden.
 4. Typ of zeg wat je bedoelt, bijvoorbeeld 'vriendelijk afwijzen, de deur openhouden'.
 5. Kies de taal, toon en lengte van het antwoord en kies Genereren.
@@ -327,7 +327,7 @@ MGA TAMPOK
 PAANO GAMITIN
 
 1. Mag-sign in, tapos i-focus ang field na sinusulatan mo ng sagot.
-2. Buksan ang reply panel gamit ang shortcut ng Verbia (Alt+Shift+Y bilang default, mababago sa chrome://extensions/shortcuts) o gamit ang icon sa toolbar.
+2. Buksan ang reply panel gamit ang shortcut ng Verbia (Alt+R bilang default, mababago sa chrome://extensions/shortcuts) o gamit ang icon sa toolbar.
 3. Tingnan ang kontekstong nasa panel — iyon ang ipapadala.
 4. I-type o sabihin ang intensyon mo, halimbawa “magalang na tumanggi, huwag isara ang pinto”.
 5. Piliin ang wika, tono, at haba ng sagot, tapos pindutin ang Gumawa.
@@ -371,7 +371,7 @@ OMINAISUUDET
 KÄYTTÖ
 
 1. Kirjaudu sisään ja aseta kursori kenttään, johon vastaat.
-2. Avaa vastauspaneeli Verbian pikakuvakkeella (oletus Alt+Shift+Y, muutettavissa osoitteessa chrome://extensions/shortcuts) tai työkalurivin kuvakkeella.
+2. Avaa vastauspaneeli Verbian pikakuvakkeella (oletus Alt+R, muutettavissa osoitteessa chrome://extensions/shortcuts) tai työkalurivin kuvakkeella.
 3. Tarkista paneelissa näkyvä konteksti — juuri se lähetetään.
 4. Kirjoita tai sano aikeesi, esimerkiksi ”kieltäydy kohteliaasti, jätä ovi auki”.
 5. Valitse vastauksen kieli, sävy ja pituus ja paina Luo.
@@ -415,7 +415,7 @@ FONCTIONNALITÉS
 MODE D'EMPLOI
 
 1. Connectez-vous, puis placez le curseur dans le champ où vous répondez.
-2. Ouvrez le panneau avec le raccourci Verbia (Alt+Shift+Y par défaut, modifiable dans chrome://extensions/shortcuts) ou avec l'icône de la barre d'outils.
+2. Ouvrez le panneau avec le raccourci Verbia (Alt+R par défaut, modifiable dans chrome://extensions/shortcuts) ou avec l'icône de la barre d'outils.
 3. Vérifiez le contexte affiché dans le panneau : c'est ce qui sera envoyé.
 4. Écrivez ou dictez votre intention, par exemple « refuser poliment tout en gardant la porte ouverte ».
 5. Choisissez la langue, le ton et la longueur de la réponse, puis cliquez sur Générer.
@@ -459,7 +459,7 @@ FUNKTIONEN
 SO VERWENDEST DU ES
 
 1. Melde dich an und setze den Cursor in das Feld, in dem du antworten willst.
-2. Öffne das Antwortfenster mit dem Verbia-Kürzel (Standard Alt+Shift+Y, änderbar unter chrome://extensions/shortcuts) oder über das Symbol in der Symbolleiste.
+2. Öffne das Antwortfenster mit dem Verbia-Kürzel (Standard Alt+R, änderbar unter chrome://extensions/shortcuts) oder über das Symbol in der Symbolleiste.
 3. Prüfe den angezeigten Kontext – genau das wird gesendet.
 4. Schreib oder sag deine Absicht, zum Beispiel „höflich ablehnen, Tür offen lassen".
 5. Wähle Sprache, Ton und Länge der Antwort und wähle Generieren.
@@ -503,7 +503,7 @@ Verbia ist für Chrome und Microsoft Edge verfügbar; eine Firefox-Version ist i
 ΠΩΣ ΧΡΗΣΙΜΟΠΟΙΕΙΤΑΙ
 
 1. Συνδέσου και βάλε τον κέρσορα στο πεδίο όπου απαντάς.
-2. Άνοιξε τον πίνακα απάντησης με τη συντόμευση του Verbia (προεπιλογή Alt+Shift+Y, αλλάζει στο chrome://extensions/shortcuts) ή με το εικονίδιο στη γραμμή εργαλείων.
+2. Άνοιξε τον πίνακα απάντησης με τη συντόμευση του Verbia (προεπιλογή Alt+R, αλλάζει στο chrome://extensions/shortcuts) ή με το εικονίδιο στη γραμμή εργαλείων.
 3. Έλεγξε το περιβάλλον που εμφανίζεται στον πίνακα — αυτό θα σταλεί.
 4. Γράψε ή πες την πρόθεσή σου, για παράδειγμα «αρνήσου ευγενικά, κράτα την πόρτα ανοιχτή».
 5. Επίλεξε γλώσσα, τόνο και μήκος απάντησης και πάτησε Δημιουργία.
@@ -547,7 +547,7 @@ Verbia מנסח את התשובה שהתכוונת אליה, בשפה שאתה �
 איך משתמשים
 
 1. היכנס, ואז מקם את הסמן בשדה שאתה משיב בו.
-2. פתח את לוח התשובה בקיצור של Verbia (Alt+Shift+Y כברירת מחדל, ניתן לשינוי ב-chrome://extensions/shortcuts) או בסמל שבסרגל הכלים.
+2. פתח את לוח התשובה בקיצור של Verbia (Alt+R כברירת מחדל, ניתן לשינוי ב-chrome://extensions/shortcuts) או בסמל שבסרגל הכלים.
 3. בדוק את ההקשר המוצג בלוח — זה מה שישלח.
 4. כתוב או אמור את הכוונה שלך, למשל ״סרב בנימוס, השאר את הדלת פתוחה״.
 5. בחר את שפת התשובה, הטון והאורך, ואז לחץ על צור.
@@ -591,7 +591,7 @@ Verbia वही जवाब लिखता है जो आप कहना 
 इस्तेमाल कैसे करें
 
 1. साइन इन करें, फिर जिस बॉक्स में जवाब दे रहे हैं वहाँ कर्सर रखें।
-2. Verbia शॉर्टकट (डिफ़ॉल्ट Alt+Shift+Y, chrome://extensions/shortcuts पर बदल सकते हैं) या टूलबार आइकन से जवाब पैनल खोलें।
+2. Verbia शॉर्टकट (डिफ़ॉल्ट Alt+R, chrome://extensions/shortcuts पर बदल सकते हैं) या टूलबार आइकन से जवाब पैनल खोलें।
 3. पैनल में दिख रहा संदर्भ देखें — वही भेजा जाएगा।
 4. अपनी बात लिखें या बोलें, जैसे "विनम्रता से मना करें, रास्ता खुला रखें"।
 5. जवाब की भाषा, लहजा और लंबाई चुनें, फिर बनाएँ दबाएँ।
@@ -635,7 +635,7 @@ FUNKCIÓK
 HASZNÁLAT
 
 1. Jelentkezz be, majd tedd a kurzort abba a mezőbe, amelyben válaszolsz.
-2. Nyisd meg a válaszpanelt a Verbia gyorsbillentyűjével (alapértelmezés: Alt+Shift+Y, a chrome://extensions/shortcuts oldalon módosítható) vagy az eszköztár ikonjával.
+2. Nyisd meg a válaszpanelt a Verbia gyorsbillentyűjével (alapértelmezés: Alt+R, a chrome://extensions/shortcuts oldalon módosítható) vagy az eszköztár ikonjával.
 3. Ellenőrizd a panelen látható kontextust — az fog elküldésre kerülni.
 4. Írd vagy mondd el a szándékodat, például „udvariasan utasítsd el, hagyd nyitva az ajtót”.
 5. Válaszd ki a válasz nyelvét, hangnemét és hosszát, majd nyomd meg a Generálás gombot.
@@ -679,7 +679,7 @@ FITUR
 CARA PAKAI
 
 1. Masuk, lalu letakkan kursor di kolom yang akan Anda balas.
-2. Buka panel balasan dengan pintasan Verbia (default Alt+Shift+Y, bisa diubah di chrome://extensions/shortcuts) atau ikon di toolbar.
+2. Buka panel balasan dengan pintasan Verbia (default Alt+R, bisa diubah di chrome://extensions/shortcuts) atau ikon di toolbar.
 3. Periksa konteks yang tampil di panel: itulah yang akan dikirim.
 4. Tulis atau ucapkan maksud Anda, misalnya "menolak dengan sopan sambil tetap membuka peluang".
 5. Pilih bahasa balasan, nada, dan panjang, lalu tekan Buat.
@@ -723,7 +723,7 @@ FUNZIONI
 COME SI USA
 
 1. Accedi e posiziona il cursore nel campo in cui stai rispondendo.
-2. Apri il pannello con la scorciatoia di Verbia (Alt+Shift+Y per impostazione predefinita, modificabile in chrome://extensions/shortcuts) o con l'icona nella barra degli strumenti.
+2. Apri il pannello con la scorciatoia di Verbia (Alt+R per impostazione predefinita, modificabile in chrome://extensions/shortcuts) o con l'icona nella barra degli strumenti.
 3. Controlla il contesto mostrato nel pannello: è quello che verrà inviato.
 4. Scrivi o pronuncia la tua intenzione, per esempio «rifiutare con garbo lasciando aperta la porta».
 5. Scegli lingua, tono e lunghezza della risposta, poi premi Genera.
@@ -767,7 +767,7 @@ Verbia は、多言語を使う方の「伝えたいこと」を、まず英語�
 使い方
 
 1. サインインして、返信する入力欄にフォーカスします。
-2. ショートカット（既定は Alt+Shift+Y、chrome://extensions/shortcuts で変更可）またはツールバーのアイコンで返信パネルを開きます。
+2. ショートカット（既定は Alt+R、chrome://extensions/shortcuts で変更可）またはツールバーのアイコンで返信パネルを開きます。
 3. パネルに表示されるコンテキストを確認します。これが送信される内容です。
 4. 意図を入力するか話します（例:「丁寧に断りつつ、今後もつながれるように」）。
 5. 返信の言語・トーン・長さを選び、「生成」を押します。
@@ -811,7 +811,7 @@ Verbia는 여러 언어로 일하는 사람이 매 문장을 먼저 영어로 �
 사용 방법
 
 1. 로그인한 뒤 답장할 입력란에 커서를 둡니다.
-2. 단축키(기본 Alt+Shift+Y, chrome://extensions/shortcuts에서 변경) 또는 툴바 아이콘으로 답장 패널을 엽니다.
+2. 단축키(기본 Alt+R, chrome://extensions/shortcuts에서 변경) 또는 툴바 아이콘으로 답장 패널을 엽니다.
 3. 패널에 보이는 컨텍스트를 확인합니다. 그것이 전송될 내용입니다.
 4. 하고 싶은 말을 입력하거나 말합니다(예: "정중히 거절하되 앞으로의 가능성은 남기기").
 5. 답장 언어, 어조, 길이를 고르고 '생성'을 누릅니다.
@@ -855,7 +855,7 @@ CIRI
 CARA GUNA
 
 1. Masuk, kemudian letakkan kursor pada kotak yang anda balas.
-2. Buka panel balasan dengan pintasan Verbia (lalai Alt+Shift+Y, boleh diubah di chrome://extensions/shortcuts) atau ikon bar alat.
+2. Buka panel balasan dengan pintasan Verbia (lalai Alt+R, boleh diubah di chrome://extensions/shortcuts) atau ikon bar alat.
 3. Periksa konteks yang dipaparkan — itulah yang akan dihantar.
 4. Taip atau sebut maksud anda, contohnya "tolak dengan sopan, biarkan pintu terbuka".
 5. Pilih bahasa, nada dan panjang balasan, kemudian tekan Jana.
@@ -903,7 +903,7 @@ FUNKSJONER
 SLIK BRUKER DU DET
 
 1. Logg inn, og sett markøren i feltet du svarer i.
-2. Åpne svarpanelet med hurtigtasten til Verbia (Alt+Shift+Y som standard, kan endres på chrome://extensions/shortcuts) eller med ikonet på verktøylinjen.
+2. Åpne svarpanelet med hurtigtasten til Verbia (Alt+R som standard, kan endres på chrome://extensions/shortcuts) eller med ikonet på verktøylinjen.
 3. Sjekk konteksten som vises i panelet — det er den som sendes.
 4. Skriv eller si intensjonen din, for eksempel «avslå høflig, hold døren åpen».
 5. Velg språk, tone og lengde for svaret, og trykk Generer.
@@ -947,7 +947,7 @@ FUNKCJE
 JAK UŻYWAĆ
 
 1. Zaloguj się i ustaw kursor w polu, w którym odpowiadasz.
-2. Otwórz panel skrótem Verbia (domyślnie Alt+Shift+Y, można zmienić w chrome://extensions/shortcuts) albo ikoną na pasku narzędzi.
+2. Otwórz panel skrótem Verbia (domyślnie Alt+R, można zmienić w chrome://extensions/shortcuts) albo ikoną na pasku narzędzi.
 3. Sprawdź kontekst pokazany w panelu — to właśnie zostanie wysłane.
 4. Napisz lub powiedz, co chcesz przekazać, np. „odmów uprzejmie, nie zamykaj drzwi".
 5. Wybierz język odpowiedzi, ton i długość, a potem kliknij Generuj.
@@ -991,7 +991,7 @@ RECURSOS
 COMO USAR
 
 1. Entre na conta e foque o campo em que vai responder.
-2. Abra o painel com o atalho do Verbia (Alt+Shift+Y por padrão, configurável em chrome://extensions/shortcuts) ou com o ícone da barra de ferramentas.
+2. Abra o painel com o atalho do Verbia (Alt+R por padrão, configurável em chrome://extensions/shortcuts) ou com o ícone da barra de ferramentas.
 3. Confira o contexto mostrado no painel: é isso que será enviado.
 4. Escreva ou diga sua intenção, por exemplo «recusar com educação e manter a porta aberta».
 5. Escolha o idioma da resposta, o tom e o tamanho, e clique em Gerar.
@@ -1035,7 +1035,7 @@ FUNCȚII
 CUM SE FOLOSEȘTE
 
 1. Autentifică-te, apoi pune cursorul în câmpul în care răspunzi.
-2. Deschide panoul de răspuns cu scurtătura Verbia (Alt+Shift+Y implicit, se poate schimba la chrome://extensions/shortcuts) sau cu pictograma din bara de instrumente.
+2. Deschide panoul de răspuns cu scurtătura Verbia (Alt+R implicit, se poate schimba la chrome://extensions/shortcuts) sau cu pictograma din bara de instrumente.
 3. Verifică contextul afișat în panou — acela este cel care se trimite.
 4. Scrie sau spune ce vrei, de exemplu „refuză politicos, lasă ușa deschisă”.
 5. Alege limba, tonul și lungimea răspunsului, apoi apasă Generează.
@@ -1079,7 +1079,7 @@ Verbia пишет ответ, который вы имеете в виду, на
 КАК ПОЛЬЗОВАТЬСЯ
 
 1. Войдите и поставьте курсор в поле, в котором отвечаете.
-2. Откройте панель ответа сочетанием клавиш Verbia (по умолчанию Alt+Shift+Y, меняется на chrome://extensions/shortcuts) или значком на панели инструментов.
+2. Откройте панель ответа сочетанием клавиш Verbia (по умолчанию Alt+R, меняется на chrome://extensions/shortcuts) или значком на панели инструментов.
 3. Проверьте контекст в панели — именно он будет отправлен.
 4. Напишите или скажите, что нужно, например «вежливо отказать, оставив возможность».
 5. Выберите язык ответа, тон и объём, затем нажмите «Сгенерировать».
@@ -1123,7 +1123,7 @@ FUNCIONES
 CÓMO USARLO
 
 1. Inicia sesión y coloca el cursor en el campo en el que vas a responder.
-2. Abre el panel con el atajo de Verbia (Alt+Shift+Y por defecto, configurable en chrome://extensions/shortcuts) o con el icono de la barra de herramientas.
+2. Abre el panel con el atajo de Verbia (Alt+R por defecto, configurable en chrome://extensions/shortcuts) o con el icono de la barra de herramientas.
 3. Revisa el contexto que aparece en el panel: eso es lo que se enviará.
 4. Escribe o di tu intención, por ejemplo «rechazar con educación y dejar la puerta abierta».
 5. Elige el idioma de la respuesta, el tono y la longitud, y pulsa Generar.
@@ -1167,7 +1167,7 @@ FUNKTIONER
 SÅ ANVÄNDER DU DET
 
 1. Logga in och sätt markören i fältet du svarar i.
-2. Öppna svarspanelen med Verbiakortkommandot (Alt+Shift+Y som standard, ändras på chrome://extensions/shortcuts) eller med ikonen i verktygsfältet.
+2. Öppna svarspanelen med Verbiakortkommandot (Alt+R som standard, ändras på chrome://extensions/shortcuts) eller med ikonen i verktygsfältet.
 3. Kontrollera kontexten som visas i panelen — det är den som skickas.
 4. Skriv eller säg din avsikt, till exempel ”avböj artigt, håll dörren öppen”.
 5. Välj språk, ton och längd för svaret och tryck på Generera.
@@ -1211,7 +1211,7 @@ Verbia ร่างคำตอบที่คุณต้องการ ใน
 วิธีใช้
 
 1. เข้าสู่ระบบ แล้ววางเคอร์เซอร์ในช่องที่คุณกำลังตอบ
-2. เปิดแผงตอบกลับด้วยคีย์ลัดของ Verbia (ค่าเริ่มต้น Alt+Shift+Y เปลี่ยนได้ที่ chrome://extensions/shortcuts) หรือไอคอนบนแถบเครื่องมือ
+2. เปิดแผงตอบกลับด้วยคีย์ลัดของ Verbia (ค่าเริ่มต้น Alt+R เปลี่ยนได้ที่ chrome://extensions/shortcuts) หรือไอคอนบนแถบเครื่องมือ
 3. ตรวจดูบริบทที่แสดงในแผง นั่นคือสิ่งที่ระบบจะส่ง
 4. พิมพ์หรือพูดความต้องการของคุณ เช่น "ปฏิเสธอย่างสุภาพ แต่เปิดทางไว้"
 5. เลือกภาษา น้ำเสียง และความยาวของคำตอบ แล้วกด สร้าง
@@ -1255,7 +1255,7 @@ Verbia, çok dilli çalışan kişilerin her cümleyi önce İngilizce kurmadan 
 NASIL KULLANILIR
 
 1. Giriş yap ve yanıt vereceğin alana imleci getir.
-2. Yanıt panelini Verbia kısayoluyla (varsayılan Alt+Shift+Y, chrome://extensions/shortcuts adresinden değiştirilebilir) ya da araç çubuğu simgesiyle aç.
+2. Yanıt panelini Verbia kısayoluyla (varsayılan Alt+R, chrome://extensions/shortcuts adresinden değiştirilebilir) ya da araç çubuğu simgesiyle aç.
 3. Panelde görünen bağlamı kontrol et: gönderilecek olan budur.
 4. Niyetini yaz ya da söyle; örneğin "nazikçe reddet, kapıyı açık bırak".
 5. Yanıt dilini, tonu ve uzunluğu seç, sonra Oluştur'a bas.
@@ -1299,7 +1299,7 @@ Verbia пише відповідь, яку ви маєте на увазі, ви
 ЯК КОРИСТУВАТИСЯ
 
 1. Увійдіть і поставте курсор у поле, у якому відповідаєте.
-2. Відкрийте панель відповіді сполученням клавіш Verbia (типово Alt+Shift+Y, змінюється на chrome://extensions/shortcuts) або значком на панелі інструментів.
+2. Відкрийте панель відповіді сполученням клавіш Verbia (типово Alt+R, змінюється на chrome://extensions/shortcuts) або значком на панелі інструментів.
 3. Перевірте контекст у панелі — саме він буде надісланий.
 4. Напишіть або скажіть, що потрібно, наприклад «ввічливо відмовити, залишивши можливість».
 5. Виберіть мову відповіді, тон і обсяг, потім натисніть «Згенерувати».
@@ -1343,7 +1343,7 @@ TÍNH NĂNG
 CÁCH DÙNG
 
 1. Đăng nhập, rồi đặt con trỏ vào ô bạn đang trả lời.
-2. Mở bảng trả lời bằng phím tắt Verbia (mặc định Alt+Shift+Y, đổi được tại chrome://extensions/shortcuts) hoặc bằng biểu tượng trên thanh công cụ.
+2. Mở bảng trả lời bằng phím tắt Verbia (mặc định Alt+R, đổi được tại chrome://extensions/shortcuts) hoặc bằng biểu tượng trên thanh công cụ.
 3. Kiểm tra ngữ cảnh hiển thị trong bảng: đó là nội dung sẽ được gửi.
 4. Nhập hoặc nói ý bạn muốn, ví dụ "từ chối lịch sự nhưng vẫn để mở khả năng hợp tác".
 5. Chọn ngôn ngữ, giọng điệu và độ dài của câu trả lời, rồi bấm Tạo.

@@ -35,7 +35,7 @@ FEATURES
 HOW TO USE
 
 1. Sign in, then focus the field you are replying in.
-2. Open the reply panel with the Verbia shortcut (Alt+Shift+Y by default, configurable at chrome://extensions/shortcuts) or with the toolbar icon.
+2. Open the reply panel with the Verbia shortcut (Alt+R by default, configurable at chrome://extensions/shortcuts) or with the toolbar icon.
 3. Check the context shown in the panel — that is what will be sent.
 4. Type or say your intent, for example “decline politely, keep the door open”.
 5. Choose the reply language, tone, and length, then Generate.
@@ -77,7 +77,7 @@ Verbia 用你选择的语言、在你正在书写的页面上，起草你真正�
 使用方法
 
 1. 登录后，聚焦你正在回复的输入框。
-2. 用快捷键（默认 Alt+Shift+Y，可在 chrome://extensions/shortcuts 修改）或点击工具栏图标打开回复面板。
+2. 用快捷键（默认 Alt+R，可在 chrome://extensions/shortcuts 修改）或点击工具栏图标打开回复面板。
 3. 先看面板中展示的上下文——那就是将要发送的内容。
 4. 输入或说出你的意图，例如「礼貌拒绝，但保持后续可能」。
 5. 选择回复语言、语气与长度，然后点击「生成」。

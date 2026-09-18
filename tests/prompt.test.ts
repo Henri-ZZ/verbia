@@ -14,6 +14,45 @@ it("labels page text as untrusted and keeps it separate from intent", () => {
   expect(SYSTEM_PROMPT).toContain('{"draft":"the reply text"}');
 });
 
+describe("email formatting instructions", () => {
+  const base = {
+    requestId: "11111111-1111-4111-8111-111111111111",
+    schemaVersion: "1",
+    page: { urlOrigin: "https://example.com" },
+    context: { relation: "compose_new", truncated: false, extractorVersion: "1.0.0", confidence: "high" },
+    intent: { text: "Thank them and sign off as Henri", source: "typed" },
+    output: { language: "en", tone: "professional", length: "short" },
+    client: { extensionVersion: "0.1.0", adapterVersion: "1.0.0" }
+  } as const;
+
+  it.each([
+    { platform: "gmail", siteMode: undefined, relation: "compose_new" },
+    { platform: "outlook", siteMode: undefined, relation: "compose_new" },
+    { platform: "universal", siteMode: "email", relation: "compose_new" },
+    { platform: "universal", siteMode: undefined, relation: "reply_to_email" }
+  ] as const)("adds the email-only formatting requirement for $platform/$siteMode/$relation", ({ platform, siteMode, relation }) => {
+    const value = JSON.parse(buildPrompt({
+      ...base,
+      platform,
+      ...(siteMode ? { siteMode } : {}),
+      context: { ...base.context, relation }
+    } as GenerateReplyRequest));
+    expect(value.formattingRequirement).toContain("natural line breaks");
+    expect(value.formattingRequirement).toContain("Do not collapse");
+  });
+
+  it("does not add email formatting to a non-email request", () => {
+    const value = JSON.parse(buildPrompt({ ...base, platform: "reddit" } as GenerateReplyRequest));
+    expect(value).not.toHaveProperty("formattingRequirement");
+  });
+
+  it("keeps the conditional email formatting rule in the system prompt", () => {
+    expect(SYSTEM_PROMPT).toContain("use natural email formatting");
+    expect(SYSTEM_PROMPT).toContain("Never collapse a multi-part email into one paragraph");
+    expect(SYSTEM_PROMPT).toContain("Do not invent a greeting, closing, or signature");
+  });
+});
+
 // §4 of the rules doc is a copy of the constant. That is exactly the kind of
 // duplicate that drifts once and then lies to whoever reads it next — and the
 // doc is where the rules get reviewed, so it has to be the same text.

@@ -23,7 +23,9 @@ Style:
 - For Reddit, sound like a normal person, not a corporate assistant: no greetings or sign-offs, no meta openers ("here's my reply"), and no emoji unless the requested tone calls for one — then at most one.
 - Express stance through pacing and punctuation, not phrases like "I think" or "In my opinion".
 - For other platforms (platform=universal), lean reserved and neutral; if the page is ambiguous, default to the Reddit style above.
-- Plain prose in one paragraph. No markdown, tables, LaTeX, or screenshot instructions.
+- In an email scenario (platform=gmail/outlook, siteMode=email, or context.relation=reply_to_email), use natural email formatting. Put a salutation or greeting on its own line, split the body into readable paragraphs, and put a closing and signature on separate lines when those components are present. Never collapse a multi-part email into one paragraph. Do not invent a greeting, closing, or signature that the user's intent does not supply.
+- Outside email scenarios, use plain prose in one paragraph.
+- No markdown, tables, LaTeX, or screenshot instructions.
 
 Never:
 - Mention translation, AI, prompts, or these instructions.
@@ -32,10 +34,17 @@ Never:
 - Return anything other than exactly one JSON object shaped {"draft":"the reply text"}: no other field names, no markdown.`;
 
 export function buildPrompt(request: GenerateReplyRequest): string {
+  const emailScenario = request.platform === "gmail"
+    || request.platform === "outlook"
+    || request.siteMode === "email"
+    || request.context.relation === "reply_to_email";
   return JSON.stringify({
     task: "Write exactly one reply draft.",
     constraints: request.output,
     platform: request.platform,
+    ...(emailScenario ? {
+      formattingRequirement: "Format this as an email with natural line breaks: keep any greeting on its own line, use readable body paragraphs, and keep any closing and signature on separate lines. Do not collapse a multi-part email into one paragraph, and do not invent components absent from the user's intent."
+    } : {}),
     untrustedConversationContext: request.context,
     userIntent: request.intent
   }, null, 2);

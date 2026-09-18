@@ -59,8 +59,8 @@ describe("shortcut rendering", () => {
     renderShortcutKeys(container, "Ctrl+Shift+Y", false);
     expect([...container.querySelectorAll("kbd")].map(chip => chip.textContent)).toEqual(["Ctrl", "Shift", "Y"]);
 
-    renderShortcutKeys(container, "Alt+Shift+Y", true);
-    expect([...container.querySelectorAll("kbd")].map(chip => chip.textContent)).toEqual(["⌥", "⇧", "Y"]);
+    renderShortcutKeys(container, "Alt+R", true);
+    expect([...container.querySelectorAll("kbd")].map(chip => chip.textContent)).toEqual(["⌥", "R"]);
   });
 
   it("replaces the previous binding instead of appending to it", () => {
