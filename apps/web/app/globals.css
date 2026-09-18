@@ -503,8 +503,10 @@ blockquote {
 .promo-video {
   position: relative;
   aspect-ratio: 16/9;
-  max-width: 900px;
-  margin: auto;
+  /* Fills .shell (up to 1180px) rather than stopping at 900px: YouTube picks the
+     default quality from the player's width, and 900px sits in its 480p band
+     while 1180px reaches the 720p band. This is the only lever we have over that
+     (@see components/promo-video.tsx). */
   border-radius: 18px;
   overflow: hidden;
   background: #151d19;
@@ -565,8 +567,7 @@ blockquote {
   border: 0;
 }
 .chapters {
-  max-width: 900px;
-  margin: 18px auto 0;
+  margin: 18px 0 0;
   padding: 17px;
   background: var(--paper);
   border-radius: 12px;

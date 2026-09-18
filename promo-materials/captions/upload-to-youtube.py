@@ -13,8 +13,9 @@ file. Quick start:
     python3 upload-to-youtube.py --video-id dQw4w9WgXcQ --dry-run
     python3 upload-to-youtube.py --video-id dQw4w9WgXcQ
 
-Typical usage: the default set is 25 languages (see DEFAULT_LANGUAGES). Pass
---lang/--all to change what gets uploaded and --list to preview.
+Typical usage: with no --lang the script uploads PENDING_LANGUAGES, the leftovers
+of the last run (falling back to the full DEFAULT_LANGUAGES set once that is
+empty). Pass --lang/--all to change what gets uploaded and --list to preview.
 """
 
 from __future__ import annotations
@@ -49,10 +50,16 @@ SCOPES = ["https://www.googleapis.com/auth/youtube.force-ssl"]
 DEFAULT_CLIENT_SECRET = SCRIPT_DIR / "client_secret.json"
 DEFAULT_TOKEN = SCRIPT_DIR / "token.json"
 
-# captions.insert costs 400 quota units; the default project quota is 10,000
-# units per day, i.e. ~25 tracks. See YOUTUBE-UPLOAD.md.
+# Caption API quota costs, in YouTube Data API units:
+#   captions.insert 400 · captions.delete 50 · captions.list 50
+# The default project quota is 10,000 units per day. Listing the existing
+# tracks is not free, so one run can insert (10_000 - 50) / 400 = 24 tracks —
+# not 25. The 25th needs the next day (the quota resets at midnight Pacific).
+# See YOUTUBE-UPLOAD.md.
 QUOTA_PER_INSERT = 400
+QUOTA_PER_LIST = 50
 DAILY_QUOTA = 10_000
+TRACKS_PER_RUN = (DAILY_QUOTA - QUOTA_PER_LIST) // QUOTA_PER_INSERT  # 24
 
 # Caption tracks already published on the first video — never re-uploaded.
 PUBLISHED = {"en", "zh-Hans", "zh-Hant"}
@@ -60,11 +67,16 @@ PUBLISHED = {"en", "zh-Hans", "zh-Hant"}
 # Default upload set: the languages the Verbia UI itself ships in, minus the
 # three already published, minus the three smallest / most English-proficient
 # Nordic markets (Norwegian, Danish, Finnish — Swedish stays as the Nordic
-# representative). 31 UI languages - 3 published - 3 held back = 25, which is
-# also what one day of the default caption quota allows.
+# representative). 31 UI languages - 3 published - 3 held back = 25.
+#
+# One day of quota covers TRACKS_PER_RUN (24), so the 25th language spills to
+# the next day — that is why sv sits last.
 #
 # Order = upload priority: if the quota runs out mid-run, the biggest markets
 # are already done and you can resume with --limit/--lang the next day.
+#
+# This is now the fallback set — for the first video the job is nearly done, so
+# PENDING_LANGUAGES below takes precedence. See the quota note above.
 DEFAULT_LANGUAGES = [
     "es",       # Spanish (Latin America)
     "pt-BR",    # Portuguese (Brazil)
@@ -91,6 +103,18 @@ DEFAULT_LANGUAGES = [
     "he",       # Hebrew
     "el",       # Greek
     "sv",       # Swedish
+]
+
+# Languages still missing from the video. The 2026-09-18 run pushed 24 of the
+# 25 defaults before the daily caption quota ran out (TRACKS_PER_RUN = 24), so
+# Swedish is the only one left. A bare run now uploads exactly these, which
+# makes finishing the job a single no-argument command:
+#
+#     python3 upload-to-youtube.py --video-id QRUixu_Hk6s
+#
+# Empty this list once the video is complete (or pass --lang/--all to ignore it).
+PENDING_LANGUAGES = [
+    "sv",
 ]
 
 # Caption file suffix -> YouTube caption language code. Our tags are already
@@ -259,6 +283,8 @@ def select_codes(sources: dict[str, Path], args: argparse.Namespace) -> list[str
         wanted = sorted(available)
     elif args.lang:
         wanted = list(dict.fromkeys(args.lang))  # de-dupe, keep order
+    elif PENDING_LANGUAGES:
+        wanted = list(PENDING_LANGUAGES)
     else:
         wanted = [c for c in DEFAULT_LANGUAGES if c in available]
 
@@ -276,10 +302,12 @@ def select_codes(sources: dict[str, Path], args: argparse.Namespace) -> list[str
 
 
 def cmd_list(sources: dict[str, Path], args: argparse.Namespace) -> int:
-    default = [c for c in DEFAULT_LANGUAGES if c in sources]
+    pending = [c for c in PENDING_LANGUAGES if c in sources]
+    default = pending or [c for c in DEFAULT_LANGUAGES if c in sources]
     codes = sorted(sources)
+    kind = "pending leftovers" if pending else "default set"
     print(f"\n{len(codes)} caption files available — "
-          f"default set is {len(default)}\n")
+          f"{kind}: {len(default)}\n")
     print(f"{'code':<10} {'upload':<7} {'YouTube code':<14} native")
     print("-" * 60)
     for code in codes:
@@ -427,11 +455,15 @@ def cmd_upload(sources: dict[str, Path], args: argparse.Namespace) -> int:
 
     print(f"\nVideo: {video_id}")
     print(f"Plan:  {len(codes)} language(s) — {', '.join(codes)}")
-    if len(codes) > DAILY_QUOTA // QUOTA_PER_INSERT:
+    if not args.all and not args.lang and PENDING_LANGUAGES:
+        print("Set:   pending leftovers from the last run "
+              "(--all / --lang to override)")
+    if len(codes) > TRACKS_PER_RUN:
         warn(
-            f"{len(codes)} tracks exceed the default daily quota "
-            f"(~{DAILY_QUOTA // QUOTA_PER_INSERT}); the run stops when the "
-            "quota is hit and you resume the rest the next day."
+            f"{len(codes)} tracks exceed what one day of quota allows "
+            f"(~{TRACKS_PER_RUN}: 24 x {QUOTA_PER_INSERT} units, plus "
+            f"{QUOTA_PER_LIST} for listing); the run stops when the quota is "
+            "hit and you resume the rest the next day."
         )
     print()
 
@@ -512,14 +544,26 @@ def cmd_upload(sources: dict[str, Path], args: argparse.Namespace) -> int:
                 remaining = [c for c, _ in pending[index - 1 :]]
                 print(
                     f"\nQuota exhausted after {done} upload(s). "
-                    "YouTube resets the caption quota daily.",
+                    "YouTube resets the caption quota at midnight Pacific "
+                    "Time.",
                     file=sys.stderr,
                 )
-                print("Not uploaded yet — re-run with:", file=sys.stderr)
                 print(
-                    "  --lang " + " --lang ".join(remaining), file=sys.stderr
+                    f"\nNot uploaded yet ({len(remaining)}): "
+                    f"{', '.join(remaining)}\n"
+                    "Tomorrow, re-run:",
+                    file=sys.stderr,
                 )
-                print(f"completed={done} skipped={skipped} failed={failed}")
+                flags = " ".join(f"--lang {c}" for c in remaining)
+                print(
+                    f"  python3 {Path(sys.argv[0]).name} "
+                    f"--video-id {video_id} {flags}",
+                    file=sys.stderr,
+                )
+                print(
+                    f"completed={done} skipped={skipped} failed={failed}",
+                    file=sys.stderr,
+                )
                 return 2
             failed += 1
             reason = ""
@@ -574,8 +618,8 @@ def build_parser() -> argparse.ArgumentParser:
         "--lang",
         action="append",
         metavar="CODE",
-        help="upload only this language (repeatable). Defaults to the curated "
-        "25-language set.",
+        help="upload only this language (repeatable). Defaults to "
+        "PENDING_LANGUAGES, or the curated 25-language set once that is empty.",
     )
     parser.add_argument(
         "--all",

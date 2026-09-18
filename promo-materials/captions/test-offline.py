@@ -13,7 +13,9 @@ does not accept it) fails here instead of mid-run.
 
 from __future__ import annotations
 
+import contextlib
 import importlib.util
+import io
 import json
 import sys
 import warnings
@@ -64,9 +66,11 @@ class FakeRequest:
 
 
 class FakeCaptions:
-    def __init__(self, pages, log):
+    def __init__(self, pages, log, quota_after=None):
         self.pages = list(pages)
         self.log = log
+        self.quota_after = quota_after
+        self.inserts = 0
 
     def list(self, **kw):
         self.log.append(("list", kw))
@@ -76,6 +80,9 @@ class FakeCaptions:
 
     def insert(self, **kw):
         self.log.append(("insert", kw))
+        self.inserts += 1
+        if self.quota_after is not None and self.inserts > self.quota_after:
+            return FakeRequest(error=quota_error())
         return FakeRequest({"id": "new-track"})
 
     def delete(self, **kw):
@@ -83,17 +90,31 @@ class FakeCaptions:
         return FakeRequest(None)
 
 
+def quota_error():
+    from googleapiclient.errors import HttpError
+
+    class Res:
+        status = 403
+        reason = "quotaExceeded"
+
+    payload = {"error": {"errors": [{"reason": "quotaExceeded",
+                                     "message": "The request cannot be completed "
+                                                "because you have exceeded your "
+                                                "quota."}], "code": 403}}
+    return HttpError(Res(), json.dumps(payload).encode())
+
+
 class FakeService:
-    def __init__(self, pages, log):
-        self._captions = FakeCaptions(pages, log)
+    def __init__(self, pages, log, quota_after=None):
+        self._captions = FakeCaptions(pages, log, quota_after)
 
     def captions(self):
         return self._captions
 
 
-def run(pages, argv):
+def run(pages, argv, quota_after=None):
     log: list = []
-    mod.build_service = lambda args: FakeService(pages, log)
+    mod.build_service = lambda args: FakeService(pages, log, quota_after)
     code = mod.main(["--srt-dir", str(HERE.parent.parent / "artifacts/verbia-captions/srt"), *argv])
     return code, log
 
@@ -202,11 +223,31 @@ def t5_language_map_and_srt():
     print(f"  25 default languages all have an srt; he->iw / es->es-419 mapping intact")
 
 
+def t6_quota_exhausted_resume():
+    # One day of quota fits 24 inserts (the list call costs 50 units first), so
+    # a 25-language run must stop cleanly with a copy-pasteable resume command.
+    assert mod.TRACKS_PER_RUN == 24, f"TRACKS_PER_RUN is {mod.TRACKS_PER_RUN}"
+    pages = [{"items": []}]
+    buf = io.StringIO()
+    with contextlib.redirect_stderr(buf):
+        code, log = run(pages, ["--video-id", "QRUixu_Hk6s",
+                                "--lang", "ja", "--lang", "ko", "--lang", "de"],
+                        quota_after=2)
+    err = buf.getvalue()
+    assert code == 2, f"quota exhaustion must exit 2, got {code}"
+    assert inserted(log) == ["ja", "ko", "de"], inserted(log)  # 3rd attempted
+    assert "completed=2" in err, err
+    assert "--lang de" in err and "QRUixu_Hk6s" in err, f"no resume command:\n{err}"
+    check_calls(log)
+    print("  stops at the quota wall, exits 2, prints the next-day resume command")
+
+
 attempt("T1  existing tracks are skipped (incl. he/iw alias)", t1_existing_skipped)
 attempt("T2  --overwrite deletes before re-inserting", t2_overwrite_replaces)
 attempt("T3  fresh upload inserts every selected language", t3_fresh_upload)
 attempt("T4  everything already present -> no API writes", t4_all_pending_skipped)
 attempt("T5  language mapping + srt files present", t5_language_map_and_srt)
+attempt("T6  quota exhaustion -> exit 2 + resume command", t6_quota_exhausted_resume)
 
 section("RESULT")
 if failures:

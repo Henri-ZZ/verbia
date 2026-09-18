@@ -4,6 +4,14 @@ import { useState } from "react";
 
 // Unlisted-but-public walkthrough. Kept as an id, not a URL: the embed URL and
 // the domain are built below, so there is one place to change either.
+//
+// Playback quality is not ours to set. YouTube removed every quality parameter
+// from the player (vq is gone, hd left with the AS2 player in 2012) and the
+// IFrame API now only reports quality through onPlaybackQualityChange — the
+// setters were deprecated in 2019. Quality is picked from the player's width and
+// the viewer's connection, so the only lever we have is the box the video sits
+// in (@see .promo-video in globals.css). Full screen is what reliably reaches
+// 1080p. modestbranding was dropped for the same reason: deprecated 2023-08-15.
 const VIDEO_ID = "QRUixu_Hk6s";
 
 // Cover first, player only on click.
@@ -24,7 +32,7 @@ export function PromoVideo({ label }: { label: string }) {
           className="promo-frame"
           // youtube-nocookie: no tracking cookie is set unless playback starts,
           // which is the same choice we made everywhere else on the site.
-          src={`https://www.youtube-nocookie.com/embed/${VIDEO_ID}?autoplay=1&rel=0&modestbranding=1`}
+          src={`https://www.youtube-nocookie.com/embed/${VIDEO_ID}?autoplay=1&rel=0`}
           title={label}
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
           referrerPolicy="strict-origin-when-cross-origin"
