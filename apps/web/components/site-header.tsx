@@ -8,8 +8,8 @@ import { LanguageSelect } from "./language-redirect";
 import { AccountButton } from "./account-button";
 
 const nav = {
-  en: [["How it works", "#how-it-works"], ["Features", "#features"], ["Guide", "/getting-started"], ["Pricing", "#pricing"], ["FAQ", "#faq"]],
-  zh: [["使用方式", "#how-it-works"], ["功能", "#features"], ["使用教程", "/zh/getting-started"], ["套餐", "#pricing"], ["常见问题", "#faq"]]
+  en: [["How it works", "#how-it-works"], ["Features", "#features"], ["Platforms", "/supported-platforms"], ["Guide", "/getting-started"], ["Pricing", "#pricing"]],
+  zh: [["使用方式", "#how-it-works"], ["功能", "#features"], ["支持的平台", "/zh/supported-platforms"], ["使用教程", "/zh/getting-started"], ["套餐", "#pricing"]]
 };
 export function SiteHeader({ locale = "en", localizedPage = true }: { locale?: "en" | "zh"; localizedPage?: boolean }) {
   const [open, setOpen] = useState(false);

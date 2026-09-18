@@ -10,13 +10,13 @@ const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-displa
 export const metadata: Metadata = {
   metadataBase: new URL("https://verbia.henriz.dev"),
   title: "Verbia — AI Reply & Writing Assistant",
-  description: "Tell Verbia what you want to say, in any language. Get a natural, context-aware reply you can review and insert.",
+  description: "Draft natural replies with Automatic Mode on supported sites, AI-assisted email context, and selected text elsewhere. Express your intent in any language.",
   applicationName: "Verbia",
   alternates: { canonical: "/", languages: { en: "/", "zh-CN": "/zh" } },
   openGraph: {
     type: "website", url: "/", siteName: "Verbia",
     title: "Verbia — Tell me what you want to say, in any language.",
-    description: "Turn your intent into natural, context-aware replies without leaving the conversation."
+    description: "Automatic context on supported sites, your intent in any language, and a natural draft you review before sending."
   },
   twitter: { card: "summary", title: "Verbia — AI Reply & Writing Assistant", description: "Your intent. The right words." },
   icons: { icon: "/verbia-mark.svg", apple: "/verbia-mark.svg" },

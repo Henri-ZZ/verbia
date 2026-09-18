@@ -15,6 +15,7 @@
 | URL | Intent owner | 页面类型 | Cluster | 状态 | 备注 |
 |---|---|---|---|---|---|
 | `/` | Verbia 品牌与总产品定位 | Brand/Product | — | live | 中英文主页分别为 `/`、`/zh` |
+| `/supported-platforms/` | Verbia 当前支持的平台与上下文模式 | Product/Directory | — | ready_local | 中英文页面分别为 `/supported-platforms`、`/zh/supported-platforms`；作为能力范围单一事实来源 |
 | `/ai-reply-generator/` | 通用 AI reply generator | Product | C1/C3 | live | 不与具体 email situation 抢主意图 |
 | `/ai-email-reply-generator/` | Email reply generator | Product | C1 | live | **Top 10 #10 的唯一 owner** |
 | `/context-aware-reply-generator/` | Context-aware reply generator | Capability | C1/C2/C3 | live | 解释 context 能力 |

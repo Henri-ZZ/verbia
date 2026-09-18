@@ -40,6 +40,7 @@ export function SiteFooter({ locale = "en" }: { locale?: SiteLocale }) {
         <nav aria-label={zh ? "产品" : "Product"}>
           <h2>{zh ? "产品" : "Product"}</h2>
           <Link href={`${home}#features`}>{zh ? "功能" : "Features"}</Link>
+          <Link href={`${prefix}/supported-platforms`}>{zh ? "支持的平台" : "Supported platforms"}</Link>
           <Link href={`${prefix}/getting-started`}>{zh ? "使用教程" : "Getting started"}</Link>
           {!zh && <Link href="/situations">Email situations</Link>}
           {!zh && <Link href="/career">Career guides</Link>}

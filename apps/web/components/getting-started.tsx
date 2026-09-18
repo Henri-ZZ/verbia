@@ -15,7 +15,7 @@ const copy = {
     welcomeBody: "You’re ready to turn what you mean—in any language—into a natural reply that fits the conversation.",
     eyebrow: "GETTING STARTED",
     title: "Your first Verbia reply",
-    intro: "Learn the basic flow in a few minutes. Verbia reads context only when you invoke it, prepares a draft, and leaves the final decision to you.",
+    intro: "Learn the basic flow in a few minutes. Verbia shows the context it finds, prepares a draft only when you choose Generate, and leaves the final decision to you.",
     time: "About 3 minutes",
     installed: "Extension installed",
     start: "Before you begin",
@@ -33,11 +33,11 @@ const copy = {
       ["Generate and review", "Choose Generate. Read and edit the draft before you use it. If needed, generate again with clearer intent or different settings."],
       ["Insert, then send yourself", "Insert the draft into Reddit’s reply box, make any final edits, and send it yourself. Verbia never clicks Send."],
     ],
-    emailEyebrow: "GMAIL & OUTLOOK WEB · AUTOMATIC MODE",
+    emailEyebrow: "GMAIL, OUTLOOK & QQ MAIL · AUTOMATIC MODE",
     emailTitle: "Reply with the open email as context",
-    emailIntro: "In Gmail and Outlook on the web, Verbia can use the visible email conversation while you compose or reply.",
+    emailIntro: "In Gmail, Outlook on the web, and QQ Mail, Verbia can use the visible email conversation while you compose or reply.",
     emailSteps: [
-      ["Open an email editor", "Start a new message or open a reply editor in Gmail or Outlook on the web. Focus the message body, then open Verbia."],
+      ["Open an email editor", "Start a new message or open a reply editor in Gmail, Outlook on the web, or QQ Mail. Focus the message body, then open Verbia."],
       ["Review the email context", "Check the context preview to confirm Verbia found the right visible message. Remove anything you do not want to include."],
       ["Describe the reply", "Type or dictate what you want to say in any language, then choose the output language, tone, and length."],
       ["Generate, edit, and send", "Insert or copy the draft, make any final edits, and press Send yourself. Verbia never sends an email for you."],
@@ -56,20 +56,21 @@ const copy = {
     controlsTitle: "Shape the draft",
     controls: [["Output language", "The language your reply should use. Your intent can be written in any language."], ["Tone", "Choose a style that fits the room, such as casual, professional, or concise."], ["Length", "Ask for a short, medium, or longer reply."], ["Voice language", "Used only to recognize speech; it does not decide the output language."]],
     privacyTitle: "You stay in control",
-    privacy: ["Verbia reads relevant visible text only after you invoke it.", "Context and intent are sent only when you choose Generate.", "Every result is an editable draft; nothing is posted automatically.", "Page text, intent, transcripts, and drafts are not stored as conversation history by Verbia."],
+    privacy: ["When the reply panel opens, supported sites collect relevant visible context locally so you can inspect it.", "Context and intent are sent only when you choose Generate.", "Every result is an editable draft; nothing is posted automatically.", "Page text, intent, transcripts, and drafts are not stored as conversation history by Verbia."],
     helpTitle: "If something doesn’t work",
     help: [["The panel did not appear", "Click a Reddit reply box or a Gmail/Outlook compose or reply editor first. On another site, focus an editable field and use the shortcut. Some protected browser pages do not allow extensions."], ["The wrong context was detected", "Open the context preview and remove it, or select the exact text you need and add it from the right-click menu."], ["Insert is unavailable", "Some complex editors do not expose a reliable insertion point. Choose Copy, then paste the draft manually."], ["You are asked to sign in", "Online generation requires a Verbia account. Sign in from the extension’s Account area using Google or an email magic link."], ["The daily allowance is used", "Free accounts receive 10 generations per day. Premium includes 100 per day. Allowances reset at 00:00 UTC and do not roll over."]],
     ready: "Ready to try your first reply?",
-    readyBody: "Open Reddit, Gmail, Outlook, or any page with a text field, focus the place where you want to reply, and open Verbia.",
+    readyBody: "Open Reddit, WhatsApp Web, Gmail, Outlook, QQ Mail, or any page with a text field, focus the place where you want to reply, and open Verbia.",
     openReddit: "Try it on Reddit",
     settings: "View account",
+    platforms: "See all supported platforms",
   },
   zh: {
     welcome: "安装完成，欢迎使用 Verbia。",
     welcomeBody: "现在，你可以用任何语言说出自己的意思，再把它变成符合当前对话的自然回复。",
     eyebrow: "快速开始",
     title: "用 Verbia 写出第一条回复",
-    intro: "几分钟了解完整流程。Verbia 只在你主动唤起后读取上下文，生成草稿，最终发送决定始终由你做出。",
+    intro: "几分钟了解完整流程。Verbia 会展示找到的上下文，只有你点击“生成”时才准备草稿，最终发送决定始终由你做出。",
     time: "约 3 分钟",
     installed: "扩展已安装",
     start: "开始前的准备",
@@ -87,11 +88,11 @@ const copy = {
       ["生成并审核", "点击“生成”，阅读并修改草稿。需要时，可以补充更清楚的意图或调整设置后重新生成。"],
       ["插入后自行发送", "把草稿插入 Reddit 回复框，完成最后修改，再由你自己发送。Verbia 永远不会替你点击发送。"],
     ],
-    emailEyebrow: "GMAIL 与 OUTLOOK 网页版 · 自动模式",
+    emailEyebrow: "GMAIL、OUTLOOK 与 QQ 邮箱 · 自动模式",
     emailTitle: "自动带上当前邮件上下文",
-    emailIntro: "在 Gmail 和 Outlook 网页版中，Verbia 可以在你写信或回复时参考当前可见的邮件对话。",
+    emailIntro: "在 Gmail、Outlook 网页版和 QQ 邮箱中，Verbia 可以在你写信或回复时参考当前可见的邮件对话。",
     emailSteps: [
-      ["打开邮件编辑器", "在 Gmail 或 Outlook 网页版中新建邮件或打开回复框。聚焦邮件正文，然后唤起 Verbia。"],
+      ["打开邮件编辑器", "在 Gmail、Outlook 网页版或 QQ 邮箱中新建邮件或打开回复框。聚焦邮件正文，然后唤起 Verbia。"],
       ["检查邮件上下文", "查看上下文预览，确认 Verbia 找到了正确的可见邮件。不希望发送给 AI 的内容可以先移除。"],
       ["描述你想怎么回复", "用任意语言输入或说出你的意思，再选择输出语言、语气和长度。"],
       ["生成、修改并自行发送", "插入或复制草稿，完成最后修改，再由你点击发送。Verbia 永远不会替你发送邮件。"],
@@ -110,13 +111,14 @@ const copy = {
     controlsTitle: "调整草稿表达",
     controls: [["输出语言", "回复最终使用的语言；你的原始意图可以用任意语言表达。"], ["语气", "选择适合当前场合的风格，例如轻松、专业或简洁。"], ["长度", "让回复保持简短、适中或更详细。"], ["语音语言", "只用于识别语音，不会决定最终回复的语言。"]],
     privacyTitle: "所有决定都在你手中",
-    privacy: ["只有你主动唤起后，Verbia 才会读取相关可见文字。", "只有点击“生成”时，上下文和意图才会发送。", "每次结果都是可编辑草稿，不会被自动发布。", "Verbia 不会把页面正文、意图、语音转写或草稿保存为对话历史。"],
+    privacy: ["回复面板打开时，支持的网站会在本地获取相关可见上下文，供你检查。", "只有点击“生成”时，上下文和意图才会发送。", "每次结果都是可编辑草稿，不会被自动发布。", "Verbia 不会把页面正文、意图、语音转写或草稿保存为对话历史。"],
     helpTitle: "遇到问题时",
     help: [["面板没有出现", "先点击 Reddit 回复框，或 Gmail/Outlook 的写信、回复编辑器；在其他网站先聚焦可编辑输入框，再使用快捷键。部分受保护的浏览器页面不允许扩展运行。"], ["识别了错误的上下文", "打开上下文预览并移除，或者准确选中需要的文字，通过右键菜单加入。"], ["无法直接插入", "部分复杂编辑器无法提供可靠的插入位置。请选择“复制”，再手动粘贴草稿。"], ["页面要求登录", "在线生成需要 Verbia 账号。请在扩展的账号区域使用 Google 或邮箱免密链接登录。"], ["今日额度已经用完", "免费账号每天 10 次，Premium 每天 100 次。额度在 UTC 0 点重置，不能结转。"]],
     ready: "准备好尝试第一条回复了吗？",
-    readyBody: "打开 Reddit、Gmail、Outlook 或任意带文本框的页面，聚焦想回复的位置，然后唤起 Verbia。",
+    readyBody: "打开 Reddit、WhatsApp 网页版、Gmail、Outlook、QQ 邮箱或任意带文本框的页面，聚焦想回复的位置，然后唤起 Verbia。",
     openReddit: "前往 Reddit 试用",
     settings: "查看账号",
+    platforms: "查看所有支持的平台",
   },
 } as const;
 
@@ -126,18 +128,18 @@ function StepList({ steps }: { steps: ReadonlyArray<readonly [string, string]> }
 
 export function GettingStarted({ locale }: { locale: SiteLocale }) {
   const [installed, setInstalled] = useState(false);
-  const [shortcut, setShortcut] = useState("Ctrl+Shift+Y");
+  const [shortcut, setShortcut] = useState("Alt+R");
   const t = copy[locale];
   useEffect(() => {
     setInstalled(new URLSearchParams(window.location.search).get("installed") === "1");
-    if (/Mac|iPhone|iPad/.test(navigator.platform)) setShortcut("⌘⇧Y");
+    if (/Mac|iPhone|iPad/.test(navigator.platform)) setShortcut("⌥R");
   }, []);
 
   return <div lang={locale === "zh" ? "zh-CN" : "en"}>
     {locale === "en" ? <LanguageRedirect/> : <RememberLocale locale="zh"/>}<SiteHeader locale={locale}/>
     <main id="main" className="guide-page">
       {installed && <section className="guide-welcome" aria-labelledby="welcome-title"><div className="guide-welcome-mark"><img src="/verbia-mark.svg" alt="" width="54" height="54"/></div><div><span>{t.installed}</span><h1 id="welcome-title">{t.welcome}</h1><p>{t.welcomeBody}</p></div></section>}
-      <header className="guide-hero"><p className="eyebrow">{t.eyebrow}</p>{!installed && <h1>{t.title}</h1>}{installed && <h2>{t.title}</h2>}<p>{t.intro}</p><span className="guide-time">◷ {t.time}</span></header>
+      <header className="guide-hero"><p className="eyebrow">{t.eyebrow}</p>{!installed && <h1>{t.title}</h1>}{installed && <h2>{t.title}</h2>}<p>{t.intro}</p><span className="guide-time">◷ {t.time}</span><Link className="guide-platform-link" href={`${locale === "zh" ? "/zh" : ""}/supported-platforms`}>{t.platforms} <span aria-hidden="true">→</span></Link></header>
 
       <section className="guide-setup" aria-labelledby="setup-title"><div><p className="eyebrow">01</p><h2 id="setup-title">{t.start}</h2><p>{t.startBody}</p><Link className="button primary" href={`/account?locale=${locale}`}>{t.account} <span aria-hidden="true">→</span></Link></div><aside><span aria-hidden="true">⌖</span><div><h3>{t.pinTitle}</h3><p>{t.pinBody}</p></div></aside></section>
 
