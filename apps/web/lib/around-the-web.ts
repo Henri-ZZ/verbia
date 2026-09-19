@@ -77,6 +77,18 @@ export const aroundTheWeb: AroundTheWebEntry[] = [
     },
     icon: "https://fazier.com/api/v1//public/badges/launch_badges.svg?badge_type=launched&theme=light",
     group: "directories"
+  },
+  {
+    name: "Startup Fame",
+    // Badge and up-to-date link exactly as their listing hands them out; the
+    // utm_source is theirs and it is how they attribute the referral.
+    url: "https://startupfa.me/s/verbia?utm_source=verbia.henriz.dev",
+    description: {
+      en: "A curated directory of startups and products, updated daily. Verbia is a reviewed listing.",
+      zh: "每日更新的创业公司与产品精选目录，Verbia 是已审核的条目。"
+    },
+    icon: "https://startupfa.me/badges/featured-badge.webp",
+    group: "directories"
   }
 ];
 
