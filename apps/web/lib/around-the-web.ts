@@ -9,58 +9,69 @@ import { STORE_URLS } from "./browser-stores";
 //      counts, ratings, or "featured by" claims we cannot point at.
 //   2. Name it the way the platform names itself.
 //
-// `badge` is only for platforms that require their own mark on a placement; a
-// plain name and link is the default. Badges are rendered at a fixed 40px height
-// with their own aspect ratio, so both a square icon and a wide "verified"
-// wordmark work — point the field at the URL the platform hands out, which is
-// normally their own CDN (that is one third-party request on this page, and only
-// because the placement requires it). `sponsored` marks a paid placement, which
-// is the only case where the link gets rel="sponsored" — a normal listing is a
-// normal link.
-export type AroundTheWebGroup = "directories" | "communities" | "mentions";
+// `icon` is the small mark that sits next to the name. Use a local asset when we
+// have one (the store logos in apps/web/public), and the platform's own URL when
+// the platform publishes its mark — that is then one third-party request on this
+// page, which is why nothing else here is remote. Marks are sized by height and
+// keep their own aspect ratio, so a square logo and a wide wordmark both work.
+// `sponsored` marks a paid placement, which is the only case where the link gets
+// rel="sponsored" — a normal listing is a normal link.
+export type AroundTheWebGroup = "stores" | "directories" | "communities" | "mentions" | "other";
 
 export type AroundTheWebEntry = {
   name: string;
   url: string;
-  description?: string;
-  badge?: string;
+  // One factual line about the placement, per site language (zh falls back to en
+  // while a translation is missing). The page shows it as the link's hover
+  // tooltip, not as body copy, so the list stays a list of names.
+  description?: { en: string; zh?: string };
+  icon?: string;
   // Optional. Headings only appear once more than one group has entries, so a
   // short list stays a plain list instead of a row of one-item sections.
   group?: AroundTheWebGroup;
   sponsored?: boolean;
 };
 
-export const GROUP_LABELS: Record<AroundTheWebGroup, string> = {
-  directories: "Product directories",
-  communities: "Communities",
-  mentions: "Reviews & mentions"
-};
-
-const GROUP_ORDER: AroundTheWebGroup[] = ["directories", "communities", "mentions"];
+// Display order. Groups with no entries are skipped rather than rendered empty.
+const GROUP_ORDER: AroundTheWebGroup[] = ["stores", "directories", "communities", "mentions", "other"];
 
 export const aroundTheWeb: AroundTheWebEntry[] = [
   {
-    name: "DANG!",
-    url: "https://dang.ai",
-    description: "An AI tools directory, running since 2022. Verbia's listing shows their verified badge.",
-    badge: "https://assets.dang.ai/badges/dang-verified-light.png",
-    group: "directories"
-  },
-  {
     name: "Chrome Web Store",
     url: STORE_URLS.chrome,
-    description: "The Chrome listing for the Verbia extension — current version, permissions, and reviews."
+    description: {
+      en: "The Chrome listing for the Verbia extension — current version, permissions, and reviews.",
+      zh: "Verbia 扩展在 Chrome 商店的页面：当前版本、权限与用户评价。"
+    },
+    icon: "/chrome.svg",
+    group: "stores"
   },
   {
     name: "Microsoft Edge Add-ons",
     url: STORE_URLS.edge,
-    description: "The same extension, listed for Microsoft Edge."
+    description: {
+      en: "The same extension, listed for Microsoft Edge.",
+      zh: "同一个扩展在 Microsoft Edge 加载项商店的页面。"
+    },
+    icon: "/edge.svg",
+    group: "stores"
+  },
+  {
+    name: "DANG!",
+    url: "https://dang.ai",
+    description: {
+      en: "An AI tools directory, running since 2022. Verbia's listing shows their verified badge.",
+      zh: "2022 年起运营的 AI 工具目录，Verbia 的条目带有其认证标识。"
+    },
+    icon: "https://assets.dang.ai/badges/dang-verified-light.png",
+    group: "directories"
   }
 ];
 
 // Entries in display order, grouped only as far as the data justifies it: with a
-// single populated group the caller gets one unnamed bucket (@see the page).
-export function groupedAroundTheWeb(entries: AroundTheWebEntry[]): { group?: AroundTheWebGroup; label?: string; entries: AroundTheWebEntry[] }[] {
+// single populated group the caller gets one unnamed bucket (@see the page). The
+// caller supplies the headings, so this stays language-neutral.
+export function groupedAroundTheWeb(entries: AroundTheWebEntry[]): { group?: AroundTheWebGroup; entries: AroundTheWebEntry[] }[] {
   const populated = GROUP_ORDER.filter(group => entries.some(entry => entry.group === group));
   const ungrouped = entries.filter(entry => !entry.group);
   if (populated.length <= 1) {
@@ -68,7 +79,6 @@ export function groupedAroundTheWeb(entries: AroundTheWebEntry[]): { group?: Aro
   }
   const buckets = populated.map(group => ({
     group,
-    label: GROUP_LABELS[group],
     entries: entries.filter(entry => entry.group === group)
   }));
   return ungrouped.length > 0 ? [...buckets, { entries: ungrouped }] : buckets;

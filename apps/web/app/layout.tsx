@@ -27,8 +27,14 @@ export const viewport: Viewport = { themeColor: "#f2fcf4", colorScheme: "light" 
 
 const GA_ID = "G-540Y1K231S";
 
+// suppressHydrationWarning belongs on <html> and nowhere else: the attribute
+// mismatches reported here are injected by browser extensions (Google Analytics
+// opt-out add-ons put data-google-analytics-opt-out on this element before React
+// hydrates), and React cannot patch what it did not render. The two attributes we
+// do render — lang and class — are static, so silencing this element hides
+// nothing of ours. @see https://react.dev/link/hydration-mismatch
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en" className={`${inter.variable} ${jakarta.variable}`}><body><a className="skip-link" href="#main">Skip to content</a><SessionWatch />{children}
+  return <html lang="en" className={`${inter.variable} ${jakarta.variable}`} suppressHydrationWarning><body><a className="skip-link" href="#main">Skip to content</a><SessionWatch />{children}
     <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="lazyOnload" />
     <Script id="ga-config" strategy="lazyOnload" dangerouslySetInnerHTML={{ __html: `window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', '${GA_ID}');` }} />
   </body></html>;

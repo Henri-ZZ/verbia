@@ -2555,22 +2555,23 @@ button:focus-visible {
    links — no logo wall, no "featured on" framing — and group headings only
    appear once the data has more than one populated group
    (@see lib/around-the-web.ts). */
-.around-web-hero { max-width: 780px; padding-block: 100px 56px; }
-.around-web-hero h1 { margin: 13px auto 18px; font: 740 clamp(38px,5.4vw,60px)/1.06 var(--display); letter-spacing: -.04em; }
-.around-web-hero > p:not(.eyebrow) { max-width: 640px; margin: 0 auto; }
-.around-web-list { display: grid; gap: 26px; padding-bottom: 12px; }
-.around-web-bucket { display: grid; gap: 12px; }
+.around-web-hero { max-width: 720px; padding-block: 82px 44px; }
+.around-web-hero h1 { margin: 11px auto 15px; font: 740 clamp(31px,4.1vw,44px)/1.08 var(--display); letter-spacing: -.035em; }
+.around-web-hero > p:not(.eyebrow) { max-width: 580px; margin: 0 auto; font-size: 16px; }
+.around-web-list { display: grid; gap: 30px; padding-bottom: 12px; }
+.around-web-bucket { display: grid; gap: 14px; }
 .around-web-group-heading { margin: 0; color: var(--outline); font: 800 12px/1 var(--body); letter-spacing: .14em; text-transform: uppercase; }
-.around-web-card { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 20px; align-items: center; padding: 22px 24px; background: var(--paper); border: 1px solid var(--border); border-radius: 14px; transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease; }
-.around-web-card:hover { border-color: var(--jade); box-shadow: 0 14px 34px -16px rgba(23,32,25,.28); transform: translateY(-1px); }
-.around-web-card:focus-visible { outline: 3px solid rgba(15,110,86,.35); outline-offset: 2px; }
-.around-web-name { display: flex; align-items: center; gap: 10px; margin: 0 0 6px; font: 700 21px/1.2 var(--display); letter-spacing: -.02em; }
-/* Platform badges keep their own aspect ratio, sized by height so a wide
-   "verified" wordmark reads without becoming a logo wall. */
-.around-web-badge { display: block; height: 40px; width: auto; margin-top: 16px; }
-.around-web-description { margin: 0; color: var(--muted); font-size: 14px; }
-.around-web-go { color: var(--primary); font-size: 17px; font-weight: 750; }
-.around-web-note { margin: 0; padding-block: 34px 96px; color: var(--muted); font-size: 14px; }
+/* The row wraps on its own, so the list stays compact however many platforms it
+   grows to. Marks keep their own aspect ratio, sized by height. */
+.around-web-row { display: flex; flex-wrap: wrap; gap: 12px 14px; }
+.around-web-item { display: inline-flex; align-items: center; gap: 10px; padding: 9px 17px; background: var(--paper); border: 1px solid var(--border); border-radius: 999px; transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease; }
+.around-web-item:hover { border-color: var(--jade); box-shadow: 0 10px 24px -16px rgba(23,32,25,.35); transform: translateY(-1px); }
+.around-web-item:focus-visible { outline: 3px solid rgba(15,110,86,.35); outline-offset: 2px; }
+.around-web-icon { flex: none; width: auto; height: 22px; max-width: 104px; object-fit: contain; }
+.around-web-label { font: 700 15px/1.2 var(--body); }
+/* Centred, and the auto inline margins are load-bearing: .shell supplies the
+   width, so a plain margin: 0 would leave the line pinned to the left edge. */
+.around-web-note { margin: 0 auto; padding-block: 34px 96px; color: var(--muted); font-size: 14px; text-align: center; }
 .around-web-note a { color: var(--primary); font-weight: 750; text-underline-offset: 4px; }
 /* The footer entry sits with the legal line on purpose: findable, not pushed. */
 .copyright-link { margin-inline-start: 12px; text-underline-offset: 3px; }

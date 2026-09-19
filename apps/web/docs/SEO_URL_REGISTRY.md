@@ -25,7 +25,7 @@
 | `/outlook-ai-reply-assistant/` | Outlook AI reply assistant | Platform | C1 | live | Outlook 自动模式已上线 |
 | `/reddit-reply-generator/` | Reddit reply generator | Platform/Situation | — | live | 产品验证与演示，不作为核心 acquisition cluster |
 | `/ai-reddit-assistant/` | AI Reddit assistant | Platform | — | live | 与上一页边界后续单独复核 |
-| `/around-the-web/` | Verbia 被第三方收录的页面集合 | Brand/External | — | ready_local | 英文单语页面；用于承接 software directory / community 的 reciprocal link，把外链集中到一页而不是全站页脚；入口仅页脚版权行，不进主导航；收录数据维护在 `apps/web/lib/around-the-web.ts` |
+| `/around-the-web/` | Verbia 被第三方收录的页面集合 | Brand/External | — | ready_local | 中英文页面分别为 `/around-the-web`、`/zh/around-the-web`；用于承接 software directory / community 的 reciprocal link，把外链集中到一页而不是全站页脚；入口仅页脚版权行，不进主导航；收录数据维护在 `apps/web/lib/around-the-web.ts` |
 
 ## Hub 规划
 

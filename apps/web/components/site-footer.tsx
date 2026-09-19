@@ -70,6 +70,6 @@ export function SiteFooter({ locale = "en" }: { locale?: SiteLocale }) {
     {/* Deliberately with the legal line rather than a nav column: the page
         collects third-party listings, so it should be findable without being
         pushed at people. */}
-    <div className="shell copyright">© {new Date().getFullYear()} Verbia{zh ? "。保留所有权利。" : ". All rights reserved."} <Link className="copyright-link" href="/around-the-web">Around the Web</Link></div>
+    <div className="shell copyright">© {new Date().getFullYear()} Verbia{zh ? "。保留所有权利。" : ". All rights reserved."} <Link className="copyright-link" href={`${prefix}/around-the-web`}>{zh ? "第三方收录" : "Around the Web"}</Link></div>
   </footer>;
 }

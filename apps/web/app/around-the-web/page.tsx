@@ -6,8 +6,8 @@ import { AroundTheWeb } from "../../components/around-the-web";
 export const metadata: Metadata = {
   title: "Verbia Around the Web | Verbia",
   description: "Discover Verbia on software directories, product communities, and independent platforms around the web.",
-  alternates: { canonical: "/around-the-web" },
+  alternates: { canonical: "/around-the-web", languages: { en: "/around-the-web", "zh-CN": "/zh/around-the-web" } },
   openGraph: { type: "website", url: "/around-the-web", title: "Verbia Around the Web", description: "Where Verbia is listed: software directories, product communities, and independent platforms." }
 };
 
-export default function AroundTheWebPage() { return <AroundTheWeb/>; }
+export default function AroundTheWebPage() { return <AroundTheWeb locale="en"/>; }
