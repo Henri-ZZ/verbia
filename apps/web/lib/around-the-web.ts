@@ -65,6 +65,18 @@ export const aroundTheWeb: AroundTheWebEntry[] = [
     },
     icon: "https://assets.dang.ai/badges/dang-verified-light.png",
     group: "directories"
+  },
+  {
+    name: "Fazier",
+    // Their badge snippet, kept as published — including the doubled slash in
+    // /api/v1//public/, which is how their own installer writes it.
+    url: "https://fazier.com/launches/verbia.henriz.dev",
+    description: {
+      en: "A daily product launch feed. Verbia's launch page carries their launched badge.",
+      zh: "每日产品发布与发现平台，Verbia 的发布页带有其 launched 徽标。"
+    },
+    icon: "https://fazier.com/api/v1//public/badges/launch_badges.svg?badge_type=launched&theme=light",
+    group: "directories"
   }
 ];
 
