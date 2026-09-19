@@ -1,4 +1,4 @@
-import { DEFAULT_SETTINGS, UI_STRINGS, contextExtractionRequestSchema, contextExtractionResponseSchema, generateReplyRequestSchema, generateReplyResponseSchema, resolveUiLang, type AccountUsage, type AuthState, type ExtensionRequest, type ExtensionResponse, type StagedContext, type StagedSelection, type UiLang, type UserSettings } from "@verbia/shared";
+import { DEFAULT_SETTINGS, UI_STRINGS, contextExtractionRequestSchema, contextExtractionResponseSchema, generateReplyRequestSchema, generateReplyResponseSchema, replyStreamEventSchema, resolveUiLang, type AccountUsage, type AuthState, type ExtensionRequest, type ExtensionResponse, type ReplyStreamEvent, type StagedContext, type StagedSelection, type UiLang, type UserSettings } from "@verbia/shared";
 import { WEB_AUTH_ORIGIN, authBearer, authSnapshot, clearSession, establishSessionFromTokenHash, refreshStoredSession, signOut } from "../auth/supabase";
 import { ACTION_NOTICE_KEY } from "../runtime";
 import { migrateOpenTabs, reloadContentScript } from "./migrate";
@@ -318,6 +318,33 @@ chrome.runtime.onMessage.addListener((message: ExtensionRequest, sender, sendRes
   }
 });
 
+chrome.runtime.onConnect.addListener(port => {
+  if (port.name !== "verbia-reply-stream") return;
+  let controller: AbortController | undefined;
+  let requestId = "unknown";
+  port.onMessage.addListener((message: { type?: string; payload?: unknown }) => {
+    if (message.type === "cancel") {
+      controller?.abort(new DOMException("Generation cancelled.", "AbortError"));
+      return;
+    }
+    if (message.type !== "start" || controller) return;
+    controller = new AbortController();
+    void (async () => {
+      try {
+        const request = generateReplyRequestSchema.parse(message.payload);
+        requestId = request.requestId;
+        await generateStream(request, controller!.signal, event => port.postMessage(event));
+      } catch (error) {
+        if (controller?.signal.aborted) return;
+        if ((error as { streamError?: boolean }).streamError) return;
+        const failed = failure(error) as { ok: false; error: { code: string; userMessage: string; retryable: boolean; detail?: string } };
+        try { port.postMessage({ type: "error", requestId, ...failed.error } satisfies ReplyStreamEvent); } catch { /* The panel closed. */ }
+      }
+    })();
+  });
+  port.onDisconnect.addListener(() => controller?.abort(new DOMException("Panel disconnected.", "AbortError")));
+});
+
 async function requestSessionHandoff(accessToken: string): Promise<string> {
   const settings = await getSettings();
   const response = await fetch(`${apiBaseUrl(settings)}/v1/auth/session-handoff`, {
@@ -447,6 +474,55 @@ async function generate(payload: unknown) {
     await chrome.storage.session.set({ activeRequestId: undefined, phase: "draft_ready", updatedAt: Date.now() });
     return result;
   } finally { clearTimeout(timeout); }
+}
+
+async function generateStream(request: ReturnType<typeof generateReplyRequestSchema.parse>, signal: AbortSignal, emit: (event: ReplyStreamEvent) => void) {
+  await chrome.storage.session.set({ activeRequestId: request.requestId, phase: "generating", updatedAt: Date.now() });
+  const settings = await getSettings();
+  const bearer = await authBearer();
+  const response = await fetch(`${apiBaseUrl(settings)}/v1/replies:generate`, {
+    method: "POST",
+    headers: { "content-type": "application/json", accept: "application/x-ndjson", ...(bearer ? { authorization: bearer } : {}) },
+    body: JSON.stringify(request),
+    signal
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => null) as { userMessage?: string; code?: string; retryable?: boolean; detail?: string } | null;
+    throw Object.assign(new Error(body?.userMessage ?? `Generation service returned ${response.status}.`), { code: body?.code, retryable: body?.retryable, detail: body?.detail });
+  }
+  if ((response.headers.get("content-type") ?? "").includes("application/json")) {
+    const result = generateReplyResponseSchema.parse(await response.json());
+    emit({ type: "start", requestId: request.requestId });
+    emit({ type: "delta", requestId: request.requestId, text: result.draft });
+    emit({ type: "done", requestId: request.requestId, result });
+    await chrome.storage.session.set({ activeRequestId: undefined, phase: "draft_ready", updatedAt: Date.now() });
+    return;
+  }
+  if (!response.body) throw new Error("Generation service returned no response stream.");
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let completed = false;
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      buffer += decoder.decode(value, { stream: !done });
+      let newline: number;
+      while ((newline = buffer.indexOf("\n")) >= 0) {
+        const line = buffer.slice(0, newline).trim();
+        buffer = buffer.slice(newline + 1);
+        if (!line) continue;
+        const event = replyStreamEventSchema.parse(JSON.parse(line));
+        if (event.requestId !== request.requestId) continue;
+        emit(event);
+        if (event.type === "done") completed = true;
+        if (event.type === "error") throw Object.assign(new Error(event.userMessage), event, { streamError: true });
+      }
+      if (done) break;
+    }
+    if (!completed) throw new Error("Generation stream ended before completion.");
+    await chrome.storage.session.set({ activeRequestId: undefined, phase: "draft_ready", updatedAt: Date.now() });
+  } finally { reader.releaseLock(); }
 }
 
 // The panel's "identify this email" button. Mirrors generate() — same gateway,

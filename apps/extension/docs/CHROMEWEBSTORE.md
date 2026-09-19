@@ -1,6 +1,6 @@
 # Chrome Web Store Listing — Verbia
 
-> Last Updated: 2026-09-16
+> Last Updated: 2026-09-19
 
 ## Store Listing
 
@@ -369,11 +369,28 @@ Verbia membaca konten halaman hanya setelah Anda memanggilnya, membatasi akses p
 
 | Version | Date       | Changes                                                                                                                                                                                                                                                                                                          | Status |
 | ------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| 0.1.8   | 2026-09-19 | Reply drafts now appear as they are written instead of waiting for the entire generation. Cancelling a generation now stops the active request, and interrupted streams keep any visible partial draft available for editing.                                                                                   | Draft  |
 | 0.1.6   | 2026-09-16 | WhatsApp Web automatic mode: distinguishes the user from the contact, respects quoted replies and conversation time gaps, previews the current text conversation, and inserts a draft only after user review.                                                                                                     | Draft  |
 | 0.1.5   | 2026-09-15 | QQ Mail on the web; a generalized email mode for other webmail where “AI identify this email” reads the message around the reply box; 10 new interface languages (22 total, Arabic right-to-left); failed or unusable generations no longer count against the daily allowance; clearer context and identification wording | Draft  |
 | 0.1.4   | 2026-09-13 | （本文档未登记；见 git `39ec204` / `21d1949`）QQ Mail 支持、AI 识别邮件上下文                                                                                                                                                                                                                                    | Draft  |
 | 0.1.1–0.1.3 | —      | 未登记。建议按 git log 回填后再提交，商店的版本历史对用户可见                                                                                                                                                                                                                                                    | Draft  |
 | 0.1.0   | 2026-09-06 | Reddit inline reply assistant, removable reply panels with clean-session reopening, Universal reply drafting, dashboard access from the popup, Google profile identity, and visible daily free-usage allowance                                                                                                  | Draft  |
+
+### What’s new (0.1.8)
+
+> 商店后台每次更新都有独立的 “What’s new” 字段（不是 Description 字段，粘贴下面这段）。
+
+**English**
+
+• Reply drafts now appear as Verbia writes them, reducing the wait before you can start reading.
+• Cancel now stops the active generation request instead of only hiding its eventual result.
+• If a stream is interrupted, the text already shown remains available for review and editing.
+
+**中文**
+
+• 回复草稿现在会随着 Verbia 的生成过程逐步显示，可以更早开始阅读。
+• 点击取消会真正停止当前生成请求，不再只是忽略稍后返回的结果。
+• 如果流式生成中断，已经显示的文字仍会保留，可继续检查和编辑。
 
 ### What’s new (0.1.6)
 

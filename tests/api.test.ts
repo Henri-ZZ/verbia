@@ -64,6 +64,44 @@ describe("API fetch handler", () => {
     expect(await response.json()).toMatchObject({ requestId: validRequest.requestId, draft: validRequest.intent.text, modelRoute: "baseline" });
   });
 
+  it("streams reply events when the client requests NDJSON", async () => {
+    const response = await handler(new Request("https://api.verbia.henriz.dev/v1/replies:generate", {
+      method: "POST",
+      headers: { "content-type": "application/json", accept: "application/x-ndjson" },
+      body: JSON.stringify(validRequest)
+    }));
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toContain("application/x-ndjson");
+    const events = (await response.text()).trim().split("\n").map(line => JSON.parse(line));
+    expect(events.map(event => event.type)).toEqual(["start", "delta", "done"]);
+    expect(events[1]).toMatchObject({ requestId: validRequest.requestId, text: validRequest.intent.text });
+    expect(events[2].result).toMatchObject({ requestId: validRequest.requestId, draft: validRequest.intent.text, modelRoute: "baseline" });
+  });
+
+  it("records quota only after a streamed draft completes", async () => {
+    const projectUrl = "https://stream-quota.supabase.co";
+    const upstream = vi.spyOn(globalThis, "fetch").mockImplementation(async input => {
+      const url = String(input);
+      if (url.includes("/.well-known/jwks.json")) return jwksResponse();
+      if (url.includes("/rest/v1/rpc/check_generation_quota")) return Response.json({ plan: "premium", remaining: 99 });
+      if (url.includes("/rest/v1/rpc/record_generation_quota")) return Response.json({ count: 1 });
+      return new Response(null, { status: 404 });
+    });
+    const streamHandler = createApiHandler({ LLM_PROVIDER: "mock", SUPABASE_URL: projectUrl, SUPABASE_PUBLISHABLE_KEY: "public-key", AUTH_REQUIRED: "1", ENFORCE_QUOTA: "1" });
+    const token = await userToken(projectUrl, "11111111-1111-4111-8111-111111111111", "user@example.com");
+    const response = await streamHandler(new Request("https://api.verbia.henriz.dev/v1/replies:generate", {
+      method: "POST",
+      headers: { "content-type": "application/json", accept: "application/x-ndjson", authorization: `Bearer ${token}` },
+      body: JSON.stringify(validRequest)
+    }));
+    const events = (await response.text()).trim().split("\n").map(line => JSON.parse(line));
+    expect(events.at(-1)?.type).toBe("done");
+    expect(upstream.mock.calls.filter(([input]) => String(input).includes("/rest/v1/rpc/" )).map(([input]) => String(input))).toEqual([
+      `${projectUrl}/rest/v1/rpc/check_generation_quota`,
+      `${projectUrl}/rest/v1/rpc/record_generation_quota`
+    ]);
+  });
+
   it("checks the quota before generating and records the success afterwards", async () => {
     const projectUrl = "https://generate-quota.supabase.co";
     const upstream = vi.spyOn(globalThis, "fetch").mockImplementation(async input => {

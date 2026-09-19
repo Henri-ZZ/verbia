@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { GenerateReplyRequest } from "@verbia/shared";
-import { BalancedProvider, ProviderError, type ReplyProvider } from "../services/api/src/provider";
+import { BalancedProvider, OpenAiCompatibleProvider, ProviderError, type ProviderStreamEvent, type ReplyProvider } from "../services/api/src/provider";
 
 const request = {
   requestId: "ad37fb67-54ed-4b84-b9c3-658f65252c0d",
@@ -86,5 +86,55 @@ describe("BalancedProvider", () => {
     expect(events[0]).toMatchObject({ provider: "slow", model: "slow-model", attempt: 1, route: "baseline", outcome: "rate_limited", status: 429, country: "US", colo: "IAD" });
     expect(events[1]).toMatchObject({ provider: "fast", model: "fast-model", attempt: 2, route: "fallback", outcome: "success", inputTokens: 24, outputTokens: 8, country: "US", colo: "IAD" });
     expect(JSON.stringify(events)).not.toContain(request.intent.text);
+  });
+
+  it("falls back when a stream fails before its first text", async () => {
+    const failed = vi.fn(async function* (): AsyncGenerator<ProviderStreamEvent> { throw new ProviderError("busy", 429); });
+    const backup = vi.fn(async function* (): AsyncGenerator<ProviderStreamEvent> {
+      yield { type: "delta", text: "hello" };
+      yield { type: "done" };
+    });
+    const router = new BalancedProvider([
+      { provider: { ...provider("bad"), stream: failed } },
+      { provider: { ...provider("good"), stream: backup } }
+    ]);
+    const events: ProviderStreamEvent[] = [];
+    for await (const event of router.stream(request, new AbortController().signal)) events.push(event);
+    expect(events).toEqual([{ type: "delta", text: "hello" }, { type: "done", provider: "good", modelRoute: "fallback" }]);
+    expect(failed).toHaveBeenCalledOnce();
+    expect(backup).toHaveBeenCalledOnce();
+  });
+
+  it("does not splice in a fallback after text is already visible", async () => {
+    const interrupted = vi.fn(async function* (): AsyncGenerator<ProviderStreamEvent> {
+      yield { type: "delta", text: "partial" };
+      throw new ProviderError("connection lost", 502);
+    });
+    const backup = vi.fn(async function* (): AsyncGenerator<ProviderStreamEvent> { yield { type: "delta", text: "replacement" }; });
+    const router = new BalancedProvider([
+      { provider: { ...provider("first"), stream: interrupted } },
+      { provider: { ...provider("second"), stream: backup } }
+    ]);
+    const received: ProviderStreamEvent[] = [];
+    await expect((async () => { for await (const event of router.stream(request, new AbortController().signal)) received.push(event); })()).rejects.toThrow("connection lost");
+    expect(received).toEqual([{ type: "delta", text: "partial" }]);
+    expect(backup).not.toHaveBeenCalled();
+  });
+});
+
+describe("OpenAI-compatible streaming", () => {
+  it("decodes SSE chunks that split JSON across network reads", async () => {
+    const encoder = new TextEncoder();
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(new ReadableStream({
+      start(controller) {
+        controller.enqueue(encoder.encode('data: {"choices":[{"delta":{"content":"Hel'));
+        controller.enqueue(encoder.encode('lo "}}]}\n\ndata: {"choices":[{"delta":{"content":"world"}}]}\n\ndata: [DONE]\n\n'));
+        controller.close();
+      }
+    }), { headers: { "content-type": "text/event-stream" } }));
+    const model = new OpenAiCompatibleProvider({ id: "groq", apiKey: "test", endpoint: "https://example.com/chat", model: "test", maxOutputTokens: 100, temperature: 0 });
+    const events: ProviderStreamEvent[] = [];
+    for await (const event of model.stream(request, new AbortController().signal)) events.push(event);
+    expect(events).toEqual([{ type: "delta", text: "Hello " }, { type: "delta", text: "world" }, { type: "done", provider: "groq" }]);
   });
 });

@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { buildPrompt, SYSTEM_PROMPT } from "../services/api/src/prompt";
+import { buildPrompt, STREAM_SYSTEM_PROMPT, SYSTEM_PROMPT } from "../services/api/src/prompt";
 import { GeminiProvider, OpenAiCompatibleProvider } from "../services/api/src/provider";
 import type { GenerateReplyRequest } from "@verbia/shared";
 
@@ -12,6 +12,13 @@ it("labels page text as untrusted and keeps it separate from intent", () => {
   expect(value.userIntent.text).toBe("Disagree politely");
   expect(SYSTEM_PROMPT).toContain("untrusted quoted conversation content");
   expect(SYSTEM_PROMPT).toContain('{"draft":"the reply text"}');
+});
+
+it("keeps all safety rules but requests plain text for streaming", () => {
+  expect(STREAM_SYSTEM_PROMPT).toContain("untrusted quoted conversation content");
+  expect(STREAM_SYSTEM_PROMPT).toContain("information quantity equal to the intent's");
+  expect(STREAM_SYSTEM_PROMPT).toContain("Return only the reply text itself");
+  expect(STREAM_SYSTEM_PROMPT).not.toContain('exactly one JSON object shaped {"draft"');
 });
 
 describe("email formatting instructions", () => {

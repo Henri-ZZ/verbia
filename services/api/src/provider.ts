@@ -1,5 +1,5 @@
 import type { GenerateReplyRequest } from "@verbia/shared";
-import { buildPrompt, SYSTEM_PROMPT } from "./prompt";
+import { buildPrompt, STREAM_SYSTEM_PROMPT, SYSTEM_PROMPT } from "./prompt";
 
 export type ModelRoute = "baseline" | "fallback";
 export type ProviderResult = {
@@ -9,11 +9,15 @@ export type ProviderResult = {
   provider?: string;
   modelRoute?: ModelRoute;
 };
+export type ProviderStreamEvent =
+  | { type: "delta"; text: string }
+  | { type: "done"; inputTokens?: number; outputTokens?: number; provider?: string; modelRoute?: ModelRoute };
 
 export interface ReplyProvider {
   readonly id: string;
   readonly model?: string;
   generate(request: GenerateReplyRequest, signal: AbortSignal): Promise<ProviderResult>;
+  stream?(request: GenerateReplyRequest, signal: AbortSignal): AsyncGenerator<ProviderStreamEvent>;
 }
 
 export type ModelTelemetryContext = { requestId: string; country?: string; colo?: string };
@@ -30,6 +34,10 @@ export class MockProvider implements ReplyProvider {
   readonly model = "mock";
   async generate(request: GenerateReplyRequest): Promise<ProviderResult> {
     return { draft: request.intent.text, provider: this.id, modelRoute: "baseline" };
+  }
+  async *stream(request: GenerateReplyRequest): AsyncGenerator<ProviderStreamEvent> {
+    yield { type: "delta", text: request.intent.text };
+    yield { type: "done", provider: this.id };
   }
 }
 
@@ -60,6 +68,30 @@ export class GeminiProvider implements ReplyProvider {
       outputTokens: raw?.usageMetadata?.candidatesTokenCount,
       provider: this.id
     };
+  }
+
+  async *stream(request: GenerateReplyRequest, signal: AbortSignal): AsyncGenerator<ProviderStreamEvent> {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(this.model)}:streamGenerateContent?alt=sse`, {
+      method: "POST", signal,
+      headers: { "content-type": "application/json", "x-goog-api-key": this.apiKey },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: STREAM_SYSTEM_PROMPT }] },
+        contents: [{ role: "user", parts: [{ text: buildPrompt(request) }] }],
+        generationConfig: { temperature: this.temperature, maxOutputTokens: this.maxOutputTokens, responseMimeType: "text/plain" }
+      })
+    });
+    if (!response.ok) throw responseError(response.status, await response.json().catch(() => null));
+    if (!response.body) throw new ProviderError("The model returned no stream.", undefined, "Gemini response body was empty.");
+    let inputTokens: number | undefined;
+    let outputTokens: number | undefined;
+    for await (const data of sseData(response.body)) {
+      const chunk = parseJson<GeminiResponse>(data);
+      const text = chunk?.candidates?.[0]?.content?.parts?.map(part => part.text ?? "").join("") ?? "";
+      if (text) yield { type: "delta", text };
+      inputTokens = chunk?.usageMetadata?.promptTokenCount ?? inputTokens;
+      outputTokens = chunk?.usageMetadata?.candidatesTokenCount ?? outputTokens;
+    }
+    yield { type: "done", inputTokens, outputTokens, provider: this.id };
   }
 }
 
@@ -103,6 +135,47 @@ export class OpenAiCompatibleProvider implements ReplyProvider {
       outputTokens: raw?.usage?.completion_tokens,
       provider: this.id
     };
+  }
+
+  async *stream(request: GenerateReplyRequest, signal: AbortSignal): AsyncGenerator<ProviderStreamEvent> {
+    const body: Record<string, unknown> = {
+      model: this.options.model,
+      messages: [
+        { role: "system", content: STREAM_SYSTEM_PROMPT },
+        { role: "user", content: buildPrompt(request) }
+      ],
+      temperature: this.options.temperature,
+      max_completion_tokens: this.options.maxOutputTokens,
+      stream: true
+    };
+    if (this.options.reasoningEffort) body.reasoning_effort = this.options.reasoningEffort;
+    const response = await fetch(this.options.endpoint, {
+      method: "POST", signal,
+      headers: { authorization: `Bearer ${this.options.apiKey}`, "content-type": "application/json", "user-agent": "Verbia/0.1" },
+      body: JSON.stringify(body)
+    });
+    if (!response.ok) throw responseError(response.status, await response.json().catch(() => null));
+    const contentType = response.headers.get("content-type") ?? "";
+    if (contentType.includes("application/json")) {
+      const raw = await response.json().catch(() => null) as OpenAiResponse | null;
+      const text = raw?.choices?.[0]?.message?.content;
+      if (!text) throw new ProviderError("The model returned no draft.", undefined, "Model returned empty content.");
+      yield { type: "delta", text };
+      yield { type: "done", inputTokens: raw?.usage?.prompt_tokens, outputTokens: raw?.usage?.completion_tokens, provider: this.id };
+      return;
+    }
+    if (!response.body) throw new ProviderError("The model returned no stream.", undefined, `${this.id} response body was empty.`);
+    let inputTokens: number | undefined;
+    let outputTokens: number | undefined;
+    for await (const data of sseData(response.body)) {
+      if (data === "[DONE]") break;
+      const chunk = parseJson<OpenAiStreamResponse>(data);
+      const text = chunk?.choices?.[0]?.delta?.content ?? "";
+      if (text) yield { type: "delta", text };
+      inputTokens = chunk?.usage?.prompt_tokens ?? inputTokens;
+      outputTokens = chunk?.usage?.completion_tokens ?? outputTokens;
+    }
+    yield { type: "done", inputTokens, outputTokens, provider: this.id };
   }
 }
 
@@ -168,6 +241,42 @@ export class BalancedProvider implements ReplyProvider {
     throw new ProviderError("All configured model providers failed.", 502, errors.join(" | "), true);
   }
 
+  async *stream(request: GenerateReplyRequest, signal: AbortSignal, telemetry?: ModelTelemetryContext): AsyncGenerator<ProviderStreamEvent> {
+    const candidates = this.orderedCandidates();
+    if (!candidates.length) throw new ProviderError("All configured model providers are cooling down.", 429, "No provider is eligible until its cooldown expires.", true);
+    const errors: string[] = [];
+    for (let attempt = 0; attempt < candidates.length; attempt += 1) {
+      if (signal.aborted) throw signal.reason ?? new DOMException("Aborted", "AbortError");
+      const entry = candidates[attempt]!;
+      entry.attempts += 1;
+      const timeoutSignal = AbortSignal.timeout(this.attemptTimeoutMs);
+      const combinedSignal = AbortSignal.any([signal, timeoutSignal]);
+      const started = performance.now();
+      let emitted = false;
+      try {
+        for await (const event of providerStream(entry.provider, request, combinedSignal)) {
+          if (event.type === "delta") emitted = true;
+          if (event.type === "done") {
+            entry.failures = 0;
+            entry.cooldownUntil = 0;
+            if (telemetry) logModelAttempt({ ...telemetry, provider: entry.provider.id, model: entry.provider.model, attempt: attempt + 1, route: attempt === 0 ? "baseline" : "fallback", outcome: "success", durationMs: Math.round(performance.now() - started), inputTokens: event.inputTokens, outputTokens: event.outputTokens });
+            yield { ...event, provider: entry.provider.id, modelRoute: attempt === 0 ? "baseline" : "fallback" };
+          } else yield event;
+        }
+        return;
+      } catch (error) {
+        if (signal.aborted) throw signal.reason ?? new DOMException("Aborted", "AbortError");
+        entry.failures += 1;
+        entry.cooldownUntil = this.now() + this.cooldownFor(error, entry.failures);
+        if (telemetry) logModelAttempt({ ...telemetry, provider: entry.provider.id, model: entry.provider.model, attempt: attempt + 1, route: attempt === 0 ? "baseline" : "fallback", outcome: modelAttemptOutcome(error, combinedSignal.aborted, timeoutSignal.aborted), durationMs: Math.round(performance.now() - started), status: error instanceof ProviderError ? error.status : undefined });
+        if (emitted) throw error;
+        errors.push(`${entry.provider.id}: ${errorDetail(error, timeoutSignal.aborted)}`);
+        console.error(`[verbia-api] provider ${entry.provider.id} failed before streaming; trying fallback:`, error);
+      }
+    }
+    throw new ProviderError("All configured model providers failed.", 502, errors.join(" | "), true);
+  }
+
   private orderedCandidates(): RouterEntry[] {
     const now = this.now();
     const offset = this.tieBreaker++ % this.entries.length;
@@ -189,6 +298,36 @@ export async function generateWithTelemetry(provider: ReplyProvider, request: Ge
   if (provider instanceof BalancedProvider) return provider.generate(request, signal, telemetry);
   const result = await observedAttempt(provider, request, signal, telemetry, 1, "baseline", () => false);
   return { ...result, provider: result.provider ?? provider.id, modelRoute: result.modelRoute ?? "baseline" };
+}
+
+export function streamWithTelemetry(provider: ReplyProvider, request: GenerateReplyRequest, signal: AbortSignal, telemetry: ModelTelemetryContext): AsyncGenerator<ProviderStreamEvent> {
+  if (provider instanceof BalancedProvider) return provider.stream(request, signal, telemetry);
+  return observedStream(provider, request, signal, telemetry);
+}
+
+async function* observedStream(provider: ReplyProvider, request: GenerateReplyRequest, signal: AbortSignal, telemetry: ModelTelemetryContext): AsyncGenerator<ProviderStreamEvent> {
+  const started = performance.now();
+  try {
+    for await (const event of providerStream(provider, request, signal)) {
+      if (event.type === "done") {
+        logModelAttempt({ ...telemetry, provider: provider.id, model: provider.model, attempt: 1, route: "baseline", outcome: "success", durationMs: Math.round(performance.now() - started), inputTokens: event.inputTokens, outputTokens: event.outputTokens });
+        yield { ...event, provider: event.provider ?? provider.id, modelRoute: "baseline" };
+      } else yield event;
+    }
+  } catch (error) {
+    logModelAttempt({ ...telemetry, provider: provider.id, model: provider.model, attempt: 1, route: "baseline", outcome: modelAttemptOutcome(error, signal.aborted, false), durationMs: Math.round(performance.now() - started), status: error instanceof ProviderError ? error.status : undefined });
+    throw error;
+  }
+}
+
+async function* providerStream(provider: ReplyProvider, request: GenerateReplyRequest, signal: AbortSignal): AsyncGenerator<ProviderStreamEvent> {
+  if (provider.stream) {
+    yield* provider.stream(request, signal);
+    return;
+  }
+  const result = await provider.generate(request, signal);
+  yield { type: "delta", text: result.draft };
+  yield { type: "done", inputTokens: result.inputTokens, outputTokens: result.outputTokens, provider: result.provider ?? provider.id, modelRoute: result.modelRoute };
 }
 
 async function observedAttempt(
@@ -309,6 +448,36 @@ type OpenAiResponse = {
   error?: { message?: string };
   errors?: unknown[];
 };
+type OpenAiStreamResponse = {
+  choices?: Array<{ delta?: { content?: string } }>;
+  usage?: { prompt_tokens?: number; completion_tokens?: number };
+};
+
+function parseJson<T>(value: string): T | null {
+  try { return JSON.parse(value) as T; } catch { return null; }
+}
+
+async function* sseData(body: ReadableStream<Uint8Array>): AsyncGenerator<string> {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      buffer += decoder.decode(value, { stream: !done }).replace(/\r\n/g, "\n");
+      let boundary: number;
+      while ((boundary = buffer.indexOf("\n\n")) >= 0) {
+        const event = buffer.slice(0, boundary);
+        buffer = buffer.slice(boundary + 2);
+        const data = event.split("\n").filter(line => line.startsWith("data:")).map(line => line.slice(5).trimStart()).join("\n");
+        if (data) yield data;
+      }
+      if (done) break;
+    }
+    const data = buffer.split("\n").filter(line => line.startsWith("data:")).map(line => line.slice(5).trimStart()).join("\n");
+    if (data) yield data;
+  } finally { reader.releaseLock(); }
+}
 
 function mapProviderMessage(status: number) {
   if (status === 429) return "The model is busy or quota-limited. Try again shortly.";

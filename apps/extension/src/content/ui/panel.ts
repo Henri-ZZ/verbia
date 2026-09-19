@@ -1,4 +1,4 @@
-import type { ContextEnvelope, ContextExtractionRequest, ContextExtractionResponse, EditableTarget, GenerateReplyRequest, GenerateReplyResponse, SiteAdapter, UiLang, UserSettings } from "@verbia/shared";
+import type { ContextEnvelope, ContextExtractionRequest, ContextExtractionResponse, EditableTarget, GenerateReplyRequest, GenerateReplyResponse, ReplyStreamEvent, SiteAdapter, UiLang, UserSettings } from "@verbia/shared";
 import { DEFAULT_SETTINGS, LENGTH_VALUES, REPLY_LANGUAGE_OPTIONS, TONE_VALUES, UI_STRINGS, isRtl, resolveUiLang, voiceTagFor } from "@verbia/shared";
 import { readEditable } from "../editor/editable";
 import { COLLECTOR_VERSION, collectLocalContext, collectProvidedRegion, regionFingerprint, type CollectedContext } from "../context/collector";
@@ -48,6 +48,7 @@ export class VerbiaPanel {
   private phase: Phase = "idle";
   private draft = "";
   private requestId?: string;
+  private generationPort?: chrome.runtime.Port;
   private recognition?: SpeechRecognition;
   private voiceTranscript = false;
   private stopRequested = false;
@@ -551,15 +552,23 @@ export class VerbiaPanel {
       client: { extensionVersion: extensionVersion(), adapterVersion: this.adapter.version }
     };
     try {
-      const response = await sendToBackground<Reply<GenerateReplyResponse>>({ type: "GENERATE_REPLY", payload: request });
-      if (!response?.ok || !response.data) {
-        throw Object.assign(new Error(this.localisedError(response?.error, "panel.status.generationFailed")), { detail: response?.error?.detail });
-      }
-      const result = response.data;
+      this.draft = "";
+      const draftEl = this.el<HTMLTextAreaElement>("draft");
+      if (draftEl) draftEl.value = "";
+      const result = await this.streamReply(request, text => {
+        if (this.requestId !== request.requestId) return;
+        this.draft += text;
+        const liveDraft = this.el<HTMLTextAreaElement>("draft");
+        if (liveDraft) {
+          liveDraft.value = this.draft;
+          liveDraft.scrollTop = liveDraft.scrollHeight;
+        }
+        this.el("draft-area")?.classList.remove("hidden");
+      });
       if (result.requestId !== this.requestId) return;
       this.draft = result.draft;
-      const draftEl = this.el<HTMLTextAreaElement>("draft");
-      if (draftEl) draftEl.value = result.draft;
+      const finalDraft = this.el<HTMLTextAreaElement>("draft");
+      if (finalDraft) finalDraft.value = result.draft;
       this.el("draft-area")?.classList.remove("hidden");
       this.phase = "draft_ready";
       this.status(result.warnings.length ? this.t("panel.status.draftReadyWarning") : this.t("panel.status.draftReady"), result.warnings.length ? "warning" : "success");
@@ -568,17 +577,52 @@ export class VerbiaPanel {
       const insert = this.action("insert");
       if (insert) { insert.disabled = false; insert.textContent = this.t("panel.insert"); }
     } catch (error) {
+      if (this.requestId !== request.requestId) return;
       this.phase = "error";
       const err = error as { message?: string; detail?: string };
       const message = err.message ?? this.t("panel.status.generationFailed");
       this.status(err.detail ? `${message} (${err.detail})` : message, "error");
     }
-    finally { this.setBusy(false); }
+    finally {
+      this.generationPort = undefined;
+      const draft = this.el<HTMLTextAreaElement>("draft");
+      if (draft) draft.readOnly = false;
+      this.setBusy(false);
+    }
+  }
+
+  private streamReply(request: GenerateReplyRequest, onDelta: (text: string) => void): Promise<GenerateReplyResponse> {
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      const port = chrome.runtime.connect({ name: "verbia-reply-stream" });
+      this.generationPort = port;
+      const finish = (action: () => void) => {
+        if (settled) return;
+        settled = true;
+        try { port.disconnect(); } catch { /* Extension context was reloaded. */ }
+        action();
+      };
+      port.onMessage.addListener((event: ReplyStreamEvent) => {
+        if (event.requestId !== request.requestId) return;
+        if (event.type === "delta") onDelta(event.text);
+        if (event.type === "done") finish(() => resolve(event.result));
+        if (event.type === "error") finish(() => reject(Object.assign(new Error(event.userMessage), { code: event.code, detail: event.detail })));
+      });
+      port.onDisconnect.addListener(() => {
+        if (!settled) finish(() => reject(new Error(this.t("panel.status.generationFailed"))));
+      });
+      port.postMessage({ type: "start", payload: request });
+    });
   }
 
   private async cancel() {
-    if (this.requestId) await sendToBackground({ type: "CANCEL_GENERATION", requestId: this.requestId });
-    this.requestId = undefined; this.phase = "context_ready"; this.setBusy(false); this.status(this.t("panel.status.cancelled"));
+    const requestId = this.requestId;
+    this.requestId = undefined;
+    if (this.generationPort) {
+      try { this.generationPort.postMessage({ type: "cancel" }); this.generationPort.disconnect(); } catch { /* Extension context was reloaded. */ }
+      this.generationPort = undefined;
+    } else if (requestId) await sendToBackground({ type: "CANCEL_GENERATION", requestId });
+    this.phase = "context_ready"; this.setBusy(false); this.status(this.t("panel.status.cancelled"));
   }
 
   private async requestInsert() {
@@ -889,7 +933,13 @@ export class VerbiaPanel {
     if (dropContext) this.context = { relation: "none", truncated: false, extractorVersion: this.context.extractorVersion, confidence: "high" };
   }
 
-  private setBusy(busy: boolean) { this.action("generate")?.toggleAttribute("disabled", busy); this.action("cancel")?.classList.toggle("hidden", !busy); }
+  private setBusy(busy: boolean) {
+    this.action("generate")?.toggleAttribute("disabled", busy);
+    this.action("cancel")?.classList.toggle("hidden", !busy);
+    for (const action of ["insert", "regenerate", "copy"] as const) this.action(action)?.toggleAttribute("disabled", busy);
+    const draft = this.el<HTMLTextAreaElement>("draft");
+    if (draft) draft.readOnly = busy;
+  }
   private status(message: string, kind: MsgKind | "recording" = "info") {
     const el = this.el("status");
     if (!el) return;
@@ -1036,7 +1086,10 @@ export class VerbiaPanel {
     this.onRemove();
     this.previousFocus?.focus();
     // Nothing here waits on the background: the panel is gone either way.
-    if (requestId) void sendToBackground({ type: "CANCEL_GENERATION", requestId });
+    if (this.generationPort) {
+      try { this.generationPort.postMessage({ type: "cancel" }); this.generationPort.disconnect(); } catch { /* Extension context was reloaded. */ }
+      this.generationPort = undefined;
+    } else if (requestId) void sendToBackground({ type: "CANCEL_GENERATION", requestId });
   }
 
   // Folding keeps the panel mounted and its typed content intact; only the

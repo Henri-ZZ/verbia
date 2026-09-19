@@ -70,6 +70,16 @@ export const generateReplyResponseSchema = z.object({
   latencyMs: z.number().nonnegative()
 });
 
+export const replyStreamEventSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("start"), requestId: z.string().uuid() }),
+  z.object({ type: z.literal("delta"), requestId: z.string().uuid(), text: z.string().min(1) }),
+  z.object({ type: z.literal("done"), requestId: z.string().uuid(), result: generateReplyResponseSchema }),
+  z.object({
+    type: z.literal("error"), requestId: z.string(), code: z.string(),
+    userMessage: z.string(), retryable: z.boolean(), detail: z.string().optional()
+  })
+]);
+
 // --- AI context extraction: the repair path -----------------------------------
 //
 // The mail adapters read the region around a reply box themselves (@see
@@ -321,6 +331,7 @@ export const apiErrorSchema = z.object({
 export type ContextEnvelope = z.infer<typeof contextEnvelopeSchema>;
 export type GenerateReplyRequest = z.infer<typeof generateReplyRequestSchema>;
 export type GenerateReplyResponse = z.infer<typeof generateReplyResponseSchema>;
+export type ReplyStreamEvent = z.infer<typeof replyStreamEventSchema>;
 export type ExtractionTask = z.infer<typeof extractionTaskSchema>;
 export type ExtractionWarning = z.infer<typeof extractionWarningSchema>;
 export type ContextExtractionRequest = z.infer<typeof contextExtractionRequestSchema>;

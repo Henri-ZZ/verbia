@@ -1,5 +1,5 @@
-import { contextExtractionRequestSchema, contextExtractionResponseSchema, generateReplyRequestSchema, generateReplyResponseSchema, type AccountUsage, type ApiError } from "@verbia/shared";
-import { BalancedProvider, GeminiProvider, MockProvider, OpenAiCompatibleProvider, generateWithTelemetry, type ReplyProvider } from "./provider";
+import { contextExtractionRequestSchema, contextExtractionResponseSchema, generateReplyRequestSchema, generateReplyResponseSchema, type AccountUsage, type ApiError, type GenerateReplyRequest, type ReplyStreamEvent } from "@verbia/shared";
+import { BalancedProvider, GeminiProvider, MockProvider, OpenAiCompatibleProvider, generateWithTelemetry, streamWithTelemetry, type ReplyProvider } from "./provider";
 import { createExtractor, extractEmailContext } from "./extraction";
 import { billingConfigured, createCheckout, persistBillingWebhook, verifyBillingWebhook, type BillingCycle } from "./billing";
 import { reportError } from "./monitoring";
@@ -209,6 +209,10 @@ export function createApiHandler(env: ApiEnv) {
         logQuota = quota;
         if (quota === "exceeded") return withServerTiming(apiError(429, requestId, "QUOTA_EXCEEDED", false, "You have used your daily replies. Try again tomorrow."), timings);
       }
+      if (request.headers.get("accept")?.includes("application/x-ndjson")) {
+        const cf = (request as Request & { cf?: { colo?: string; country?: string } }).cf;
+        return streamReply(getProvider(), parsed.data, auth.status === "ok" ? auth.token : undefined, env, request.signal, { requestId, country: cf?.country, colo: cf?.colo });
+      }
       const started = performance.now();
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), numberEnv(env, "LLM_TOTAL_TIMEOUT_MS", numberEnv(env, "LLM_TIMEOUT_MS", 25_000)));
@@ -245,6 +249,76 @@ export function createApiHandler(env: ApiEnv) {
       logRequest(request, path, response, requestStarted, { requestId: logRequestId, provider: logProvider, modelRoute: logModelRoute, quota: logQuota, platform: logPlatform, siteMode: logSiteMode });
     }
   };
+}
+
+function streamReply(
+  provider: ReplyProvider,
+  request: GenerateReplyRequest,
+  authToken: string | undefined,
+  env: ApiEnv,
+  clientSignal: AbortSignal,
+  telemetry: { requestId: string; country?: string; colo?: string }
+): Response {
+  const encoder = new TextEncoder();
+  const timeout = AbortSignal.timeout(numberEnv(env, "LLM_TOTAL_TIMEOUT_MS", numberEnv(env, "LLM_TIMEOUT_MS", 25_000)));
+  const streamController = new AbortController();
+  const signal = AbortSignal.any([clientSignal, timeout, streamController.signal]);
+  const started = performance.now();
+  const body = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const send = (event: ReplyStreamEvent) => controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
+      let draft = "";
+      let firstTokenMs: number | undefined;
+      try {
+        send({ type: "start", requestId: request.requestId });
+        let metadata: { inputTokens?: number; outputTokens?: number; provider?: string; modelRoute?: "baseline" | "fallback" } = {};
+        for await (const event of streamWithTelemetry(provider, request, signal, telemetry)) {
+          if (event.type === "delta") {
+            firstTokenMs ??= Math.round(performance.now() - started);
+            draft += event.text;
+            if (draft.length > 8_000) throw Object.assign(new Error("The model response is too large."), { code: "TOO_LARGE" });
+            send({ type: "delta", requestId: request.requestId, text: event.text });
+          } else metadata = event;
+        }
+        const cleaned = cleanDraft(draft);
+        if (!cleaned) throw new Error("The model returned an empty draft.");
+        const warnings = [request.context.confidence === "low" && "low_context_confidence", request.context.truncated && "context_truncated"].filter(Boolean) as Array<"low_context_confidence" | "context_truncated">;
+        const result = generateReplyResponseSchema.parse({
+          requestId: request.requestId,
+          draft: cleaned,
+          warnings,
+          modelRoute: metadata.modelRoute ?? "baseline",
+          usage: metadata.inputTokens || metadata.outputTokens ? { inputTokens: metadata.inputTokens, outputTokens: metadata.outputTokens } : undefined,
+          latencyMs: Math.round(performance.now() - started)
+        });
+        if (authToken) await recordGenerationQuota(authToken, env);
+        send({ type: "done", requestId: request.requestId, result });
+        console.log(JSON.stringify({ event: "reply_stream", requestId: request.requestId, outcome: "success", provider: metadata.provider, modelRoute: result.modelRoute, firstTokenMs, durationMs: result.latencyMs, inputTokens: metadata.inputTokens, outputTokens: metadata.outputTokens }));
+      } catch (error) {
+        const err = error as { code?: string; status?: number; detail?: string; name?: string; message?: string };
+        const cancelled = clientSignal.aborted || streamController.signal.aborted;
+        if (cancelled) {
+          console.log(JSON.stringify({ event: "reply_stream", requestId: request.requestId, outcome: "cancelled", firstTokenMs, durationMs: Math.round(performance.now() - started) }));
+        } else {
+          const event: ReplyStreamEvent = timeout.aborted || err.name === "AbortError"
+            ? { type: "error", requestId: request.requestId, code: "TIMEOUT", userMessage: "Generation timed out. Try again.", retryable: true }
+            : err.status === 429
+              ? { type: "error", requestId: request.requestId, code: "RATE_LIMITED", userMessage: "The model is busy or quota-limited. Try again shortly.", retryable: true, detail: err.detail }
+              : { type: "error", requestId: request.requestId, code: err.code === "TOO_LARGE" ? "TOO_LARGE" : "PROVIDER_ERROR", userMessage: err.code === "TOO_LARGE" ? "The generated draft is too large." : "The model service returned an invalid response. Try again.", retryable: true, detail: err.detail ?? err.message };
+          try { send(event); } catch { /* The browser disconnected. */ }
+          console.log(JSON.stringify({ event: "reply_stream", requestId: request.requestId, outcome: event.code === "TIMEOUT" ? "timeout" : "error", firstTokenMs, durationMs: Math.round(performance.now() - started), code: event.code }));
+          if (event.code !== "TIMEOUT") reportError(error, "reply_generation_stream", { requestId: request.requestId });
+        }
+      } finally {
+        try { controller.close(); } catch { /* The client cancelled the stream. */ }
+      }
+    },
+    cancel(reason) { streamController.abort(reason); }
+  });
+  return new Response(body, {
+    status: 200,
+    headers: { ...responseHeaders, "content-type": "application/x-ndjson; charset=utf-8" }
+  });
 }
 
 const feedbackSchema = z.object({
@@ -345,7 +419,7 @@ function configuredProviders(env: ApiEnv): Map<string, ReplyProvider> {
   if (env.GEMINI_API_KEY && geminiModel) providers.set("gemini", new GeminiProvider(env.GEMINI_API_KEY, geminiModel, maxOutputTokens, temperature));
   if (env.MISTRAL_API_KEY && env.MISTRAL_MODEL) providers.set("mistral", new OpenAiCompatibleProvider({ id: "mistral", apiKey: env.MISTRAL_API_KEY, model: env.MISTRAL_MODEL, endpoint: "https://api.mistral.ai/v1/chat/completions", maxOutputTokens, temperature }));
   if (env.CLOUDFLARE_ACCOUNT_ID && env.CLOUDFLARE_API_TOKEN && env.CLOUDFLARE_MODEL) providers.set("cloudflare", new OpenAiCompatibleProvider({ id: "cloudflare", apiKey: env.CLOUDFLARE_API_TOKEN, model: env.CLOUDFLARE_MODEL, endpoint: `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(env.CLOUDFLARE_ACCOUNT_ID)}/ai/v1/chat/completions`, maxOutputTokens: numberEnv(env, "CLOUDFLARE_MAX_OUTPUT_TOKENS", Math.max(maxOutputTokens, 768)), temperature }));
-  if (env.GROQ_API_KEY && env.GROQ_MODEL) providers.set("groq", new OpenAiCompatibleProvider({ id: "groq", apiKey: env.GROQ_API_KEY, model: env.GROQ_MODEL, endpoint: "https://api.groq.com/openai/v1/chat/completions", maxOutputTokens, temperature, reasoningEffort: env.GROQ_REASONING_EFFORT ?? "none" }));
+  if (env.GROQ_API_KEY && env.GROQ_MODEL) providers.set("groq", new OpenAiCompatibleProvider({ id: "groq", apiKey: env.GROQ_API_KEY, model: env.GROQ_MODEL, endpoint: "https://api.groq.com/openai/v1/chat/completions", maxOutputTokens, temperature, reasoningEffort: env.GROQ_REASONING_EFFORT ?? "low" }));
   return providers;
 }
 

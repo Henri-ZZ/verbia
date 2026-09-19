@@ -4,6 +4,8 @@
 
 Worker 为每一次实际模型调用写一条结构化 `model_attempt` 日志。一次请求如果先失败再切换备用模型，会产生多条日志，因此可以分别分析首选和 fallback 的耗时。
 
+流式回复完成、超时或中断时还会写一条 `reply_stream` 日志。它用于衡量用户实际感受到的首字等待时间，而 `model_attempt` 继续负责比较每个供应商的完整尝试。
+
 日志字段：
 
 | 字段 | 含义 |
@@ -26,6 +28,19 @@ Worker 为每一次实际模型调用写一条结构化 `model_attempt` 日志�
 
 日志不包含用户 ID、邮箱、Bearer Token、页面内容、对话上下文、用户意图、生成草稿或 API Key。
 
+`reply_stream` 额外包含：
+
+| 字段 | 含义 |
+|---|---|
+| `outcome` | `success`、`timeout`、`error` 或 `cancelled` |
+| `firstTokenMs` | 从 Worker 开始生成到首段文字可以返回的时间 |
+| `durationMs` | 整条流完成或失败前的总时间 |
+| `provider` | 最终实际输出文字的供应商 |
+| `modelRoute` | `baseline` 或 `fallback` |
+| `code` | 失败时的标准错误代码 |
+
+流式请求的普通 `api_request.durationMs` 只表示鉴权、额度检查和响应头开始返回前的时间，不代表整篇草稿耗时。分析生成体验时应以 `reply_stream.firstTokenMs` 和 `reply_stream.durationMs` 为准。
+
 ## Cloudflare 看板
 
 进入：
@@ -45,6 +60,7 @@ Cloudflare Dashboard
 3. **Fallback rate**：按 `provider`、`route` 分组，查看 fallback 的数量和耗时。
 4. **Regional latency**：按 `country`、`provider` 分组，显示 Count、P50 和 P95；样本过少的国家不要单独决策。
 5. **Rate limits and timeouts**：过滤 `outcome = rate_limited OR outcome = timeout`，按 provider 显示时间趋势。
+6. **Time to first token**：过滤 `event = reply_stream AND outcome = success`，显示 `firstTokenMs` 的 P50、P95，并按 `provider`、`country` 分组。
 
 当前 `wrangler.jsonc` 对日志使用 `head_sampling_rate: 1`，即全量采集。流量增长后可降低采样率，但调度评估期间应保持全量，以免小样本和低频错误被遗漏。
 

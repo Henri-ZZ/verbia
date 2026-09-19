@@ -33,6 +33,11 @@ Never:
 - Echo internal request fields (requestId, schemaVersion, …).
 - Return anything other than exactly one JSON object shaped {"draft":"the reply text"}: no other field names, no markdown.`;
 
+export const STREAM_SYSTEM_PROMPT = SYSTEM_PROMPT.replace(
+  '- Return anything other than exactly one JSON object shaped {"draft":"the reply text"}: no other field names, no markdown.',
+  "- Return only the reply text itself. Do not wrap it in JSON, quotes, markdown, or commentary."
+);
+
 export function buildPrompt(request: GenerateReplyRequest): string {
   const emailScenario = request.platform === "gmail"
     || request.platform === "outlook"

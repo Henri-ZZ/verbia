@@ -16,7 +16,14 @@ export const server = createServer(async (incoming, outgoing) => {
     });
     const response = await handler(request);
     outgoing.writeHead(response.status, Object.fromEntries(response.headers.entries()));
-    outgoing.end(Buffer.from(await response.arrayBuffer()));
+    if (!response.body) return outgoing.end();
+    const reader = response.body.getReader();
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      outgoing.write(Buffer.from(value));
+    }
+    outgoing.end();
   } catch (error) {
     console.error("[verbia-api] local server adapter failed:", error);
     outgoing.writeHead(500, { "content-type": "application/json; charset=utf-8" });

@@ -53,8 +53,8 @@
 | `CLOUDFLARE_MODEL` | 否 | Workers AI 模型 ID，必须包含完整的 `@cf/...` 名称。 |
 | `CLOUDFLARE_MAX_OUTPUT_TOKENS` | 否 | Workers AI 单独使用的最大输出 Token 数，默认至少为 `768`，以容纳部分模型内部使用的推理 Token。 |
 | `GROQ_API_KEY` | 是 | 调用 Groq OpenAI 兼容接口。 |
-| `GROQ_MODEL` | 否 | Groq 模型 ID。 |
-| `GROQ_REASONING_EFFORT` | 否 | 传给 Groq 模型的推理强度。当前语言处理任务使用 `none`，减少延迟和 Token 消耗。 |
+| `GROQ_MODEL` | 否 | Groq 模型 ID。当前使用可稳定访问的生产模型 `openai/gpt-oss-20b`。 |
+| `GROQ_REASONING_EFFORT` | 否 | Groq 推理强度。轻量回复使用 `low`；GPT-OSS 不接受 `none`。 |
 
 ## Supabase、登录和额度
 
