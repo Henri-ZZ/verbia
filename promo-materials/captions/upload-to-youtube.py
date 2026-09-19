@@ -105,16 +105,35 @@ DEFAULT_LANGUAGES = [
     "sv",       # Swedish
 ]
 
-# Languages still missing from the video. The 2026-09-18 run pushed 24 of the
-# 25 defaults before the daily caption quota ran out (TRACKS_PER_RUN = 24), so
-# Swedish is the only one left. A bare run now uploads exactly these, which
-# makes finishing the job a single no-argument command:
+# Languages still missing from the video. The .srt pack holds 43 translations
+# (there is no `en` file — English is the source), of which:
+#   - zh-Hans / zh-Hant were published by hand before the script existed,
+#   - the 2026-09-18 run pushed 24 more before the daily caption quota ran out,
+# leaving these 17. A bare run now uploads exactly these, which makes finishing
+# the job a single no-argument command:
 #
 #     python3 upload-to-youtube.py --video-id QRUixu_Hk6s
 #
-# Empty this list once the video is complete (or pass --lang/--all to ignore it).
+# 43 - 2 - 24 = 17 fits one day of quota (TRACKS_PER_RUN = 24). Empty this list
+# once the video is complete (or pass --lang/--all to ignore it).
 PENDING_LANGUAGES = [
-    "sv",
+    "pt-PT",    # Portuguese (Portugal)
+    "sv",       # Swedish
+    "da",       # Danish
+    "fi",       # Finnish
+    "nb",       # Norwegian (YouTube only has "no")
+    "bg",       # Bulgarian
+    "sk",       # Slovak
+    "hr",       # Croatian
+    "sr",       # Serbian
+    "sl",       # Slovenian
+    "lt",       # Lithuanian
+    "lv",       # Latvian
+    "et",       # Estonian
+    "is",       # Icelandic
+    "ca",       # Catalan
+    "fa",       # Persian
+    "bn",       # Bengali
 ]
 
 # Caption file suffix -> YouTube caption language code. Our tags are already

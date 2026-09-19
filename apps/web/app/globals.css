@@ -2549,3 +2549,33 @@ button:focus-visible {
 .payment-page .followup-quick-example { border-color: rgba(15,110,86,.2); }
 .payment-demo { background: linear-gradient(145deg,#e2f3e8,#fbfdfb); }
 .payment-status { color: var(--primary-dark) !important; font-weight: 700; }
+
+/* ---- Around the Web ---- */
+/* Where Verbia appears on platforms we do not own. A plain list of names and
+   links — no logo wall, no "featured on" framing — and group headings only
+   appear once the data has more than one populated group
+   (@see lib/around-the-web.ts). */
+.around-web-hero { max-width: 780px; padding-block: 100px 56px; }
+.around-web-hero h1 { margin: 13px auto 18px; font: 740 clamp(38px,5.4vw,60px)/1.06 var(--display); letter-spacing: -.04em; }
+.around-web-hero > p:not(.eyebrow) { max-width: 640px; margin: 0 auto; }
+.around-web-list { display: grid; gap: 26px; padding-bottom: 12px; }
+.around-web-bucket { display: grid; gap: 12px; }
+.around-web-group-heading { margin: 0; color: var(--outline); font: 800 12px/1 var(--body); letter-spacing: .14em; text-transform: uppercase; }
+.around-web-card { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 20px; align-items: center; padding: 22px 24px; background: var(--paper); border: 1px solid var(--border); border-radius: 14px; transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease; }
+.around-web-card:hover { border-color: var(--jade); box-shadow: 0 14px 34px -16px rgba(23,32,25,.28); transform: translateY(-1px); }
+.around-web-card:focus-visible { outline: 3px solid rgba(15,110,86,.35); outline-offset: 2px; }
+.around-web-name { display: flex; align-items: center; gap: 10px; margin: 0 0 6px; font: 700 21px/1.2 var(--display); letter-spacing: -.02em; }
+/* Platform badges keep their own aspect ratio, sized by height so a wide
+   "verified" wordmark reads without becoming a logo wall. */
+.around-web-badge { display: block; height: 40px; width: auto; margin-top: 16px; }
+.around-web-description { margin: 0; color: var(--muted); font-size: 14px; }
+.around-web-go { color: var(--primary); font-size: 17px; font-weight: 750; }
+.around-web-note { margin: 0; padding-block: 34px 96px; color: var(--muted); font-size: 14px; }
+.around-web-note a { color: var(--primary); font-weight: 750; text-underline-offset: 4px; }
+/* The footer entry sits with the legal line on purpose: findable, not pushed. */
+.copyright-link { margin-inline-start: 12px; text-underline-offset: 3px; }
+.copyright-link:hover { color: var(--primary); text-decoration: underline; }
+@media (max-width: 680px) {
+  .around-web-hero { padding-block: 70px 40px; }
+  .around-web-note { padding-block: 26px 72px; }
+}

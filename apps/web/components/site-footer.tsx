@@ -67,6 +67,9 @@ export function SiteFooter({ locale = "en" }: { locale?: SiteLocale }) {
         {guides.map(([href, label]) => <Link key={href} href={href}>{label}</Link>)}
       </nav>
     </div>
-    <div className="shell copyright">© {new Date().getFullYear()} Verbia{zh ? "。保留所有权利。" : ". All rights reserved."}</div>
+    {/* Deliberately with the legal line rather than a nav column: the page
+        collects third-party listings, so it should be findable without being
+        pushed at people. */}
+    <div className="shell copyright">© {new Date().getFullYear()} Verbia{zh ? "。保留所有权利。" : ". All rights reserved."} <Link className="copyright-link" href="/around-the-web">Around the Web</Link></div>
   </footer>;
 }
