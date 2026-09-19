@@ -110,6 +110,19 @@ export const aroundTheWeb: AroundTheWebEntry[] = [
     icon: "https://twelve.tools/badge0-white.svg",
     group: "directories",
     footerBadge: true
+  },
+  {
+    name: "Wired Business",
+    // No tagline of their own to quote: the page shows categories and recent
+    // listings, so the description says exactly that.
+    url: "https://wired.business",
+    description: {
+      en: "A browsable category directory of websites and tools.",
+      zh: "按分类浏览网站与工具的产品目录。"
+    },
+    icon: "https://wired.business/badge0-white.svg",
+    group: "directories",
+    footerBadge: true
   }
 ];
 
