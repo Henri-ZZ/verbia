@@ -369,7 +369,7 @@ Verbia membaca konten halaman hanya setelah Anda memanggilnya, membatasi akses p
 
 | Version | Date       | Changes                                                                                                                                                                                                                                                                                                          | Status |
 | ------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| 0.1.8   | 2026-09-19 | Reply drafts now appear as they are written instead of waiting for the entire generation. Cancelling a generation now stops the active request, and interrupted streams keep any visible partial draft available for editing.                                                                                   | Draft  |
+| 0.1.8   | 2026-09-19 | Reply drafts now appear progressively instead of waiting for the entire generation, including when a provider returns a short answer in one large chunk. Cancelling stops the active request, and interrupted streams keep any visible partial draft available for editing.                                                     | Draft  |
 | 0.1.6   | 2026-09-16 | WhatsApp Web automatic mode: distinguishes the user from the contact, respects quoted replies and conversation time gaps, previews the current text conversation, and inserts a draft only after user review.                                                                                                     | Draft  |
 | 0.1.5   | 2026-09-15 | QQ Mail on the web; a generalized email mode for other webmail where “AI identify this email” reads the message around the reply box; 10 new interface languages (22 total, Arabic right-to-left); failed or unusable generations no longer count against the daily allowance; clearer context and identification wording | Draft  |
 | 0.1.4   | 2026-09-13 | （本文档未登记；见 git `39ec204` / `21d1949`）QQ Mail 支持、AI 识别邮件上下文                                                                                                                                                                                                                                    | Draft  |
@@ -383,12 +383,16 @@ Verbia membaca konten halaman hanya setelah Anda memanggilnya, membatasi akses p
 **English**
 
 • Reply drafts now appear as Verbia writes them, reducing the wait before you can start reading.
+• Short replies remain visibly progressive even when the AI provider returns them in one large chunk.
+• Clear status messages distinguish connecting, drafting, and unusually long waits. Interrupted drafts remain editable and can still be inserted, regenerated, or copied.
 • Cancel now stops the active generation request instead of only hiding its eventual result.
 • If a stream is interrupted, the text already shown remains available for review and editing.
 
 **中文**
 
 • 回复草稿现在会随着 Verbia 的生成过程逐步显示，可以更早开始阅读。
+• 即使 AI 服务一次返回整段短回复，界面也会持续、渐进地显示内容。
+• 状态提示会区分连接、起草和响应较慢；生成中断后，已有草稿仍可编辑、插入、重新生成或复制。
 • 点击取消会真正停止当前生成请求，不再只是忽略稍后返回的结果。
 • 如果流式生成中断，已经显示的文字仍会保留，可继续检查和编辑。
 

@@ -269,12 +269,16 @@ function streamReply(
       const send = (event: ReplyStreamEvent) => controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
       let draft = "";
       let firstTokenMs: number | undefined;
+      let chunkCount = 0;
+      let largestChunkChars = 0;
       try {
         send({ type: "start", requestId: request.requestId });
         let metadata: { inputTokens?: number; outputTokens?: number; provider?: string; modelRoute?: "baseline" | "fallback" } = {};
         for await (const event of streamWithTelemetry(provider, request, signal, telemetry)) {
           if (event.type === "delta") {
             firstTokenMs ??= Math.round(performance.now() - started);
+            chunkCount += 1;
+            largestChunkChars = Math.max(largestChunkChars, event.text.length);
             draft += event.text;
             if (draft.length > 8_000) throw Object.assign(new Error("The model response is too large."), { code: "TOO_LARGE" });
             send({ type: "delta", requestId: request.requestId, text: event.text });
@@ -293,12 +297,12 @@ function streamReply(
         });
         if (authToken) await recordGenerationQuota(authToken, env);
         send({ type: "done", requestId: request.requestId, result });
-        console.log(JSON.stringify({ event: "reply_stream", requestId: request.requestId, outcome: "success", provider: metadata.provider, modelRoute: result.modelRoute, firstTokenMs, durationMs: result.latencyMs, inputTokens: metadata.inputTokens, outputTokens: metadata.outputTokens }));
+        console.log(JSON.stringify({ event: "reply_stream", requestId: request.requestId, outcome: "success", provider: metadata.provider, modelRoute: result.modelRoute, firstTokenMs, durationMs: result.latencyMs, chunkCount, largestChunkChars, inputTokens: metadata.inputTokens, outputTokens: metadata.outputTokens }));
       } catch (error) {
         const err = error as { code?: string; status?: number; detail?: string; name?: string; message?: string };
         const cancelled = clientSignal.aborted || streamController.signal.aborted;
         if (cancelled) {
-          console.log(JSON.stringify({ event: "reply_stream", requestId: request.requestId, outcome: "cancelled", firstTokenMs, durationMs: Math.round(performance.now() - started) }));
+          console.log(JSON.stringify({ event: "reply_stream", requestId: request.requestId, outcome: "cancelled", firstTokenMs, durationMs: Math.round(performance.now() - started), chunkCount, largestChunkChars }));
         } else {
           const event: ReplyStreamEvent = timeout.aborted || err.name === "AbortError"
             ? { type: "error", requestId: request.requestId, code: "TIMEOUT", userMessage: "Generation timed out. Try again.", retryable: true }
@@ -306,7 +310,7 @@ function streamReply(
               ? { type: "error", requestId: request.requestId, code: "RATE_LIMITED", userMessage: "The model is busy or quota-limited. Try again shortly.", retryable: true, detail: err.detail }
               : { type: "error", requestId: request.requestId, code: err.code === "TOO_LARGE" ? "TOO_LARGE" : "PROVIDER_ERROR", userMessage: err.code === "TOO_LARGE" ? "The generated draft is too large." : "The model service returned an invalid response. Try again.", retryable: true, detail: err.detail ?? err.message };
           try { send(event); } catch { /* The browser disconnected. */ }
-          console.log(JSON.stringify({ event: "reply_stream", requestId: request.requestId, outcome: event.code === "TIMEOUT" ? "timeout" : "error", firstTokenMs, durationMs: Math.round(performance.now() - started), code: event.code }));
+          console.log(JSON.stringify({ event: "reply_stream", requestId: request.requestId, outcome: event.code === "TIMEOUT" ? "timeout" : "error", firstTokenMs, durationMs: Math.round(performance.now() - started), chunkCount, largestChunkChars, code: event.code }));
           if (event.code !== "TIMEOUT") reportError(error, "reply_generation_stream", { requestId: request.requestId });
         }
       } finally {

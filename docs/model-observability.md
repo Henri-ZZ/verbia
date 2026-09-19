@@ -35,6 +35,8 @@ Worker 为每一次实际模型调用写一条结构化 `model_attempt` 日志�
 | `outcome` | `success`、`timeout`、`error` 或 `cancelled` |
 | `firstTokenMs` | 从 Worker 开始生成到首段文字可以返回的时间 |
 | `durationMs` | 整条流完成或失败前的总时间 |
+| `chunkCount` | 模型供应商实际返回的文本分块数量，用于区分细粒度流式与整段返回 |
+| `largestChunkChars` | 最大一个文本分块的字符数；接近完整草稿长度时，说明供应商可能缓冲了输出 |
 | `provider` | 最终实际输出文字的供应商 |
 | `modelRoute` | `baseline` 或 `fallback` |
 | `code` | 失败时的标准错误代码 |
@@ -61,6 +63,7 @@ Cloudflare Dashboard
 4. **Regional latency**：按 `country`、`provider` 分组，显示 Count、P50 和 P95；样本过少的国家不要单独决策。
 5. **Rate limits and timeouts**：过滤 `outcome = rate_limited OR outcome = timeout`，按 provider 显示时间趋势。
 6. **Time to first token**：过滤 `event = reply_stream AND outcome = success`，显示 `firstTokenMs` 的 P50、P95，并按 `provider`、`country` 分组。
+7. **Streaming granularity**：过滤 `event = reply_stream AND outcome = success`，按 `provider` 查看 `chunkCount` 与 `largestChunkChars`；`chunkCount = 1` 的占比可以反映哪些模型经常整段返回。
 
 当前 `wrangler.jsonc` 对日志使用 `head_sampling_rate: 1`，即全量采集。流量增长后可降低采样率，但调度评估期间应保持全量，以免小样本和低频错误被遗漏。
 

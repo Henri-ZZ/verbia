@@ -6,6 +6,7 @@ import { isMailSite, type SiteMode } from "../site-mode";
 import { contextFromExtraction } from "../context/mapping";
 import { extensionVersion, runtimeUrl, sendToBackground, uiLanguage } from "../../runtime";
 import { msgColor, msgIcon, type MsgKind } from "../../ui/message";
+import { ProgressiveTextRenderer } from "./progressive-text";
 
 // Every background reply is an ExtensionResponse; each caller knows which
 // `data` variant it asked for, so it narrows the union locally instead of
@@ -49,6 +50,7 @@ export class VerbiaPanel {
   private draft = "";
   private requestId?: string;
   private generationPort?: chrome.runtime.Port;
+  private draftRenderer?: ProgressiveTextRenderer;
   private recognition?: SpeechRecognition;
   private voiceTranscript = false;
   private stopRequested = false;
@@ -543,7 +545,7 @@ export class VerbiaPanel {
     this.phase = "generating";
     this.requestId = crypto.randomUUID();
     this.setBusy(true);
-    this.status(this.t("panel.status.writing"));
+    this.status(this.t("panel.status.connecting"));
     const request: GenerateReplyRequest = {
       requestId: this.requestId, schemaVersion: "1", platform: this.requestPlatform(), siteMode: this.mode,
       page: { urlOrigin: location.origin, locale: document.documentElement.lang || undefined }, context: this.context,
@@ -551,11 +553,16 @@ export class VerbiaPanel {
       output: { language: this.value("language", this.settings.outputLanguage), tone: this.value("tone", this.settings.defaultTone) as GenerateReplyRequest["output"]["tone"], length: this.value("length", this.settings.defaultLength) as GenerateReplyRequest["output"]["length"] },
       client: { extensionVersion: extensionVersion(), adapterVersion: this.adapter.version }
     };
+    let slowTimer: number | undefined;
     try {
+      let receivedText = false;
+      slowTimer = window.setTimeout(() => {
+        if (this.requestId === request.requestId && !receivedText) this.status(this.t("panel.status.slow"), "warning");
+      }, 8_000);
       this.draft = "";
       const draftEl = this.el<HTMLTextAreaElement>("draft");
       if (draftEl) draftEl.value = "";
-      const result = await this.streamReply(request, text => {
+      const renderer = new ProgressiveTextRenderer(text => {
         if (this.requestId !== request.requestId) return;
         this.draft += text;
         const liveDraft = this.el<HTMLTextAreaElement>("draft");
@@ -565,6 +572,15 @@ export class VerbiaPanel {
         }
         this.el("draft-area")?.classList.remove("hidden");
       });
+      this.draftRenderer = renderer;
+      const result = await this.streamReply(request, text => {
+        receivedText = true;
+        if (slowTimer !== undefined) window.clearTimeout(slowTimer);
+        renderer.push(text);
+      }, () => this.status(this.t("panel.status.writing")));
+      // A short response may arrive in one provider chunk. Finish displaying
+      // that chunk progressively before changing the state to "Draft ready".
+      await renderer.flush();
       if (result.requestId !== this.requestId) return;
       this.draft = result.draft;
       const finalDraft = this.el<HTMLTextAreaElement>("draft");
@@ -576,14 +592,24 @@ export class VerbiaPanel {
       // the Insert button that insert() had disabled and labelled "Inserted".
       const insert = this.action("insert");
       if (insert) { insert.disabled = false; insert.textContent = this.t("panel.insert"); }
+      if (slowTimer !== undefined) window.clearTimeout(slowTimer);
     } catch (error) {
       if (this.requestId !== request.requestId) return;
+      await this.draftRenderer?.flush();
+      if (this.requestId !== request.requestId) return;
+      if (this.draft) {
+        this.phase = "draft_ready";
+        this.status(this.t("panel.status.interrupted"), "warning");
+        return;
+      }
       this.phase = "error";
       const err = error as { message?: string; detail?: string };
       const message = err.message ?? this.t("panel.status.generationFailed");
       this.status(err.detail ? `${message} (${err.detail})` : message, "error");
     }
     finally {
+      if (slowTimer !== undefined) window.clearTimeout(slowTimer);
+      this.draftRenderer = undefined;
       this.generationPort = undefined;
       const draft = this.el<HTMLTextAreaElement>("draft");
       if (draft) draft.readOnly = false;
@@ -591,7 +617,7 @@ export class VerbiaPanel {
     }
   }
 
-  private streamReply(request: GenerateReplyRequest, onDelta: (text: string) => void): Promise<GenerateReplyResponse> {
+  private streamReply(request: GenerateReplyRequest, onDelta: (text: string) => void, onStart: () => void): Promise<GenerateReplyResponse> {
     return new Promise((resolve, reject) => {
       let settled = false;
       const port = chrome.runtime.connect({ name: "verbia-reply-stream" });
@@ -604,6 +630,7 @@ export class VerbiaPanel {
       };
       port.onMessage.addListener((event: ReplyStreamEvent) => {
         if (event.requestId !== request.requestId) return;
+        if (event.type === "start") onStart();
         if (event.type === "delta") onDelta(event.text);
         if (event.type === "done") finish(() => resolve(event.result));
         if (event.type === "error") finish(() => reject(Object.assign(new Error(event.userMessage), { code: event.code, detail: event.detail })));
@@ -622,6 +649,8 @@ export class VerbiaPanel {
       try { this.generationPort.postMessage({ type: "cancel" }); this.generationPort.disconnect(); } catch { /* Extension context was reloaded. */ }
       this.generationPort = undefined;
     } else if (requestId) await sendToBackground({ type: "CANCEL_GENERATION", requestId });
+    this.draftRenderer?.stop();
+    this.draftRenderer = undefined;
     this.phase = "context_ready"; this.setBusy(false); this.status(this.t("panel.status.cancelled"));
   }
 
@@ -1090,6 +1119,8 @@ export class VerbiaPanel {
       try { this.generationPort.postMessage({ type: "cancel" }); this.generationPort.disconnect(); } catch { /* Extension context was reloaded. */ }
       this.generationPort = undefined;
     } else if (requestId) void sendToBackground({ type: "CANCEL_GENERATION", requestId });
+    this.draftRenderer?.stop();
+    this.draftRenderer = undefined;
   }
 
   // Folding keeps the panel mounted and its typed content intact; only the
