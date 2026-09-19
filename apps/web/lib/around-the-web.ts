@@ -134,6 +134,20 @@ export const aroundTheWeb: AroundTheWebEntry[] = [
     icon: "https://findly.tools/badges/findly-tools-badge-light.svg",
     group: "directories",
     footerBadge: true
+  },
+  {
+    name: "LaunchNest",
+    // Describes the platform only: their FAQ makes a listing public as soon as
+    // the badge is installed and verified, which is what this change does, so we
+    // do not claim a status we cannot point at yet.
+    url: "https://launchnest.io/p/verbia",
+    description: {
+      en: "A launch platform and ranked directory where makers launch and the crowd votes.",
+      zh: "创作者发布产品、社区投票排名的发布平台与目录。"
+    },
+    icon: "https://launchnest.io/badge/verbia.svg?variant=featured&theme=light",
+    group: "directories",
+    footerBadge: true
   }
 ];
 
