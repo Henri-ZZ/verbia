@@ -29,6 +29,10 @@ export type AroundTheWebEntry = {
   // Optional. Headings only appear once more than one group has entries, so a
   // short list stays a plain list instead of a row of one-item sections.
   group?: AroundTheWebGroup;
+  // Set when the platform's own terms ask for its mark on our homepage. The site
+  // footer is the one element present on every page, homepage included, so those
+  // marks are rendered there as a bare row (@see the footer's footerBadges).
+  footerBadge?: boolean;
   sponsored?: boolean;
 };
 
@@ -88,7 +92,10 @@ export const aroundTheWeb: AroundTheWebEntry[] = [
       zh: "每日更新的创业公司与产品精选目录，Verbia 是已审核的条目。"
     },
     icon: "https://startupfa.me/badges/featured-badge.webp",
-    group: "directories"
+    group: "directories",
+    // Their free Verified tier asks for the badge on our homepage, verbatim:
+    // "add a Startup Fame badge to your homepage and pass review".
+    footerBadge: true
   }
 ];
 

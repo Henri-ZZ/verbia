@@ -1,6 +1,12 @@
 import Link from "next/link";
 import { STORE_URLS } from "../lib/browser-stores";
+import { aroundTheWeb } from "../lib/around-the-web";
 import type { SiteLocale } from "./language-redirect";
+
+// Marks a platform's own terms require on our homepage. The footer appears on
+// every page, homepage included, so it satisfies that without putting badges
+// anywhere else. No text: the badge is the whole placement.
+const footerBadges = aroundTheWeb.filter(entry => entry.footerBadge && entry.icon);
 
 function Mark() {
   return <img className="mark" src="/verbia-mark.svg" alt="" width="24" height="24"/>;
@@ -67,6 +73,11 @@ export function SiteFooter({ locale = "en" }: { locale?: SiteLocale }) {
         {guides.map(([href, label]) => <Link key={href} href={href}>{label}</Link>)}
       </nav>
     </div>
+    {footerBadges.length > 0 && <div className="shell footer-badges">
+      {footerBadges.map(entry => <a className="footer-badge" href={entry.url} target="_blank" rel={entry.sponsored ? "noopener noreferrer sponsored" : "noopener noreferrer"} key={entry.url}>
+        <img src={entry.icon} alt={entry.name} loading="lazy" decoding="async"/>
+      </a>)}
+    </div>}
     {/* Deliberately with the legal line rather than a nav column: the page
         collects third-party listings, so it should be findable without being
         pushed at people. */}

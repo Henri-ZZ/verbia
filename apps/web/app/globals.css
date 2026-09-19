@@ -1055,6 +1055,41 @@ blockquote {
 .footer-store-link img {
   flex: 0 0 auto;
 }
+/* Badges a platform's own terms require on our homepage (@see footerBadges in
+   site-footer.tsx). Cards rather than bare images, so a white mark does not
+   vanish into the footer's tint; the row is deliberately text-free — the badge
+   is the whole placement. */
+.footer-badges {
+  display: flex;
+  flex-flow: row wrap;
+  gap: 14px;
+  padding-block: 26px 30px;
+  border-top: 1px solid var(--border);
+}
+.footer-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 11px 17px;
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.footer-badge:hover {
+  border-color: var(--jade);
+  box-shadow: 0 12px 26px -20px rgba(23,32,25,.5);
+}
+.footer-badge:focus-visible {
+  outline: 3px solid rgba(15,110,86,.35);
+  outline-offset: 2px;
+}
+.footer-badge img {
+  display: block;
+  height: 34px;
+  width: auto;
+  max-width: 220px;
+  object-fit: contain;
+}
 .copyright {
   padding-block: 20px;
   border-top: 1px solid var(--border);
