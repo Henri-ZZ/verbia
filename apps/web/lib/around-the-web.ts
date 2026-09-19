@@ -123,6 +123,17 @@ export const aroundTheWeb: AroundTheWebEntry[] = [
     icon: "https://wired.business/badge0-white.svg",
     group: "directories",
     footerBadge: true
+  },
+  {
+    name: "Findly.tools",
+    url: "https://findly.tools/verbia-ai-reply-writing-assistant?utm_source=verbia-ai-reply-writing-assistant",
+    description: {
+      en: "A curated directory of SaaS and tools, with human submissions and written product reviews.",
+      zh: "人工提交与产品长评结合的 SaaS 与工具精选目录。"
+    },
+    icon: "https://findly.tools/badges/findly-tools-badge-light.svg",
+    group: "directories",
+    footerBadge: true
   }
 ];
 
