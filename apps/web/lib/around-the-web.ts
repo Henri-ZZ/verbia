@@ -29,9 +29,10 @@ export type AroundTheWebEntry = {
   // Optional. Headings only appear once more than one group has entries, so a
   // short list stays a plain list instead of a row of one-item sections.
   group?: AroundTheWebGroup;
-  // Set when the platform's own terms ask for its mark on our homepage. The site
-  // footer is the one element present on every page, homepage included, so those
-  // marks are rendered there as a bare row (@see the footer's footerBadges).
+  // Set when the platform's mark should appear in the site footer, which is the
+  // one element present on every page (so it also satisfies terms that ask for
+  // the badge on our homepage). Rendered as a bare row of marks, no text
+  // (@see the footer's footerBadges).
   footerBadge?: boolean;
   sponsored?: boolean;
 };
@@ -68,7 +69,8 @@ export const aroundTheWeb: AroundTheWebEntry[] = [
       zh: "2022 年起运营的 AI 工具目录，Verbia 的条目带有其认证标识。"
     },
     icon: "https://assets.dang.ai/badges/dang-verified-light.png",
-    group: "directories"
+    group: "directories",
+    footerBadge: true
   },
   {
     name: "Fazier",
@@ -80,7 +82,8 @@ export const aroundTheWeb: AroundTheWebEntry[] = [
       zh: "每日产品发布与发现平台，Verbia 的发布页带有其 launched 徽标。"
     },
     icon: "https://fazier.com/api/v1//public/badges/launch_badges.svg?badge_type=launched&theme=light",
-    group: "directories"
+    group: "directories",
+    footerBadge: true
   },
   {
     name: "Startup Fame",
@@ -95,6 +98,17 @@ export const aroundTheWeb: AroundTheWebEntry[] = [
     group: "directories",
     // Their free Verified tier asks for the badge on our homepage, verbatim:
     // "add a Startup Fame badge to your homepage and pass review".
+    footerBadge: true
+  },
+  {
+    name: "Twelve Tools",
+    url: "https://twelve.tools",
+    description: {
+      en: "Twelve new tools a day — hand-picked startups and web tools, curated daily.",
+      zh: "每天精选十二个新产品与网页工具的工具目录。"
+    },
+    icon: "https://twelve.tools/badge0-white.svg",
+    group: "directories",
     footerBadge: true
   }
 ];
