@@ -266,6 +266,13 @@ export const aroundTheWeb: AroundTheWebEntry[] = [
     group: "directories",
     footerBadge: true,
   },
+  {
+    name: "StartupBase",
+    url: "https://startupbase.io/products/verbia?utm_source=startupbase&utm_medium=badge&utm_campaign=launch-badge-light",
+    icon: "https://statics.startupbase.io/site/badges/launched-on-sb.svg",
+    group: "directories",
+    footerBadge: true,
+  },
 ];
 
 // Entries in display order, grouped only as far as the data justifies it: with a
