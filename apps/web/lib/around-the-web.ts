@@ -231,6 +231,13 @@ export const aroundTheWeb: AroundTheWebEntry[] = [
     group: "directories",
     footerBadge: true,
   },
+  {
+    name: "Launch Llama Tools",
+    url: "https://tools.launchllama.co?utm_source=badge&utm_medium=referral",
+    icon: "https://tools.launchllama.co/featured-badge-white.jpg?v=5",
+    group: "directories",
+    footerBadge: true,
+  },
 ];
 
 // Entries in display order, grouped only as far as the data justifies it: with a
