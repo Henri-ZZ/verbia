@@ -1273,11 +1273,14 @@ blockquote {
   outline: 3px solid rgba(15, 110, 86, 0.35);
   outline-offset: 3px;
 }
+/* A small radius covers opaque badges whose own snippet asks for rounded corners;
+   transparent marks are unaffected. */
 .footer-badge img {
   display: block;
   height: 34px;
   width: auto;
   max-width: 220px;
+  border-radius: 10px;
   object-fit: contain;
 }
 /* For platforms that hand out no mark: a rounded container keeps the name in the

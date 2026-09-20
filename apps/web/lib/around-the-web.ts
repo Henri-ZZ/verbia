@@ -161,6 +161,19 @@ export const aroundTheWeb: AroundTheWebEntry[] = [
     footerBadge: true
   },
   {
+    name: "Submit AI Tools",
+    url: "https://submitaitools.org",
+    description: {
+      en: "A curated AI tools directory for discovering, comparing and finding alternatives.",
+      zh: "用于发现、比较与寻找替代方案的 AI 工具目录。"
+    },
+    // Opaque PNG: its snippet asks for rounded corners, which is why the footer
+    // images carry a small radius (@see .footer-badge img).
+    icon: "https://submitaitools.org/static_submitaitools/images/submitaitools.png",
+    group: "directories",
+    footerBadge: true
+  },
+  {
     // Text-only placement: MossAI hands out a plain link, no mark, so the footer
     // renders it as a rounded chip rather than an image (@see .footer-badge-text).
     name: "MossAI Tools",
