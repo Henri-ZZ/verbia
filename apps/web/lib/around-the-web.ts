@@ -26,9 +26,9 @@ export type AroundTheWebGroup =
 export type AroundTheWebEntry = {
   name: string;
   url: string;
-  // One factual line about the placement, per site language (zh falls back to en
-  // while a translation is missing). The page shows it as the link's hover
-  // tooltip, not as body copy, so the list stays a list of names.
+  // Optional, and not written for new entries: a platform that hands out a badge
+  // is asking for the backlink, not for copy. Kept on the placements that already
+  // have one — the page shows it as the link's hover tooltip, never as body copy.
   description?: { en: string; zh?: string };
   icon?: string;
   // Optional. Headings only appear once more than one group has entries, so a
@@ -191,6 +191,22 @@ export const aroundTheWeb: AroundTheWebEntry[] = [
       zh: "每周排行的创业产品、SaaS 与独立开发者作品发布榜。",
     },
     icon: "https://www.foundrlist.com/api/badge/verbia",
+    group: "directories",
+    footerBadge: true,
+  },
+  {
+    // Badge reads "Launching Soon": their tool page goes public on launch day, so
+    // no description yet either (@see the entry type).
+    name: "Uneed",
+    url: "https://www.uneed.best/tool/verbia",
+    icon: "https://www.uneed.best/EMBED3.png",
+    group: "directories",
+    footerBadge: true,
+  },
+  {
+    name: "neeed.directory",
+    url: "https://neeed.directory",
+    icon: "https://neeed.directory/badges/neeed-badge-light.svg",
     group: "directories",
     footerBadge: true,
   },
