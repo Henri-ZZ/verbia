@@ -217,6 +217,13 @@ export const aroundTheWeb: AroundTheWebEntry[] = [
     group: "directories",
     footerBadge: true,
   },
+  {
+    name: "DeepLaunch.io",
+    url: "https://deeplaunch.io",
+    icon: "https://deeplaunch.io/badge/badge_light.svg",
+    group: "directories",
+    footerBadge: true,
+  },
 ];
 
 // Entries in display order, grouped only as far as the data justifies it: with a
