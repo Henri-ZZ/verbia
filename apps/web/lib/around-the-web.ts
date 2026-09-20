@@ -148,6 +148,17 @@ export const aroundTheWeb: AroundTheWebEntry[] = [
     icon: "https://launchnest.io/badge/verbia.svg?variant=featured&theme=light",
     group: "directories",
     footerBadge: true
+  },
+  {
+    name: "ShowMeBestAI",
+    url: "https://showmebest.ai",
+    description: {
+      en: "An AI tools directory for productivity, business and creative work, with a featured tier.",
+      zh: "面向生产力、商业与创作场景的 AI 工具目录，设有推荐位。"
+    },
+    icon: "https://showmebest.ai/badge/feature-badge-white.webp",
+    group: "directories",
+    footerBadge: true
   }
 ];
 
