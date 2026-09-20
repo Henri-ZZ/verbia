@@ -16,7 +16,12 @@ import { STORE_URLS } from "./browser-stores";
 // keep their own aspect ratio, so a square logo and a wide wordmark both work.
 // `sponsored` marks a paid placement, which is the only case where the link gets
 // rel="sponsored" — a normal listing is a normal link.
-export type AroundTheWebGroup = "stores" | "directories" | "communities" | "mentions" | "other";
+export type AroundTheWebGroup =
+  | "stores"
+  | "directories"
+  | "communities"
+  | "mentions"
+  | "other";
 
 export type AroundTheWebEntry = {
   name: string;
@@ -38,7 +43,13 @@ export type AroundTheWebEntry = {
 };
 
 // Display order. Groups with no entries are skipped rather than rendered empty.
-const GROUP_ORDER: AroundTheWebGroup[] = ["stores", "directories", "communities", "mentions", "other"];
+const GROUP_ORDER: AroundTheWebGroup[] = [
+  "stores",
+  "directories",
+  "communities",
+  "mentions",
+  "other",
+];
 
 export const aroundTheWeb: AroundTheWebEntry[] = [
   {
@@ -46,31 +57,31 @@ export const aroundTheWeb: AroundTheWebEntry[] = [
     url: STORE_URLS.chrome,
     description: {
       en: "The Chrome listing for the Verbia extension — current version, permissions, and reviews.",
-      zh: "Verbia 扩展在 Chrome 商店的页面：当前版本、权限与用户评价。"
+      zh: "Verbia 扩展在 Chrome 商店的页面：当前版本、权限与用户评价。",
     },
     icon: "/chrome.svg",
-    group: "stores"
+    group: "stores",
   },
   {
     name: "Microsoft Edge Add-ons",
     url: STORE_URLS.edge,
     description: {
       en: "The same extension, listed for Microsoft Edge.",
-      zh: "同一个扩展在 Microsoft Edge 加载项商店的页面。"
+      zh: "同一个扩展在 Microsoft Edge 加载项商店的页面。",
     },
     icon: "/edge.svg",
-    group: "stores"
+    group: "stores",
   },
   {
     name: "DANG!",
     url: "https://dang.ai",
     description: {
       en: "An AI tools directory, running since 2022. Verbia's listing shows their verified badge.",
-      zh: "2022 年起运营的 AI 工具目录，Verbia 的条目带有其认证标识。"
+      zh: "2022 年起运营的 AI 工具目录，Verbia 的条目带有其认证标识。",
     },
     icon: "https://assets.dang.ai/badges/dang-verified-light.png",
     group: "directories",
-    footerBadge: true
+    footerBadge: true,
   },
   {
     name: "Fazier",
@@ -79,11 +90,11 @@ export const aroundTheWeb: AroundTheWebEntry[] = [
     url: "https://fazier.com/launches/verbia.henriz.dev",
     description: {
       en: "A daily product launch feed. Verbia's launch page carries their launched badge.",
-      zh: "每日产品发布与发现平台，Verbia 的发布页带有其 launched 徽标。"
+      zh: "每日产品发布与发现平台，Verbia 的发布页带有其 launched 徽标。",
     },
     icon: "https://fazier.com/api/v1//public/badges/launch_badges.svg?badge_type=launched&theme=light",
     group: "directories",
-    footerBadge: true
+    footerBadge: true,
   },
   {
     name: "Startup Fame",
@@ -92,24 +103,24 @@ export const aroundTheWeb: AroundTheWebEntry[] = [
     url: "https://startupfa.me/s/verbia?utm_source=verbia.henriz.dev",
     description: {
       en: "A curated directory of startups and products, updated daily. Verbia is a reviewed listing.",
-      zh: "每日更新的创业公司与产品精选目录，Verbia 是已审核的条目。"
+      zh: "每日更新的创业公司与产品精选目录，Verbia 是已审核的条目。",
     },
     icon: "https://startupfa.me/badges/featured-badge.webp",
     group: "directories",
     // Their free Verified tier asks for the badge on our homepage, verbatim:
     // "add a Startup Fame badge to your homepage and pass review".
-    footerBadge: true
+    footerBadge: true,
   },
   {
     name: "Twelve Tools",
     url: "https://twelve.tools",
     description: {
       en: "Twelve new tools a day — hand-picked startups and web tools, curated daily.",
-      zh: "每天精选十二个新产品与网页工具的工具目录。"
+      zh: "每天精选十二个新产品与网页工具的工具目录。",
     },
     icon: "https://twelve.tools/badge0-white.svg",
     group: "directories",
-    footerBadge: true
+    footerBadge: true,
   },
   {
     name: "Wired Business",
@@ -118,22 +129,22 @@ export const aroundTheWeb: AroundTheWebEntry[] = [
     url: "https://wired.business",
     description: {
       en: "A browsable category directory of websites and tools.",
-      zh: "按分类浏览网站与工具的产品目录。"
+      zh: "按分类浏览网站与工具的产品目录。",
     },
     icon: "https://wired.business/badge0-white.svg",
     group: "directories",
-    footerBadge: true
+    footerBadge: true,
   },
   {
     name: "Findly.tools",
     url: "https://findly.tools/verbia-ai-reply-writing-assistant?utm_source=verbia-ai-reply-writing-assistant",
     description: {
       en: "A curated directory of SaaS and tools, with human submissions and written product reviews.",
-      zh: "人工提交与产品长评结合的 SaaS 与工具精选目录。"
+      zh: "人工提交与产品长评结合的 SaaS 与工具精选目录。",
     },
     icon: "https://findly.tools/badges/findly-tools-badge-light.svg",
     group: "directories",
-    footerBadge: true
+    footerBadge: true,
   },
   {
     name: "LaunchNest",
@@ -143,35 +154,22 @@ export const aroundTheWeb: AroundTheWebEntry[] = [
     url: "https://launchnest.io/p/verbia",
     description: {
       en: "A launch platform and ranked directory where makers launch and the crowd votes.",
-      zh: "创作者发布产品、社区投票排名的发布平台与目录。"
+      zh: "创作者发布产品、社区投票排名的发布平台与目录。",
     },
     icon: "https://launchnest.io/badge/verbia.svg?variant=featured&theme=light",
     group: "directories",
-    footerBadge: true
+    footerBadge: true,
   },
   {
     name: "ShowMeBestAI",
     url: "https://showmebest.ai",
     description: {
       en: "An AI tools directory for productivity, business and creative work, with a featured tier.",
-      zh: "面向生产力、商业与创作场景的 AI 工具目录，设有推荐位。"
+      zh: "面向生产力、商业与创作场景的 AI 工具目录，设有推荐位。",
     },
     icon: "https://showmebest.ai/badge/feature-badge-white.webp",
     group: "directories",
-    footerBadge: true
-  },
-  {
-    name: "Submit AI Tools",
-    url: "https://submitaitools.org",
-    description: {
-      en: "A curated AI tools directory for discovering, comparing and finding alternatives.",
-      zh: "用于发现、比较与寻找替代方案的 AI 工具目录。"
-    },
-    // Opaque PNG: its snippet asks for rounded corners, which is why the footer
-    // images carry a small radius (@see .footer-badge img).
-    icon: "https://submitaitools.org/static_submitaitools/images/submitaitools.png",
-    group: "directories",
-    footerBadge: true
+    footerBadge: true,
   },
   {
     // Text-only placement: MossAI hands out a plain link, no mark, so the footer
@@ -180,25 +178,40 @@ export const aroundTheWeb: AroundTheWebEntry[] = [
     url: "https://mossai.org",
     description: {
       en: "An AI tool navigation directory covering writing, image, code and more, updated daily.",
-      zh: "每日更新的 AI 工具导航目录，覆盖写作、绘画、编程等类别。"
+      zh: "每日更新的 AI 工具导航目录，覆盖写作、绘画、编程等类别。",
     },
     group: "directories",
-    footerBadge: true
-  }
+    footerBadge: true,
+  },
+  {
+    name: "FoundrList",
+    url: "https://www.foundrlist.com/product/verbia?utm_source=badge&utm_medium=embed",
+    description: {
+      en: "A weekly ranked board for startup launches, SaaS products and indie tools.",
+      zh: "每周排行的创业产品、SaaS 与独立开发者作品发布榜。",
+    },
+    icon: "https://www.foundrlist.com/api/badge/verbia",
+    group: "directories",
+    footerBadge: true,
+  },
 ];
 
 // Entries in display order, grouped only as far as the data justifies it: with a
 // single populated group the caller gets one unnamed bucket (@see the page). The
 // caller supplies the headings, so this stays language-neutral.
-export function groupedAroundTheWeb(entries: AroundTheWebEntry[]): { group?: AroundTheWebGroup; entries: AroundTheWebEntry[] }[] {
-  const populated = GROUP_ORDER.filter(group => entries.some(entry => entry.group === group));
-  const ungrouped = entries.filter(entry => !entry.group);
+export function groupedAroundTheWeb(
+  entries: AroundTheWebEntry[],
+): { group?: AroundTheWebGroup; entries: AroundTheWebEntry[] }[] {
+  const populated = GROUP_ORDER.filter((group) =>
+    entries.some((entry) => entry.group === group),
+  );
+  const ungrouped = entries.filter((entry) => !entry.group);
   if (populated.length <= 1) {
     return [{ entries }];
   }
-  const buckets = populated.map(group => ({
+  const buckets = populated.map((group) => ({
     group,
-    entries: entries.filter(entry => entry.group === group)
+    entries: entries.filter((entry) => entry.group === group),
   }));
   return ungrouped.length > 0 ? [...buckets, { entries: ungrouped }] : buckets;
 }
