@@ -238,6 +238,13 @@ export const aroundTheWeb: AroundTheWebEntry[] = [
     group: "directories",
     footerBadge: true,
   },
+  {
+    name: "Turbo0",
+    url: "https://turbo0.com/item/verbia",
+    icon: "https://img.turbo0.com/badge-listed-light.svg",
+    group: "directories",
+    footerBadge: true,
+  },
 ];
 
 // Entries in display order, grouped only as far as the data justifies it: with a
