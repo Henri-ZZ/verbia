@@ -276,7 +276,7 @@ export const aroundTheWeb: AroundTheWebEntry[] = [
   {
     name: "NxGn Tools",
     url: "https://www.nxgntools.com/tools/verbia?utm_source=verbia",
-    icon: "https://www.nxgntools.com/api/embed/verbia?type=FEATURED_ON",
+    icon: "https://www.nxgntools.com/api/embed/verbia?type=FEATURED_ON&hideUpvotes=true",
     group: "directories",
     footerBadge: true,
   },
