@@ -1082,6 +1082,17 @@ blockquote {
   max-width: 220px;
   object-fit: contain;
 }
+/* For platforms that hand out no mark: a rounded container keeps the name in the
+   same row without pretending to be a badge. */
+.footer-badge-text {
+  padding: 9px 16px;
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
 .copyright {
   padding-block: 20px;
   border-top: 1px solid var(--border);

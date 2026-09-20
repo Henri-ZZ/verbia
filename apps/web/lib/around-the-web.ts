@@ -159,6 +159,18 @@ export const aroundTheWeb: AroundTheWebEntry[] = [
     icon: "https://showmebest.ai/badge/feature-badge-white.webp",
     group: "directories",
     footerBadge: true
+  },
+  {
+    // Text-only placement: MossAI hands out a plain link, no mark, so the footer
+    // renders it as a rounded chip rather than an image (@see .footer-badge-text).
+    name: "MossAI Tools",
+    url: "https://mossai.org",
+    description: {
+      en: "An AI tool navigation directory covering writing, image, code and more, updated daily.",
+      zh: "每日更新的 AI 工具导航目录，覆盖写作、绘画、编程等类别。"
+    },
+    group: "directories",
+    footerBadge: true
   }
 ];
 
