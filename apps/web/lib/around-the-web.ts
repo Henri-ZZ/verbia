@@ -273,6 +273,13 @@ export const aroundTheWeb: AroundTheWebEntry[] = [
     group: "directories",
     footerBadge: true,
   },
+  {
+    name: "NxGn Tools",
+    url: "https://www.nxgntools.com/tools/verbia?utm_source=verbia",
+    icon: "https://www.nxgntools.com/api/embed/verbia?type=FEATURED_ON",
+    group: "directories",
+    footerBadge: true,
+  },
 ];
 
 // Entries in display order, grouped only as far as the data justifies it: with a
