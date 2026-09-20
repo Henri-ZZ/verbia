@@ -5382,43 +5382,36 @@ button:focus-visible {
   text-transform: uppercase;
 }
 /* The row wraps on its own, so the list stays compact however many platforms it
-   grows to. Marks keep their own aspect ratio, sized by height. */
+   grows to. Marks keep their own aspect ratio, sized by height, and carry no
+   frame — the same treatment the footer row uses (@see .footer-badges). */
 .around-web-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px 14px;
+  align-items: center;
+  gap: 18px 26px;
 }
 .around-web-item {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 9px 17px;
-  background: var(--paper);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease,
-    transform 0.15s ease;
-}
-.around-web-item:hover {
-  border-color: var(--jade);
-  box-shadow: 0 10px 24px -16px rgba(23, 32, 25, 0.35);
-  transform: translateY(-1px);
 }
 .around-web-item:focus-visible {
+  border-radius: 6px;
   outline: 3px solid rgba(15, 110, 86, 0.35);
-  outline-offset: 2px;
+  outline-offset: 3px;
 }
 .around-web-icon {
-  flex: none;
+  display: block;
   width: auto;
-  height: 22px;
-  max-width: 104px;
+  height: 34px;
+  max-width: 220px;
+  border-radius: 10px;
   object-fit: contain;
 }
-.around-web-label {
-  font: 700 15px/1.2 var(--body);
+/* For platforms that hand out no mark at all: the name as plain text. */
+.around-web-text {
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 700;
 }
 /* Centred, and the auto inline margins are load-bearing: .shell supplies the
    width, so a plain margin: 0 would leave the line pinned to the left edge. */

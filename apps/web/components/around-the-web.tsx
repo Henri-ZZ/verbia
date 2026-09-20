@@ -44,16 +44,17 @@ function relFor(entry: AroundTheWebEntry): string {
   return entry.sponsored ? "noopener noreferrer sponsored" : "noopener noreferrer";
 }
 
-// One placement: a mark and a name, in a row that wraps. The description is the
-// link's tooltip rather than body copy — it says what the placement is without
-// turning each entry into a card.
+// One placement, treated like the footer row (@see .footer-badges): a platform
+// that gives us a mark gets the mark alone, and only one that gives us nothing
+// but a link falls back to its name as text. Because nothing here is labelled
+// visibly, the image carries the name as alt text and the link carries it as a
+// tooltip alongside the description when there is one.
 function EntryItem({ entry, locale }: { entry: AroundTheWebEntry; locale: SiteLocale }) {
-  const description = entry.description?.[locale] ?? entry.description?.en;
-  return <a className="around-web-item" href={entry.url} target="_blank" rel={relFor(entry)} title={description}>
-    {/* alt is empty on purpose: the name next to it already labels the link.
-        lazy because a platform-hosted mark is a third-party request. */}
-    {entry.icon && <img className="around-web-icon" src={entry.icon} alt="" loading="lazy" decoding="async"/>}
-    <span className="around-web-label">{entry.name}</span>
+  const title = entry.description?.[locale] ?? entry.description?.en ?? entry.name;
+  return <a className="around-web-item" href={entry.url} target="_blank" rel={relFor(entry)} title={title}>
+    {entry.icon
+      ? <img className="around-web-icon" src={entry.icon} alt={entry.name} loading="lazy" decoding="async"/>
+      : <span className="around-web-text">{entry.name}</span>}
   </a>;
 }
 
