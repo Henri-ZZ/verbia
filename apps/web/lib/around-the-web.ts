@@ -245,6 +245,13 @@ export const aroundTheWeb: AroundTheWebEntry[] = [
     group: "directories",
     footerBadge: true,
   },
+  {
+    name: "OpenHunts Club",
+    url: "https://openhunts.com",
+    icon: "https://cdn.openhunts.com/badges/club.webp",
+    group: "directories",
+    footerBadge: true,
+  },
 ];
 
 // Entries in display order, grouped only as far as the data justifies it: with a
