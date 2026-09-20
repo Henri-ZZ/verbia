@@ -224,6 +224,13 @@ export const aroundTheWeb: AroundTheWebEntry[] = [
     group: "directories",
     footerBadge: true,
   },
+  {
+    name: "LaunchIgniter",
+    url: "https://launchigniter.com/product/verbia?ref=badge-verbia",
+    icon: "https://launchigniter.com/api/badge/verbia?theme=light",
+    group: "directories",
+    footerBadge: true,
+  },
 ];
 
 // Entries in display order, grouped only as far as the data justifies it: with a
