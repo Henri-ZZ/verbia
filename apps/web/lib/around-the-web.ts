@@ -259,6 +259,13 @@ export const aroundTheWeb: AroundTheWebEntry[] = [
     group: "directories",
     footerBadge: true,
   },
+  {
+    name: "Aura++",
+    url: "https://auraplusplus.com/projects/verbia-browser-writing-assistant",
+    icon: "https://auraplusplus.com/images/badges/featured-on-light.svg",
+    group: "directories",
+    footerBadge: true,
+  },
 ];
 
 // Entries in display order, grouped only as far as the data justifies it: with a
