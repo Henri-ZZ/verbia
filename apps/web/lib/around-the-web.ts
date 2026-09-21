@@ -53,6 +53,15 @@ const GROUP_ORDER: AroundTheWebGroup[] = [
 
 export const aroundTheWeb: AroundTheWebEntry[] = [
   {
+    // Snippet kept as published: the t= is their installer's own cache-buster, not
+    // a value we maintain (@see the note on Fazier's badge below).
+    name: "Product Hunt",
+    url: "https://www.producthunt.com/products/verbia?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-verbia",
+    icon: "https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1256157&theme=light&t=1789996293945",
+    group: "directories",
+    footerBadge: true,
+  },
+  {
     name: "Chrome Web Store",
     url: STORE_URLS.chrome,
     description: {
