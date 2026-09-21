@@ -224,6 +224,21 @@ main {
   gap: 14px;
   margin: 30px 0 20px;
 }
+.hero-control-note {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin: -5px 0 17px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 750;
+}
+.hero-control-note span::before {
+  content: "✓";
+  margin-right: 6px;
+  color: var(--primary);
+}
 .support-note {
   max-width: 980px;
   margin: 0;
@@ -657,6 +672,13 @@ blockquote {
   font: 650 20px var(--display);
   margin-top: 0;
 }
+.comparison-intro {
+  min-height: 44px;
+  margin: -3px 0 18px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
 .old {
   background: var(--low);
   color: var(--outline);
@@ -716,6 +738,34 @@ blockquote {
 .mini-step strong {
   display: block;
   color: var(--ink);
+}
+.comparison-answer {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(220px, 0.7fr) minmax(0, 1.3fr);
+  gap: 10px 48px;
+  align-items: start;
+  padding: 30px 32px;
+  border: 1px solid rgba(15, 110, 86, 0.14);
+  border-radius: 18px;
+  background: var(--paper);
+  box-shadow: 0 4px 20px rgba(15, 110, 86, 0.04);
+}
+.comparison-answer .eyebrow {
+  grid-column: 1 / -1;
+  margin: 0 0 4px;
+}
+.comparison-answer h3,
+.comparison-answer > p:last-child {
+  margin: 0;
+}
+.comparison-answer h3 {
+  font-size: clamp(22px, 2.3vw, 30px);
+  line-height: 1.15;
+}
+.comparison-answer > p:last-child {
+  color: var(--muted);
+  line-height: 1.7;
 }
 .feature-stack {
   display: flex;
@@ -817,6 +867,17 @@ blockquote {
   background: var(--jade);
   color: var(--primary);
   font-size: 22px;
+}
+.privacy-policy-link {
+  margin: 22px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+  text-align: center;
+}
+.privacy-policy-link a {
+  color: var(--primary);
+  font-weight: 750;
+  text-underline-offset: 3px;
 }
 .pricing {
   max-width: 960px;
@@ -1402,6 +1463,13 @@ button:focus-visible {
   .hero-actions .button {
     width: 100%;
   }
+  .hero-control-note {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: -2px;
+    text-align: left;
+  }
   .browser-bar {
     grid-template-columns: auto minmax(0, 1fr);
     gap: 10px;
@@ -1466,6 +1534,14 @@ button:focus-visible {
   .comparison > article,
   .card,
   .price-card {
+    padding: 24px;
+  }
+  .comparison-intro {
+    min-height: 0;
+  }
+  .comparison-answer {
+    grid-template-columns: 1fr;
+    gap: 12px;
     padding: 24px;
   }
   .footer-columns {
