@@ -42,6 +42,11 @@ const EMAIL_HOSTS = [
   "mail.sohu.com",
   "mail.aliyun.com",
   "mail.qq.com",
+  // Tencent Exmail, the business side of QQ Mail. It is an old frameset app and
+  // renders the reply editor inside a src-less iframe of its own, which is why it
+  // needs a manifest entry with all_frames + match_about_blank rather than the
+  // on-demand injection every other host here uses (@see manifest.json).
+  "exmail.qq.com",
   "www.icloud.com",
   "mailbox.org",
   "posteo.de",
@@ -64,9 +69,13 @@ export function isEmailHost(hostname: string): boolean {
 
 // An adapter that claims the page always wins: email mode exists for the hosts
 // Verbia has no read for, never to override one it does have.
-export function resolveSiteMode(adapter: SiteAdapter, url: URL): SiteMode {
+//
+// The host is passed in rather than read from the URL because a frame can carry
+// the app of its parent: a src-less editor iframe has no hostname of its own
+// (@see frameHostname in content/index.ts).
+export function resolveSiteMode(adapter: SiteAdapter, hostname: string): SiteMode {
   if (adapter.id !== "universal") return "auto";
-  return isEmailHost(url.hostname) ? "email" : "universal";
+  return isEmailHost(hostname) ? "email" : "universal";
 }
 
 // Whether the page speaks mail. The panel's own words — "subject", "original

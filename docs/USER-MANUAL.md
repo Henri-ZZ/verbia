@@ -116,7 +116,7 @@
 
 ### 5.5 Email 模式（其它邮箱网页版）
 
-适用于白名单内的邮箱网页版（网易 163 / 126 / yeah.net、天翼 189、新浪、搜狐、阿里云邮、iCloud、Yahoo（含日本站）、Proton、Tuta、Fastmail、Zoho（com/eu/in）、GMX（com/net）、mailbox.org、Posteo、AOL、Yandex、Naver、Daum，共 **28 个域名**）。这些站点**不做任何针对性的自动识别**，上下文全部交给模型：
+适用于白名单内的邮箱网页版（网易 163 / 126 / yeah.net、天翼 189、新浪、搜狐、阿里云邮、腾讯企业邮箱、iCloud、Yahoo（含日本站）、Proton、Tuta、Fastmail、Zoho（com/eu/in）、GMX（com/net）、mailbox.org、Posteo、AOL、Yandex、Naver、Daum，共 **29 个域名**）。这些站点**不做任何针对性的自动识别**，上下文全部交给模型：
 
 > 名单是**数据不是代码**（`src/content/site-mode.ts` 的 `EMAIL_HOSTS`）：加一家邮箱只改一行，不需要了解该邮箱的任何 DOM 结构。QQ 邮箱的名字虽然也在名单里，但它有专属适配器——**适配器总是优先**，所以它走自动模式。
 
@@ -238,7 +238,7 @@
 
 ## 13. 已知限制与路线图
 
-- **自动适配范围**：Reddit、WhatsApp Web、Gmail Web、Outlook Web、QQ 邮箱；其它邮箱网页版走 Email 模式（28 个域名白名单，靠 AI 识别），其它页面走通用模式。后续平台通过新增 adapter 扩展（见 14 节代码结构）。
+- **自动适配范围**：Reddit、WhatsApp Web、Gmail Web、Outlook Web、QQ 邮箱；其它邮箱网页版走 Email 模式（29 个域名白名单，靠 AI 识别），其它页面走通用模式。后续平台通过新增 adapter 扩展（见 14 节代码结构）。
 - **上下文媒体类型**：暂只支持纯文字；图片/视频为未来目标。
 - **编辑器兼容性**：复杂富文本编辑器可能退化为手动复制。
 - **语音输入**：依赖浏览器/系统语音识别能力，且**没有语种自动识别**——识别语言默认跟随界面语言、可在设置页手选；浏览器语言与口语语言不一致时必须手动选（见 7）。
@@ -262,7 +262,7 @@
 | `src/content/adapters/outlook.ts` | Outlook 网页版编辑器定位，以及阅读窗格/会话区域的可见邮件上下文提取 |
 | `src/content/adapters/qqmail.ts` | QQ 邮箱编辑器定位与当前邮件上下文提取 |
 | `src/content/adapters/universal.ts` | 通用模式：编辑器定位与无站点适配 |
-| `src/content/site-mode.ts` | 站点模式判定：邮箱域名白名单（28 个，纯数据）+ `resolveSiteMode`；决定面板是否自动弹出、浮动还是内联、请求上报的 platform。新增一家邮箱只需往 `EMAIL_HOSTS` 加一行 |
+| `src/content/site-mode.ts` | 站点模式判定：邮箱域名白名单（29 个，纯数据）+ `resolveSiteMode`；决定面板是否自动弹出、浮动还是内联、请求上报的 platform。新增一家邮箱通常只需往 `EMAIL_HOSTS` 加一行；若它的编辑框在子框架内（腾讯企业邮箱这类老式 frameset 邮箱），还要在 `manifest.json` 里补一条 `all_frames` + `match_about_blank` 的注入声明，否则脚本进不到那个框架 |
 | `src/content/context/collector.ts` | 邻域收集与指纹：从编辑器向上找“上方已有正文”的最小祖先，克隆后剔除页面 chrome 与编辑器自身；AI 识别的输入就是它 |
 | `src/content/editor/editable.ts` | 可编辑目标封装（textarea/input/contenteditable 插入、追加/替换） |
 | `src/content/ui/panel.ts` | 回复面板 UI 与交互（HTML 模板内联样式 + 渲染） |
@@ -322,5 +322,5 @@
 - **能翻译整页/长文吗？** 不能：Verbia 面向“正在回复的这一条”，上下文按字段边界截断，不做整页处理。
 - **会替我发送吗？** 永远不会（见 1）。
 - **语音识别把我说的话识别错了？** Web Speech 没有语种识别。识别语言默认跟随**界面语言**，可在设置页「Voice language」手选（31 种）；浏览器语言或界面语言与你说的话不一致时，必须手动选一次（见 7）。
-- **哪些邮箱能用 AI 识别？** 白名单内的邮箱网页版：网易 163/126/yeah.net、天翼 189、新浪、搜狐、阿里云邮、iCloud、Yahoo（含日本站）、Proton、Tuta、Fastmail、Zoho、GMX、mailbox.org、Posteo、AOL、Yandex、Naver、Daum（见 5.5）。名单外的邮箱退化为通用模式，仍可选中正文 → 右键加入上下文，功能不缺，只是措辞不是“邮件”那一套。
+- **哪些邮箱能用 AI 识别？** 白名单内的邮箱网页版：网易 163/126/yeah.net、天翼 189、新浪、搜狐、阿里云邮、腾讯企业邮箱、iCloud、Yahoo（含日本站）、Proton、Tuta、Fastmail、Zoho、GMX、mailbox.org、Posteo、AOL、Yandex、Naver、Daum（见 5.5）。名单外的邮箱退化为通用模式，仍可选中正文 → 右键加入上下文，功能不缺，只是措辞不是“邮件”那一套。
 - **界面语言有多少种？** 31 种，含阿拉伯语与希伯来语两种从右到左排版（设置页下拉里按本地名列出）。

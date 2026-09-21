@@ -25,6 +25,7 @@
     "https://outlook.com/*",
     "https://www.outlook.com/*",
     "https://wx.mail.qq.com/*",
+    "https://exmail.qq.com/*",
     "https://web.whatsapp.com/*",
     "https://verbia.henriz.dev/*",
     "https://pthfyoejvlcwxboskrjr.supabase.co/*"
@@ -58,6 +59,13 @@
     },
     {
       "matches": ["https://mail.google.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle",
+      "all_frames": true,
+      "match_about_blank": true
+    },
+    {
+      "matches": ["https://exmail.qq.com/*"],
       "js": ["content.js"],
       "run_at": "document_idle",
       "all_frames": true,

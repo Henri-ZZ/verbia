@@ -5,7 +5,7 @@ import { OutlookAdapter } from "./adapters/outlook";
 import { QqMailAdapter } from "./adapters/qqmail";
 import { WhatsAppAdapter } from "./adapters/whatsapp";
 import { isSafeEditable, toTarget } from "./editor/editable";
-import { claimPage, dropPanelRoots, ownsPage, PANEL_ROOT_SELECTOR } from "./page-claim";
+import { claimPage, dropPanelRoots, ownsPage, PANEL_ROOT_SELECTOR, viewDocument } from "./page-claim";
 import { resolveSiteMode } from "./site-mode";
 import { extensionAlive, uiLanguage } from "../runtime";
 import { VerbiaPanel } from "./ui/panel";
@@ -42,6 +42,15 @@ if (!window.__verbiaLoaded) {
   const whatsapp = new WhatsAppAdapter();
   const url = new URL(location.href);
 
+  // The host this frame belongs to. A src-less iframe is an about:blank document
+  // with no hostname of its own: it inherits the origin of the page that created
+  // it, and that page's host is what decides its adapter and its mode. Reading the
+  // URL alone would hand such a frame universal mode — no mail wording, no
+  // "identify this email" — even when it renders the reply box, which is the shape
+  // a legacy webmail editor has (Tencent Exmail builds it that way).
+  const frameHostname = url.protocol !== "about:" ? url.hostname : (() => {
+    try { return window.parent !== window ? window.parent.location.hostname : ""; } catch { return ""; }
+  })();
   // Gmail injects the content script into every frame of mail.google.com
   // (all_frames + match_about_blank). Modern Gmail renders the composer
   // inline in the *top* document (the editor with aria-label="Message
@@ -50,8 +59,7 @@ if (!window.__verbiaLoaded) {
   // (chat, sidebar, etc.) start dormant and promote to active only if a
   // composer eventually shows up inside them, which keeps non-editor
   // frames from ever showing a panel.
-  const onGmailHost = /(^|\.)mail\.google\.com$/.test(url.hostname) ||
-    (url.protocol === "about:" && (() => { try { return window.parent !== window && /(^|\.)mail\.google\.com$/.test(window.parent.location.hostname); } catch { return false; } })());
+  const onGmailHost = /(^|\.)mail\.google\.com$/.test(frameHostname);
   const onOutlookHost = outlook.matches(url);
   // QQ Mail is a single-document SPA with no frames at all, so the host is the
   // whole check — its composer comes and goes with the route.
@@ -68,7 +76,7 @@ if (!window.__verbiaLoaded) {
     const autoAdapter = site === reddit || site === gmail || site === outlook || site === qqmail || site === whatsapp ? site : null;
     // Which of the three behaviours this page gets (@see SiteMode). Resolved once
     // per page: it follows the host and the adapter, never the contents.
-    const mode = resolveSiteMode(site, url);
+    const mode = resolveSiteMode(site, frameHostname);
 
     let lastEditable: HTMLElement | null = isSafeEditable(document.activeElement) ? document.activeElement : null;
     let panel: VerbiaPanel | undefined;
@@ -136,7 +144,10 @@ if (!window.__verbiaLoaded) {
       // Generalized mail mode floats for the same reason: those pages put the
       // reply box inside a long reading view, where an inline panel is far from
       // what the user is looking at.
-      const floating = adapter === gmail || adapter === outlook || adapter === qqmail || adapter === whatsapp || mode === "email";
+      // An editor in a child frame cannot be laid out beside an inline panel: the
+      // panel would be inserted into that frame's document and clipped to it, so
+      // anything mounted above this document floats instead (@see viewDocument).
+      const floating = adapter === gmail || adapter === outlook || adapter === qqmail || adapter === whatsapp || mode === "email" || viewDocument() !== document;
       const anchorFor = () => (floating ? element : findReplyAnchor(element));
       // Already open for this editor and still on the page: nothing to rebuild.
       // The check goes through the panel, not the document: host pages re-render
@@ -237,10 +248,22 @@ if (!window.__verbiaLoaded) {
     // Returns true when a panel was open/opened for this invocation.
     async function activate(stagedSelection?: StagedSelection): Promise<boolean> {
       if (!isCurrent()) return false;
+      // A page can be a set of frames, and a summon reaches every frame at once
+      // while each frame has editors of its own. "Any editor in this document" is
+      // the right answer for a single document and the wrong one here: the reply
+      // box of a legacy webmail sits in a frame next to the message it answers,
+      // and every frame that finds an editor would mount a panel — one per frame.
+      // In a frame set only the editor the user actually touched answers: the one
+      // holding the caret, or the one they last focused in that frame.
+      const frameSet = window !== window.top || !!document.querySelector("iframe, frame");
       const element = isSafeEditable(document.activeElement) ? document.activeElement : lastEditable;
-      const fallback = site.findComposers().at(-1)?.element ?? null;
+      const fallback = frameSet ? null : site.findComposers().at(-1)?.element ?? null;
       const chosen = element && isSafeEditable(element) ? element : fallback;
       if (!chosen) {
+        // Silence rather than a toast: in a frame set another frame may be the one
+        // answering this summon, and "focus a text editor" from a frame that has
+        // no editor would land over the wrong part of the page.
+        if (frameSet) return false;
         await showToastFor("content.toastFocusEditor", "Focus a text editor, then use the Verbia shortcut again.", "info");
         return false;
       }

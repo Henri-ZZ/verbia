@@ -7,6 +7,7 @@ import { contextFromExtraction } from "../context/mapping";
 import { extensionVersion, runtimeUrl, sendToBackground, uiLanguage } from "../../runtime";
 import { msgColor, msgIcon, type MsgKind } from "../../ui/message";
 import { ProgressiveTextRenderer } from "./progressive-text";
+import { rectIn, viewDocument } from "../page-claim";
 
 // Every background reply is an ExtensionResponse; each caller knows which
 // `data` variant it asked for, so it narrows the union locally instead of
@@ -238,7 +239,10 @@ export class VerbiaPanel {
   // as the page scrolls/resizes; the user can drag the header to move it and
   // double-click the header to snap it back to following the editor.
   mountFloating(anchor?: HTMLElement) {
-    const doc = this.host.ownerDocument;
+    // Mounted in the outermost document we can reach rather than in this one: a
+    // panel that lives inside a frame is clipped to that frame's box, and a
+    // webmail reply box is smaller than the panel is (@see viewDocument).
+    const doc = viewDocument();
     this.floating = true;
     this.floatAnchor = anchor ?? null;
     this.anchor = anchor ?? null;
@@ -260,10 +264,16 @@ export class VerbiaPanel {
     const measured = this.host.getBoundingClientRect().width;
     if (measured) this.floatWidth = measured;
     this.positionFloat();
-    window.addEventListener("resize", this.onViewportChange);
+    // Viewport events come from the document the panel is mounted in: this
+    // frame's window neither resizes nor scrolls when the page around it does.
+    const view = doc.defaultView ?? window;
+    view.addEventListener("resize", this.onViewportChange);
     // Capture-phase scroll sees scrollers inside the host page (Gmail moves
     // its composer by scrolling inner containers too), not just the window.
-    document.addEventListener("scroll", this.onScroll, true);
+    doc.addEventListener("scroll", this.onScroll, true);
+    // Scrolling inside this frame is not reported to the document above it, so a
+    // panel mounted higher up watches this frame's own scrollers as well.
+    if (doc !== document) document.addEventListener("scroll", this.onScroll, true);
   }
 
   private onScroll = () => { if (this.followAnchor) this.scheduleFloat(); };
@@ -285,9 +295,12 @@ export class VerbiaPanel {
     if (!this.floating || !this.host.isConnected || !this.followAnchor) return;
     const anchor = this.floatAnchor;
     if (!anchor || !anchor.isConnected) return;
-    const rect = anchor.getBoundingClientRect();
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
+    // Both the rect and the viewport are read in the document the panel is mounted
+    // in, which can be a frame or two above the editor (@see rectIn).
+    const view = this.host.ownerDocument.defaultView ?? window;
+    const rect = rectIn(this.host.ownerDocument, anchor);
+    const vw = view.innerWidth;
+    const vh = view.innerHeight;
     const height = Math.min(this.host.getBoundingClientRect().height || 0, vh - 20);
     const left = vw - rect.right >= this.floatWidth + 24
       ? rect.right + 16
@@ -312,17 +325,21 @@ export class VerbiaPanel {
     this.followAnchor = false;
     this.dragStart = { x: pointer.clientX, y: pointer.clientY, left: rect.left, top: rect.top };
     this.host.classList.add("is-dragging");
-    window.addEventListener("pointermove", this.onPointerMove);
-    window.addEventListener("pointerup", this.onPointerUp);
-    window.addEventListener("pointercancel", this.onPointerUp);
+    // A drag runs on the panel's own element, so its pointer listeners belong to
+    // that element's window — which is not necessarily this frame's.
+    const view = this.host.ownerDocument.defaultView ?? window;
+    view.addEventListener("pointermove", this.onPointerMove);
+    view.addEventListener("pointerup", this.onPointerUp);
+    view.addEventListener("pointercancel", this.onPointerUp);
   };
 
   private onPointerMove = (event: PointerEvent) => {
     if (!this.dragging) return;
+    const view = this.host.ownerDocument.defaultView ?? window;
     const width = this.host.getBoundingClientRect().width;
     const height = this.host.getBoundingClientRect().height;
-    const left = Math.max(8, Math.min(window.innerWidth - width - 8, this.dragStart.left + event.clientX - this.dragStart.x));
-    const top = Math.max(8, Math.min(window.innerHeight - height - 8, this.dragStart.top + event.clientY - this.dragStart.y));
+    const left = Math.max(8, Math.min(view.innerWidth - width - 8, this.dragStart.left + event.clientX - this.dragStart.x));
+    const top = Math.max(8, Math.min(view.innerHeight - height - 8, this.dragStart.top + event.clientY - this.dragStart.y));
     this.host.style.left = `${Math.round(left)}px`;
     this.host.style.top = `${Math.round(top)}px`;
   };
@@ -331,9 +348,10 @@ export class VerbiaPanel {
     if (!this.dragging) return;
     this.dragging = false;
     this.host.classList.remove("is-dragging");
-    window.removeEventListener("pointermove", this.onPointerMove);
-    window.removeEventListener("pointerup", this.onPointerUp);
-    window.removeEventListener("pointercancel", this.onPointerUp);
+    const view = this.host.ownerDocument.defaultView ?? window;
+    view.removeEventListener("pointermove", this.onPointerMove);
+    view.removeEventListener("pointerup", this.onPointerUp);
+    view.removeEventListener("pointercancel", this.onPointerUp);
   };
 
   // Double-clicking the header while free-floating snaps the panel back to
@@ -679,8 +697,17 @@ export class VerbiaPanel {
 
   private async copy() {
     const draft = this.el<HTMLTextAreaElement>("draft")?.value ?? "";
-    try { await navigator.clipboard.writeText(draft); this.status(this.t("panel.status.copied"), "success"); }
-    catch { this.el<HTMLTextAreaElement>("draft")?.select(); this.status(this.t("panel.status.copyManual"), "error"); }
+    // The clipboard is asked of the document the panel is mounted in, not of this
+    // one: the async API only answers the document that has focus, and when the
+    // editor lives in a frame the panel is a document above the script — clicking it
+    // moves focus out of this frame, and the write would be refused for a reason the
+    // user cannot see or fix.
+    const view = this.host.ownerDocument.defaultView ?? window;
+    try { await view.navigator.clipboard.writeText(draft); this.status(this.t("panel.status.copied"), "success"); return; }
+    catch { /* fall through to the legacy path */ }
+    if (copyViaSelection(draft, this.host.ownerDocument)) { this.status(this.t("panel.status.copied"), "success"); return; }
+    this.el<HTMLTextAreaElement>("draft")?.select();
+    this.status(this.t("panel.status.copyManual"), "error");
   }
 
   private toggleRecording() {
@@ -1190,3 +1217,26 @@ declare global {
 interface VoiceRecognitionConstructor { new(): SpeechRecognition; }
 interface SpeechRecognitionResult { readonly 0: { readonly transcript: string }; readonly isFinal: boolean; }
 interface SpeechRecognition { continuous: boolean; interimResults: boolean; lang: string; start(): void; stop(): void; onstart: (() => void) | null; onend: (() => void) | null; onerror: (() => void) | null; onresult: ((event: { results: ArrayLike<SpeechRecognitionResult> }) => void) | null; }
+
+// The legacy clipboard path: a selection made in the document the panel is mounted
+// in, copied by that document. The asynchronous API only answers a document that has
+// focus, and the panel's document is not the script's whenever the editor lives in a
+// frame — the user's click lands on the panel's own document, which is exactly the
+// one that answers execCommand("copy") with a selection in it.
+function copyViaSelection(text: string, doc: Document): boolean {
+  const field = doc.createElement("textarea");
+  field.value = text;
+  field.setAttribute("aria-hidden", "true");
+  // Off-screen rather than hidden: a hidden element cannot hold a selection, and
+  // focusing a visible one would scroll the page the panel is floating over.
+  Object.assign(field.style, { position: "fixed", top: "0px", left: "-9999px", opacity: "0" });
+  (doc.body ?? doc.documentElement).append(field);
+  try {
+    field.select();
+    return doc.execCommand("copy");
+  } catch {
+    return false;
+  } finally {
+    field.remove();
+  }
+}

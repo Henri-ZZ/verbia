@@ -77,9 +77,13 @@ function textOf(node: HTMLElement): string {
 // where that hurts most: it usually opens with the stylesheet that lays the message
 // out, which buries the message itself under a wall of CSS.
 function frameText(frame: Element): string {
-  if (!(frame instanceof HTMLIFrameElement)) return "";
+  // Matched by name, not by class: a frame of the document being read belongs to
+  // that document's realm, and `instanceof` against ours answers "no" to a frame
+  // that is plainly there (@see the frame-anchored read in collectLocalContext).
+  const name = frame.localName;
+  if (name !== "iframe" && name !== "frame") return "";
   try {
-    const body = frame.contentDocument?.body;
+    const body = (frame as HTMLIFrameElement).contentDocument?.body;
     if (!body) return "";
     const scope = body.cloneNode(true) as HTMLElement;
     stripNoise(scope);
@@ -96,7 +100,8 @@ function frameText(frame: Element): string {
 // header, the frame is deleted as noise, and the model is handed a region with
 // nothing in it to answer (@see the `no_current_message` failure).
 function readableText(node: Element): string {
-  const frames = node instanceof HTMLIFrameElement ? [node] : Array.from(node.querySelectorAll("iframe"));
+  const name = node.localName;
+  const frames = name === "iframe" || name === "frame" ? [node] : Array.from(node.querySelectorAll("iframe, frame"));
   let text = node.textContent ?? "";
   for (const frame of frames) text += ` ${frameText(frame)}`;
   return text.replace(/\s+/g, " ").trim();
@@ -105,7 +110,7 @@ function readableText(node: Element): string {
 function precedingSiblings(node: HTMLElement): HTMLElement[] {
   const before: HTMLElement[] = [];
   for (let sibling = node.previousElementSibling; sibling; sibling = sibling.previousElementSibling) {
-    if (sibling instanceof HTMLElement) before.unshift(sibling);
+    before.unshift(sibling as HTMLElement);
   }
   return before;
 }
@@ -135,9 +140,15 @@ const WIDEN_MAX_LEVELS = 6;
 // sits in a wrapper beside it — the shape that produced a region of mail header
 // and an empty answer.
 function regionAround(editor: HTMLElement, widen = false): { region: HTMLElement; found: boolean } {
+  // The anchor's own document, not the one this script runs in: the region may be
+  // read from the page that owns the frame the editor sits in (@see the
+  // frame-anchored read in collectLocalContext).
+  const doc = editor.ownerDocument;
+  const body = doc.body;
+  const root = doc.documentElement;
   let node: HTMLElement | null = editor;
   let region: HTMLElement | null = null;
-  while (node && node !== document.body) {
+  while (node && node !== body) {
     const parent: HTMLElement | null = node.parentElement;
     if (!parent) break;
     const above = precedingSiblings(node);
@@ -145,26 +156,45 @@ function regionAround(editor: HTMLElement, widen = false): { region: HTMLElement
     // case that used to make this test answer "no conversation here" and keep
     // climbing past the mail.
     if (above.some(sibling => readableText(sibling).length >= MESSAGE_FLOOR)
-      && parent !== document.body && parent !== document.documentElement) {
+      && parent !== body && parent !== root) {
       region = parent;
       break;
     }
     node = parent;
   }
-  if (!region) {
+  const content = region ?? regionByContent(editor, body, root);
+  if (!content) {
     // Stay next to the composer: whatever the caller does with a text-free region
     // beats reaching for the page around it.
-    return { region: editor.parentElement ?? document.body, found: false };
+    return { region: editor.parentElement ?? body ?? root, found: false };
   }
+  region = content;
   if (!widen) return { region, found: true };
   const target = readableText(region).length + WIDEN_MIN_CHARS;
   for (let level = 0; level < WIDEN_MAX_LEVELS; level += 1) {
     const parent: HTMLElement | null = region.parentElement;
-    if (!parent || parent === document.body || parent === document.documentElement) break;
+    if (!parent || parent === body || parent === root) break;
     region = parent;
     if (readableText(region).length >= target) break;
   }
   return { region, found: true };
+}
+
+// The smallest ancestor whose text *outside* the composer already reads as a
+// conversation.
+//
+// The rule above needs the message to sit in a sibling above the box. A table-based
+// webmail can put the two in wrappers that are not siblings — a row here, a cell
+// there — and then no level above the box ever holds the message, while the
+// container that holds both is exactly what this finds. Consulted only when that
+// rule came up empty, so the shapes it already reads are left as they were.
+function regionByContent(editor: HTMLElement, body: HTMLElement | null, root: HTMLElement): HTMLElement | null {
+  for (let node = editor.parentElement; node && node !== body && node !== root; node = node.parentElement) {
+    const composer = composerBlock(node, editor);
+    const own = readableText(node).length - (composer ? readableText(composer).length : 0);
+    if (own >= MESSAGE_FLOOR) return node;
+  }
+  return null;
 }
 
 // The chain of child indices from `ancestor` down to `node`, or null when the node
@@ -184,8 +214,10 @@ function nodeAtPath(base: HTMLElement, path: number[] | null): HTMLElement | nul
   if (!path) return null;
   let node: HTMLElement = base;
   for (const index of path) {
-    const child = node.children[index];
-    if (!(child instanceof HTMLElement)) return null;
+    // Element rather than HTMLElement: a clone read from another document (a frame
+    // read from its parent) is not an instance of this realm's classes.
+    const child = node.children[index] as HTMLElement | undefined;
+    if (!child) return null;
     node = child;
   }
   return node;
@@ -247,8 +279,12 @@ function stripNoise(scope: HTMLElement): number {
 // which is how a freshly identified context got thrown away after a reply had
 // been inserted into the box.
 export function regionFingerprint(editor: HTMLElement): string {
-  const { region } = regionAround(editor);
-  const composer = composerBlock(region, editor);
+  // The same anchor the collection used, so "did the conversation change" is asked
+  // about the text that was actually read (@see frameAnchor).
+  const frame = frameAnchor(editor);
+  const anchor = frame && !regionAround(editor).found ? frame : editor;
+  const { region } = regionAround(anchor);
+  const composer = composerBlock(region, anchor);
   let text = "";
   for (const child of Array.from(region.children)) {
     if (child === composer) continue;
@@ -258,6 +294,11 @@ export function regionFingerprint(editor: HTMLElement): string {
   return `${normalised.length}:${normalised.slice(0, 60)}`;
 }
 
+// The box being written in is never context: it is the editor plus the row it sits
+// in — toolbar, send and cancel controls. The collector drops the whole block the
+// editor sits in, which is steadier than listing control selectors that have to keep
+// up with the app (QQ Mail's 发送 / 取消 / 表情 row is not made of <button> elements,
+// so a control list leaks it straight into the context).
 function composerBlock(region: HTMLElement, editor: HTMLElement): HTMLElement | null {
   for (let node: HTMLElement = editor; ;) {
     const parent: HTMLElement | null = node.parentElement;
@@ -265,22 +306,6 @@ function composerBlock(region: HTMLElement, editor: HTMLElement): HTMLElement | 
     if (parent === region) return node;
     node = parent;
   }
-}
-
-// The box being written in is never context: it is the editor plus the row it
-// sits in — toolbar, send and cancel controls. Dropped as a whole subtree, which
-// is steadier than listing control selectors that have to keep up with the app
-// (QQ Mail's 发送 / 取消 / 表情 row is not made of <button> elements, so a control
-// list leaks it straight into the context).
-function dropComposer(scope: HTMLElement, region: HTMLElement, editor: HTMLElement): number {
-  const block = composerBlock(region, editor);
-  if (!block) return 0;
-  const index = Array.prototype.indexOf.call(region.children, block);
-  const target = index < 0 ? null : scope.children[index];
-  if (!target) return 0;
-  const dropped = 1 + target.querySelectorAll("*").length;
-  target.remove();
-  return dropped;
 }
 
 function countTextCarriers(scope: HTMLElement): number {
@@ -296,19 +321,108 @@ function countTextCarriers(scope: HTMLElement): number {
 // the rest of the chrome, so the text that comes back is what the message area
 // holds and nothing that belongs to the box being written in.
 export function collectLocalContext(editor: HTMLElement, options: { maxChars?: number; widen?: boolean } = {}): CollectedContext {
+  const local = collectedAround(editor, options);
+  if (local.replyDetected) return local;
+  // Nothing reads as a conversation at the boundary the first pass drew. Before
+  // reporting that there is no mail here, look further out: a boundary based on
+  // "the row above the box holds text" lands short whenever the message sits in a
+  // wrapper the reply box is not a sibling of, which is the ordinary shape of a
+  // table-based webmail. Climbing is a read, not a model call, so it costs a wait
+  // rather than a request.
+  const wider = options.widen ? local : collectedAround(editor, { ...options, widen: true });
+  if (wider.replyDetected) return wider;
+  // A reply can carry the message it answers inside the box itself — that is where a
+  // quote goes — so the box is read before the walk up the frames begins.
+  const quoted = collectQuotedInBox(editor, options.maxChars ?? MAX_CHARS);
+  if (quoted) return quoted;
+  // A reply box can be the whole body of a frame of its own — that is how a legacy
+  // webmail builds its editor — and then the message it answers is in the document
+  // that owns that frame, or one above that when the app nests a content frame
+  // inside the page. Every level is read with the frame as the anchor, which is also
+  // what keeps the draft out of the context: the block dropped as the composer is
+  // the frame itself.
+  //
+  // Deliberately a fallback rather than the default: a composer inside a frame can
+  // also answer a conversation that lives in that same frame (a chat panel), and
+  // reading the page around it would hand the model the surrounding document.
+  for (let anchor = frameAnchor(editor); anchor; anchor = frameAnchor(anchor)) {
+    const above = collectedAround(anchor, options);
+    if (above.replyDetected && above.text.length >= CLIMB_FLOOR) return above;
+    const aboveWider = options.widen ? above : collectedAround(anchor, { ...options, widen: true });
+    if (aboveWider.replyDetected && aboveWider.text.length >= CLIMB_FLOOR) return aboveWider;
+  }
+  return local;
+}
+
+// A read taken further up the frame tree passes a page's own chrome on its way: a
+// compose form's recipient, subject and toolbar rows clear the floor that tells a
+// conversation from interface inside the document the editor lives in. Volume is what
+// tells the two apart, because a message read a document up is longer than the form
+// it sits in.
+const CLIMB_FLOOR = MESSAGE_FLOOR * 3;
+
+// A reply can carry the message it answers inside the box itself — that is where a
+// quote goes — and some webmail keeps nothing else around it: the page above the box
+// is the compose form's own rows. Read that way only when the box actually shows a
+// quoted original, because a draft the user typed is not a conversation, and handing
+// one over is how the model ends up identifying the user's own words as the mail. A
+// quote sits below the draft, so keeping the end of the text is what keeps the quote.
+const QUOTE_MARK = /(-{2,}\s*(original|forwarded|转发|原始)|^\s*(from|发件人)\s*[:：])/im;
+
+function collectQuotedInBox(editor: HTMLElement, maxChars: number): CollectedContext | null {
+  if (editor.localName === "textarea" || editor.localName === "input") return null;
+  const own = (editor.innerText ?? "").replace(/[ \t]+/g, " ").trim();
+  if (own.length < MESSAGE_FLOOR) return null;
+  if (!QUOTE_MARK.test(own) && !editor.querySelector("blockquote")) return null;
+  return {
+    text: own.length > maxChars ? own.slice(-maxChars) : own,
+    truncated: own.length > maxChars,
+    replyDetected: true,
+    nodeCount: 0,
+    stripped: 0,
+    frames: 0
+  };
+}
+
+// The frame an element's document sits in, when the browser lets us reach it: null
+// for a top-level document and for a cross-origin parent, which is what keeps the
+// read local where no walk up is possible. Asked of the element rather than of
+// `window`, because the walk above asks the same question again of every frame it
+// reaches.
+function frameAnchor(element: HTMLElement): HTMLElement | null {
+  const frame = (element.ownerDocument?.defaultView?.frameElement ?? null) as HTMLElement | null;
+  return frame && frame !== element ? frame : null;
+}
+
+// One read of the region around an anchor, in the document the anchor belongs to.
+function collectedAround(anchor: HTMLElement, options: { maxChars?: number; widen?: boolean } = {}): CollectedContext {
   const maxChars = options.maxChars ?? MAX_CHARS;
-  const narrow = regionAround(editor);
-  const { region, found } = options.widen ? regionAround(editor, true) : narrow;
+  const narrow = regionAround(anchor);
+  const { region, found } = options.widen ? regionAround(anchor, true) : narrow;
   const scope = region.cloneNode(true) as HTMLElement;
   // The composer's own block is dropped as seen from the *narrow* region: in a
   // widened clone the child holding the editor can be the whole reading area, and
   // dropping that would leave nothing of the page behind. Nested at the same place
   // in the widened clone, the narrow region keeps the drop exact.
+  //
+  // Located here and removed below, because the clone still mirrors the live region
+  // node for node at this point: inlining a frame replaces an *element* with a text
+  // node, which shifts every index computed against the live region afterwards.
   const composerScope = region === narrow.region ? scope : nodeAtPath(scope, childPath(region, narrow.region));
-  let stripped = composerScope ? dropComposer(composerScope, narrow.region, editor) : 0;
-  // Read the frames first: the noise pass deletes the ones it finds, and a message
-  // that lives in one would be deleted with it.
+  const liveBlock = composerBlock(narrow.region, anchor);
+  const copyBlock = liveBlock && composerScope ? nodeAtPath(composerScope, childPath(narrow.region, liveBlock)) : null;
+  // Frames are read before anything is dropped, because the noise pass deletes the
+  // ones it finds — and a message inside a frame is the ordinary shape of a webmail:
+  // the reply box is a frame, and the message it answers sits in another one beside
+  // it in the page that owns them both. Reading them in place keeps the order the
+  // messages run in, which is what tells the newest from the oldest.
+  //
+  // A frame that is the composer itself needs no exception: text read out of a frame
+  // has that frame's own nested frames stripped first (@see frameText), and the
+  // composer's block is dropped here in any case.
   const frames = inlineFrameText(scope, region);
+  let stripped = copyBlock ? 1 + copyBlock.querySelectorAll("*").length : 0;
+  copyBlock?.remove();
   stripped += stripNoise(scope);
   const text = textOf(scope);
   return {
