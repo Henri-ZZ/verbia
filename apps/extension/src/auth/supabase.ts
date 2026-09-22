@@ -30,6 +30,18 @@ export function webSignInUrl(): string {
   return `${WEB_AUTH_ORIGIN}/account?from=extension`;
 }
 
+// Opened by “Why sign in?” on the settings card, so the one question the card
+// raises can be answered in full (account, daily allowance, plan) without
+// turning a one-sentence card into a privacy notice.
+//
+// Deliberately without ?locale=, unlike accountPageUrl above: that page ships
+// in both languages and redirects by browser language on its own, and its
+// redirect carries the query string *and* the fragment over (language-redirect
+// .tsx), so the utm tag and the anchor survive the hop.
+export function whySignInUrl(): string {
+  return `${WEB_AUTH_ORIGIN}/getting-started?utm_source=dashboard#why-sign-in`;
+}
+
 // Opened by clicking the account address on the popup and the settings page: the
 // details behind that address (plan, usage, password, sign-out) live on the
 // website, not in a 400px card. The page ships in English and Chinese only, so

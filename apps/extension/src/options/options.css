@@ -169,6 +169,19 @@ aside {
   margin: 0 0 14px;
   color: #66736a;
 }
+/* The account sentence and its “Why sign in?” link share one line. The row
+   carries the spacing the paragraph used to, so the paragraph drops its own
+   margin here only. */
+.account-intro {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  margin-bottom: 14px;
+}
+.account-intro .account-desc {
+  margin: 0;
+}
 .account-form {
   margin-top: 14px;
 }

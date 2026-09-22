@@ -17,9 +17,24 @@ const copy = {
     title: "Your first Verbia reply",
     intro: "Learn the basic flow in a few minutes. Verbia shows the context it finds, prepares a draft only when you choose Generate, and leaves the final decision to you.",
     time: "About 3 minutes",
+    quickEyebrow: "START HERE",
+    quickTitle: "From install to your first reply",
+    quickSteps: [
+      ["Sign in", "Open Verbia and sign in with Google, Microsoft, or Email. An account is what lets Verbia generate replies."],
+      ["Open a conversation", "Go to the Reddit post or email you are answering, or any page with a text field, and focus the place where you want to reply."],
+      ["Tell Verbia what you mean", "Write your intent in any language. Keep the context Verbia found, or remove what you do not want to send."],
+      ["Generate your first reply", "Choose Generate, read and edit the draft, then insert it yourself. Verbia never sends anything for you."],
+    ],
+    signinTitle: "Why sign in?",
+    signinPoints: [
+      "Generating AI replies needs a Verbia account.",
+      "The account manages your daily AI generation allowance and your subscription plan.",
+      "Free accounts include 10 generations every day.",
+    ],
+    signinMethods: "Sign in with Google, Microsoft, or Email.",
     installed: "Extension installed",
     start: "Before you begin",
-    startBody: "Pin Verbia to your browser toolbar so it is always easy to reach. Then open Verbia and sign in with Google or an email magic link. The website and extension use the same account and daily allowance.",
+    startBody: "Pin Verbia to your browser toolbar so it is always easy to reach. Then open Verbia and sign in. The extension and this website share one account and one daily allowance.",
     account: "Sign in to Verbia",
     pinTitle: "Pin it to the toolbar",
     pinBody: "Open your browser’s Extensions menu, find Verbia, and choose Pin. The Verbia icon will stay beside the address bar.",
@@ -63,7 +78,7 @@ const copy = {
     privacyTitle: "You stay in control",
     privacy: ["When the reply panel opens, supported sites collect relevant visible context locally so you can inspect it.", "Context and intent are sent only when you choose Generate.", "Every result is an editable draft; nothing is posted automatically.", "Page text, intent, transcripts, and drafts are not stored as conversation history by Verbia."],
     helpTitle: "If something doesn’t work",
-    help: [["The panel did not appear", "Click a Reddit reply box or a Gmail/Outlook compose or reply editor first. On another site, focus an editable field and use the shortcut. Some protected browser pages do not allow extensions."], ["The wrong context was detected", "Open the context preview and remove it, or select the exact text you need and add it from the right-click menu."], ["Insert is unavailable", "Some complex editors do not expose a reliable insertion point. Choose Copy, then paste the draft manually."], ["You are asked to sign in", "Online generation requires a Verbia account. Sign in from the extension’s Account area using Google or an email magic link."], ["The daily allowance is used", "Free accounts receive 10 generations per day. Premium includes 100 per day. Allowances reset at 00:00 UTC and do not roll over."]],
+    help: [["The panel did not appear", "Click a Reddit reply box or a Gmail/Outlook compose or reply editor first. On another site, focus an editable field and use the shortcut. Some protected browser pages do not allow extensions."], ["The wrong context was detected", "Open the context preview and remove it, or select the exact text you need and add it from the right-click menu."], ["Insert is unavailable", "Some complex editors do not expose a reliable insertion point. Choose Copy, then paste the draft manually."], ["You are asked to sign in", "Online generation requires a Verbia account. Sign in from the extension’s Account area with Google, Microsoft, or Email."], ["The daily allowance is used", "Free accounts receive 10 generations per day. Premium includes 100 per day. Allowances reset at 00:00 UTC and do not roll over."]],
     ready: "Ready to try your first reply?",
     readyBody: "Open Reddit, WhatsApp Web, Gmail, Outlook, QQ Mail, or any page with a text field, focus the place where you want to reply, and open Verbia.",
     openReddit: "Try it on Reddit",
@@ -77,9 +92,24 @@ const copy = {
     title: "用 Verbia 写出第一条回复",
     intro: "几分钟了解完整流程。Verbia 会展示找到的上下文，只有你点击“生成”时才准备草稿，最终发送决定始终由你做出。",
     time: "约 3 分钟",
+    quickEyebrow: "从这里开始",
+    quickTitle: "从安装到第一条回复",
+    quickSteps: [
+      ["登录", "打开 Verbia，使用 Google、Microsoft 或邮箱登录。生成 AI 回复需要账号。"],
+      ["打开一段对话", "进入你想回复的 Reddit 帖子或邮件，或任意带文本框的页面，聚焦要回复的位置。"],
+      ["说出你的意思", "用任意语言写下你的意图。保留 Verbia 找到的上下文，或移除不想发送的部分。"],
+      ["生成第一条回复", "点击“生成”，阅读并修改草稿，再由你自己插入。Verbia 不会替你发送任何内容。"],
+    ],
+    signinTitle: "为什么要登录？",
+    signinPoints: [
+      "生成 AI 回复需要 Verbia 账号。",
+      "账号用于管理每日 AI 生成额度和订阅计划。",
+      "免费账号每天可生成 10 次。",
+    ],
+    signinMethods: "可使用 Google、Microsoft 或邮箱登录。",
     installed: "扩展已安装",
     start: "开始前的准备",
-    startBody: "把 Verbia 固定到浏览器工具栏，之后可以随时找到它。然后打开 Verbia，使用 Google 或邮箱免密链接登录。官网和扩展使用同一个账号及每日额度。",
+    startBody: "把 Verbia 固定到浏览器工具栏，之后可以随时找到它。然后打开 Verbia 并登录。扩展和官网使用同一个账号与每日额度。",
     account: "登录 Verbia",
     pinTitle: "固定到工具栏",
     pinBody: "打开浏览器的“扩展程序”菜单，找到 Verbia 并选择固定。之后地址栏旁会一直显示 Verbia 图标。",
@@ -123,7 +153,7 @@ const copy = {
     privacyTitle: "所有决定都在你手中",
     privacy: ["回复面板打开时，支持的网站会在本地获取相关可见上下文，供你检查。", "只有点击“生成”时，上下文和意图才会发送。", "每次结果都是可编辑草稿，不会被自动发布。", "Verbia 不会把页面正文、意图、语音转写或草稿保存为对话历史。"],
     helpTitle: "遇到问题时",
-    help: [["面板没有出现", "先点击 Reddit 回复框，或 Gmail/Outlook 的写信、回复编辑器；在其他网站先聚焦可编辑输入框，再使用快捷键。部分受保护的浏览器页面不允许扩展运行。"], ["识别了错误的上下文", "打开上下文预览并移除，或者准确选中需要的文字，通过右键菜单加入。"], ["无法直接插入", "部分复杂编辑器无法提供可靠的插入位置。请选择“复制”，再手动粘贴草稿。"], ["页面要求登录", "在线生成需要 Verbia 账号。请在扩展的账号区域使用 Google 或邮箱免密链接登录。"], ["今日额度已经用完", "免费账号每天 10 次，Premium 每天 100 次。额度在 UTC 0 点重置，不能结转。"]],
+    help: [["面板没有出现", "先点击 Reddit 回复框，或 Gmail/Outlook 的写信、回复编辑器；在其他网站先聚焦可编辑输入框，再使用快捷键。部分受保护的浏览器页面不允许扩展运行。"], ["识别了错误的上下文", "打开上下文预览并移除，或者准确选中需要的文字，通过右键菜单加入。"], ["无法直接插入", "部分复杂编辑器无法提供可靠的插入位置。请选择“复制”，再手动粘贴草稿。"], ["页面要求登录", "在线生成需要 Verbia 账号。请在扩展的账号区域使用 Google、Microsoft 或邮箱登录。"], ["今日额度已经用完", "免费账号每天 10 次，Premium 每天 100 次。额度在 UTC 0 点重置，不能结转。"]],
     ready: "准备好尝试第一条回复了吗？",
     readyBody: "打开 Reddit、WhatsApp 网页版、Gmail、Outlook、QQ 邮箱或任意带文本框的页面，聚焦想回复的位置，然后唤起 Verbia。",
     openReddit: "前往 Reddit 试用",
@@ -132,8 +162,8 @@ const copy = {
   },
 } as const;
 
-function StepList({ steps }: { steps: ReadonlyArray<readonly [string, string]> }) {
-  return <ol className="guide-steps">{steps.map(([title, body], index) => <li key={title}><span aria-hidden="true">{index + 1}</span><div><h3>{title}</h3><p>{body}</p></div></li>)}</ol>;
+function StepList({ steps, className = "guide-steps" }: { steps: ReadonlyArray<readonly [string, string]>; className?: string }) {
+  return <ol className={className}>{steps.map(([title, body], index) => <li key={title}><span aria-hidden="true">{index + 1}</span><div><h3>{title}</h3><p>{body}</p></div></li>)}</ol>;
 }
 
 export function GettingStarted({ locale }: { locale: SiteLocale }) {
@@ -151,7 +181,12 @@ export function GettingStarted({ locale }: { locale: SiteLocale }) {
       {installed && <section className="guide-welcome" aria-labelledby="welcome-title"><div className="guide-welcome-mark"><img src="/verbia-mark.svg" alt="" width="54" height="54"/></div><div><span>{t.installed}</span><h1 id="welcome-title">{t.welcome}</h1><p>{t.welcomeBody}</p></div></section>}
       <header className="guide-hero"><p className="eyebrow">{t.eyebrow}</p>{!installed && <h1>{t.title}</h1>}{installed && <h2>{t.title}</h2>}<p>{t.intro}</p><span className="guide-time">◷ {t.time}</span><Link className="guide-platform-link" href={`${locale === "zh" ? "/zh" : ""}/supported-platforms`}>{t.platforms} <span aria-hidden="true">→</span></Link></header>
 
-      <section className="guide-setup" aria-labelledby="setup-title"><div><p className="eyebrow">01</p><h2 id="setup-title">{t.start}</h2><p>{t.startBody}</p><Link className="button primary" href={`/account?locale=${locale}`}>{t.account} <span aria-hidden="true">→</span></Link></div><aside><span aria-hidden="true">⌖</span><div><h3>{t.pinTitle}</h3><p>{t.pinBody}</p></div></aside></section>
+      <section className="guide-quickstart" aria-labelledby="quick-title">
+        <div className="guide-quickstart-steps"><header><p className="eyebrow">{t.quickEyebrow}</p><h2 id="quick-title">{t.quickTitle}</h2></header><StepList steps={t.quickSteps} className="guide-steps guide-steps-compact"/></div>
+        <aside className="guide-signin" id="why-sign-in"><h3>{t.signinTitle}</h3><ul>{t.signinPoints.map(point => <li key={point}>{point}</li>)}</ul><p>{t.signinMethods}</p><Link className="button primary" href={`/account?locale=${locale}`}>{t.account} <span aria-hidden="true">→</span></Link></aside>
+      </section>
+
+      <section className="guide-setup" aria-labelledby="setup-title"><div><p className="eyebrow">01</p><h2 id="setup-title">{t.start}</h2><p>{t.startBody}</p></div><aside><span aria-hidden="true">⌖</span><div><h3>{t.pinTitle}</h3><p>{t.pinBody}</p></div></aside></section>
 
       <section className="guide-section" aria-labelledby="reddit-title"><header><p className="eyebrow platform-eyebrow"><RedditLogo size={22}/>{t.redditEyebrow}</p><h2 id="reddit-title">{t.redditTitle}</h2><p>{t.redditIntro}</p></header><StepList steps={t.redditSteps}/></section>
 

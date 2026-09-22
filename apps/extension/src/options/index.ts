@@ -1,5 +1,5 @@
 import { DEFAULT_SETTINGS, LENGTH_VALUES, REPLY_LANGUAGE_OPTIONS, TONE_VALUES, UI_LANGUAGE_OPTIONS, UI_STRINGS, VOICE_LANGUAGE_OPTIONS, isRtl, resolveUiLang, type AuthState, type UiLang, type UserSettings } from "@verbia/shared";
-import { AUTH_STORAGE_KEY, accountPageUrl, webSignInUrl } from "../auth/supabase";
+import { AUTH_STORAGE_KEY, accountPageUrl, webSignInUrl, whySignInUrl } from "../auth/supabase";
 import { setStatusMessage, type MsgKind } from "../ui/message";
 import { renderShortcutKeys } from "../ui/shortcut";
 import { reviewUrl } from "../ui/stores";
@@ -595,10 +595,22 @@ function createProviderBadge(provider: "google" | "azure"): HTMLImageElement {
 
 function renderSignedOut(body: HTMLElement) {
   const intro = document.createElement("div");
+  intro.className = "account-intro";
   const desc = document.createElement("p");
   desc.className = "account-desc";
   desc.textContent = t("account.desc");
-  intro.append(desc);
+  // The one question this sentence raises, next to it rather than below it:
+  // installing grants nothing until you sign in, and the card has no room to
+  // explain why. The explanation lives on the website, anchored on its own
+  // “Why sign in?” card (@see whySignInUrl). Same link style as the shortcut
+  // link in the card below.
+  const why = document.createElement("a");
+  why.className = "shortcut-link";
+  why.href = whySignInUrl();
+  why.target = "_blank";
+  why.rel = "noopener";
+  why.textContent = t("account.whySignIn");
+  intro.append(desc, why);
 
   // One button, one destination. Sign-in lives on the website because that is the
   // only surface that can render a CAPTCHA and hold every method (email code,
