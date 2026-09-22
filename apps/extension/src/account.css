@@ -93,10 +93,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  /* Square for a single glyph (⌥, R) and only as wide as it must be otherwise:
+     the "Not set" placeholder is a word, not a key, and a fixed 26px cap clamped
+     it until the text spilled out of the box. This file loads *after*
+     options.css on the dashboard, so leaving the width here pinned the cap there
+     too. */
   min-width: 26px;
-  padding: 0;
+  height: 26px;
+  padding: 0 7px;
   margin: 0;
   border: 1px solid #c9d3c7;
   border-bottom-width: 2px;

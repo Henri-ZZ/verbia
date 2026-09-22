@@ -406,6 +406,10 @@ async function applyShortcuts() {
   }
   el.setAttribute("aria-label", t("settings.shortcutTitle"));
   const value = byName.get("open-verbia") ?? "";
+  // "Not set" is not a key you can press — it means the binding is gone, either
+  // taken by another extension or cleared by hand. Flag it so the row reads as a
+  // problem to fix rather than as just another label (@see options.css).
+  el.classList.toggle("is-unset", !value);
   renderShortcutKeys(el, value || t("settings.shortcutUnset"));
   const link = document.querySelector<HTMLElement>("#open-shortcuts-link");
   if (link && !document.querySelector(".shortcut-customize-hint")) {

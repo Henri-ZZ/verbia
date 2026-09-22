@@ -51,7 +51,12 @@ const sharedOptions = {
     "process.env.SUPABASE_URL": JSON.stringify(supabaseUrl),
     "process.env.SUPABASE_PUBLISHABLE_KEY": JSON.stringify(supabasePublishableKey),
     "process.env.SUPABASE_ANON_KEY": JSON.stringify(supabasePublishableKey),
-    "process.env.VERBIA_RELEASE": release ? "1" : "0",
+    // JSON.stringify, like every define above: a bare "1" is read as a JavaScript
+    // expression, so the comparison in options/index.ts became `1 === "1"` — always
+    // false. Release builds then took the development branch, read the #backend
+    // select that packaging had already stripped, found an empty URL and refused to
+    // save. Keep every define JSON-encoded.
+    "process.env.VERBIA_RELEASE": JSON.stringify(release ? "1" : "0"),
     "process.env.VERBIA_BACKEND_URL": JSON.stringify(VERBIA_BACKEND_URL),
     "process.env.VERBIA_WEB_ORIGIN": JSON.stringify(localEnv.VERBIA_WEB_ORIGIN ?? "https://verbia.henriz.dev")
   },

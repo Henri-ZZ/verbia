@@ -478,6 +478,16 @@ aside {
     monospace;
   white-space: nowrap;
 }
+/* The keycap sizing lives in account.css, which the dashboard loads too — one
+   place for it, or the two files fight over the same element.
+   What belongs here is only the state: an unset binding is something to notice,
+   not a key to press, so it takes the same red the status line uses. */
+.shortcut-keys.is-unset kbd {
+  border-color: #efc2ba;
+  border-bottom-width: 1px;
+  background: #fdf2f0;
+  color: #c0392b;
+}
 .shortcut-link {
   color: #0f6e56;
   font-size: 12px;
