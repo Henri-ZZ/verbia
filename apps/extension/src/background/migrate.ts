@@ -59,7 +59,16 @@ export async function reloadContentScript(tabId: number, files: string[], allFra
 // Re-injects every content script this extension ships into every open tab it
 // belongs in. Returns how many tab/file pairs were handed a new instance.
 export async function migrateOpenTabs(): Promise<number> {
-  const entries = (chrome.runtime.getManifest().content_scripts ?? []) as ContentScriptEntry[];
+  // Two sources, because the extension has two kinds of content script now: the
+  // declarative ones in the manifest (the sign-in bridge) and the ones
+  // registered at runtime once a site is granted (background/sites.ts). Only
+  // the former survive `getManifest()`, so a granted site would silently stop
+  // being refreshed without the second read.
+  const registered = await chrome.scripting.getRegisteredContentScripts().catch(() => []);
+  const entries = [
+    ...(chrome.runtime.getManifest().content_scripts ?? []),
+    ...registered.map(script => ({ matches: script.matches, js: script.js, allFrames: script.allFrames }))
+  ] as ContentScriptEntry[];
   if (!entries.length) return 0;
   let migrated = 0;
   for (const tab of await chrome.tabs.query({})) {

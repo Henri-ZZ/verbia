@@ -2,6 +2,7 @@ import { DEFAULT_SETTINGS, UI_STRINGS, contextExtractionRequestSchema, contextEx
 import { WEB_AUTH_ORIGIN, authBearer, authSnapshot, clearSession, establishSessionFromTokenHash, refreshStoredSession, signOut } from "../auth/supabase";
 import { ACTION_NOTICE_KEY } from "../runtime";
 import { migrateOpenTabs, reloadContentScript } from "./migrate";
+import { grantedOrigins, grantPatternFor, hasPatternAccess, siteForUrl, SUPPORTED_SITES, syncSiteScripts, watchSiteAccess } from "./sites";
 
 const ADD_CONTEXT_MENU_ID = "verbia-add-context";
 const MAX_SELECTION_LENGTH = 8_000;
@@ -39,14 +40,91 @@ chrome.runtime.onInstalled.addListener(async details => {
   // user happens to reload the page (see background/migrate.ts).
   if (details.reason === "update") {
     const migrated = await migrateOpenTabs();
-    console.log(`[verbia] migrated ${migrated} open tab(s) to the new content script`);
+    console.debug(`[verbia] migrated ${migrated} open tab(s) to the new content script`);
   }
+  // Supported sites are granted one at a time, when the user wants Verbia
+  // there, so their content scripts are registered at runtime rather than
+  // declared (@see background/sites.ts). This is what registers the ones that
+  // were granted, and what follows a revocation.
+  await syncSiteScripts();
+  await applySetupIndicator();
   // Uninstall “farewell” page, refreshed on every install/update.
   await refreshUninstallUrl();
   await ensureContextMenu();
 });
 
-chrome.runtime.onStartup.addListener(() => { void ensureContextMenu(); });
+chrome.runtime.onStartup.addListener(() => {
+  void syncSiteScripts();
+  void applySetupIndicator();
+  // A browser that starts with a supported site already open never fires a tab
+  // event for it, and the request would otherwise not be registered.
+  requestHostAccessForActiveTab();
+  void ensureContextMenu();
+});
+
+// Access can also change while the browser is open, from chrome://extensions or
+// from the popup asking for a new site (@see background/sites.ts).
+watchSiteAccess();
+// The nudge follows the same events: enabling any site retires it for good.
+chrome.permissions.onAdded.addListener(() => { void applySetupIndicator(); });
+chrome.permissions.onRemoved.addListener(() => { void applySetupIndicator(); });
+
+// Chrome does what an icon dot cannot: a host access request is registered per
+// tab, Chrome itself decides whether it is worth signaling (only on hosts the
+// request could actually be granted on) and shows its own indicator — so the
+// user is told about the site they are on instead of having to notice the
+// toolbar. That needs no `tabs` permission, because the tab id is all it takes.
+//
+// This is why the extension's floor is Chrome 133 (manifest
+// minimum_chrome_version): everywhere below it, telling the user about one
+// specific site would mean holding `tabs`, whose "Read your browsing history"
+// warning is exactly what the site permissions were narrowed to avoid. The
+// typeof guard is for Chromium derivatives that build against an older API.
+type HostAccessRequestApi = {
+  addHostAccessRequest?: (request: { tabId: number }) => Promise<void>;
+};
+const hostAccess = chrome.permissions as unknown as HostAccessRequestApi;
+const canAskChromeForHost = typeof hostAccess.addHostAccessRequest === "function";
+if (!canAskChromeForHost) console.debug("[verbia] host access requests unavailable in this Chrome");
+
+function requestHostAccessForTab(tabId: number): void {
+  if (!canAskChromeForHost) return;
+  // Not swallowed: a registration Chrome refuses has to be visible, because the
+  // only other symptom is "no indicator appeared", which looks exactly like the
+  // request never being made.
+  hostAccess.addHostAccessRequest?.({ tabId }).catch(error => {
+    console.debug("[verbia] host access request refused", tabId, error);
+  });
+}
+
+// The tab the user is looking at, for the moments no tab event will come: the
+// window regaining focus, and the browser starting with a page already open.
+//
+// `lastFocusedWindow` is not enough on its own: with DevTools focused it can
+// match a window that holds no tabs at all, and the request would then never be
+// made — the same empty answer a hand-written console test hits. So an empty
+// result falls back to the active tab anywhere.
+function requestHostAccessForActiveTab(): void {
+  if (!canAskChromeForHost) return;
+  void chrome.tabs.query({ active: true, lastFocusedWindow: true }).then(tabs => {
+    if (tabs[0]?.id !== undefined) {
+      requestHostAccessForTab(tabs[0].id);
+      return;
+    }
+    return chrome.tabs.query({ active: true }).then(all => {
+      const tabId = all[0]?.id;
+      if (tabId !== undefined) requestHostAccessForTab(tabId);
+    });
+  }).catch(() => undefined);
+}
+
+chrome.tabs.onActivated.addListener(({ tabId }) => { requestHostAccessForTab(tabId); });
+chrome.tabs.onUpdated.addListener((tabId, info) => {
+  if (info.status === "complete") requestHostAccessForTab(tabId);
+});
+chrome.windows.onFocusChanged.addListener(windowId => {
+  if (windowId !== chrome.windows.WINDOW_ID_NONE) requestHostAccessForActiveTab();
+});
 
 // Sign-in is no longer initiated from the extension, so there is nothing to
 // capture here any more: the website signs the user in and the bridge hands the
@@ -75,8 +153,45 @@ async function refreshUninstallUrl() {
 chrome.commands.onCommand.addListener(async command => {
   if (command !== "open-verbia") return;
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (tab) await activate(tab);
+  // Logged first on purpose: "the shortcut does nothing" has two very different
+  // causes — the key is not bound to the extension at all (nothing arrives
+  // here), or it arrives and the page refuses. One line separates them.
+  console.debug(`[verbia] shortcut: tab ${tab?.id ?? "?"} ${tab?.url ?? "(url not readable)"}`);
+  if (!tab) return;
+  await activate(tab);
+  // After the panel, never in front of it: the offer is secondary to the thing
+  // the user just asked for (@see offerSiteAccess).
+  void offerSiteAccess(tab);
+  // A successful summon clears the badge (@see clearActionError), so the setup
+  // nudge has to be put back if no site is enabled yet.
+  void applySetupIndicator();
 });
+
+/** Whether any supported site has been enabled at all. */
+async function hasAnyEnabledSite(): Promise<boolean> {
+  const granted = await Promise.all(SUPPORTED_SITES.map(site => grantedOrigins(site)));
+  return granted.some(origins => origins.length > 0);
+}
+
+// The toolbar says nothing about site access, on purpose.
+//
+// There used to be a dot on the icon while no site was enabled. It cannot be
+// site-aware — reading the URL of a tab the extension has no access to needs
+// the `tabs` permission, whose "Read your browsing history" warning is exactly
+// what this permission model exists to avoid — so it was a global mark: a user
+// who wants no automatic panel at all would keep it forever, with no clue what
+// it meant or how to remove it. An indicator that cannot be acted on or
+// dismissed should not exist. What remains is the tooltip, which costs nothing
+// and only appears when the user is already looking at the icon.
+async function applySetupIndicator() {
+  const lang = await resolvedUiLang();
+  const enabled = await hasAnyEnabledSite();
+  await chrome.action.setTitle({
+    title: enabled
+      ? UI_STRINGS[lang]["popup.dashboard"] ?? "Dashboard"
+      : UI_STRINGS[lang]["popup.setupBadge"] ?? "Open Verbia to let the reply panel appear on its own on supported sites."
+  });
+}
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId !== ADD_CONTEXT_MENU_ID || !tab?.id || !tab.url) return;
@@ -162,14 +277,23 @@ async function clearStagedContext(tabId: number) {
 }
 
 async function activate(tab: chrome.tabs.Tab) {
-  if (!tab.id || !tab.url || !/^https?:/.test(tab.url)) {
+  // The URL is used where it helps and never as a gate. It is only populated
+  // for tabs the extension may read, and since supported sites became optional
+  // grants (background/sites.ts) that is no longer a given: a summon arrives
+  // with the gesture's own activeTab grant, which Chrome grants for that tab,
+  // but treating a missing URL as "unsupported page" would turn the one path
+  // that works without any grant into a dead end on exactly the sites this
+  // permission model is about.
+  const pageUrl = tab.url;
+  if (!tab.id || (pageUrl && !/^https?:/.test(pageUrl))) {
     await openNoticePopup(tab, "popup.noticeUnsupportedPage", "Open a normal web page, focus an editor, and try again.");
     return;
   }
+  console.debug(`[verbia] summon: tab ${tab.id} ${pageUrl ?? "(url not readable)"}`);
   // The store page is not scriptable at all, so skip the doomed injection and
   // explain it instead of reporting a failure the user cannot act on.
-  if (isStorePage(tab.url)) {
-    await openNoticePopup(tab, "popup.noticeStorePage", hintForUrl(tab.url));
+  if (isStorePage(pageUrl)) {
+    await openNoticePopup(tab, "popup.noticeStorePage", hintForUrl(pageUrl));
     return;
   }
   // A selection staged from the right-click menu rides along on the open
@@ -181,23 +305,68 @@ async function activate(tab: chrome.tabs.Tab) {
     : { type: "OPEN_VERBIA", source: "action" };
   try {
     const response = await chrome.tabs.sendMessage(tab.id, message);
+    console.debug("[verbia] summon: page answered", response);
     if (response?.ok && response.opened) await clearStagedContext(tab.id);
     await clearActionError();
   } catch {
+    console.debug(`[verbia] summon: no live content script in tab ${tab.id}, injecting`);
     try {
       // The tab is not without a content script — it has a dead one. Chrome only
       // cut its bindings, so its load marker is still on the page and would make
       // a plain injection a no-op (see background/migrate.ts).
-      await reloadContentScript(tab.id, ["content.js"]);
+      //
+      // Scope follows the site: only sites whose editor lives in a frame of its
+      // own need every frame (legacy webmail does). Injecting into all of them
+      // put a copy of the panel script inside every ad and embed on the page,
+      // and each of those answers the summon as well — the background only sees
+      // the first answer back, so an ad frame's "no editor here" could be read
+      // as the page's answer to a summon the page itself handled. A page we
+      // cannot identify gets the top frame, which is where a single-document
+      // site keeps its editor anyway.
+      const allFrames = !!pageUrl && siteForUrl(pageUrl)?.allFrames === true;
+      try {
+        await reloadContentScript(tab.id, ["content.js"], allFrames);
+      } catch (error) {
+        console.debug("[verbia] summon: frame-wide injection refused, retrying top frame only", error);
+        await reloadContentScript(tab.id, ["content.js"]);
+      }
       const response = await chrome.tabs.sendMessage(tab.id, message);
       if (response?.ok && response.opened) await clearStagedContext(tab.id);
       if (response?.opened) await clearActionError();
-      else await showActionError(hintForUrl(tab.url));
+      else await showActionError(hintForUrl(pageUrl));
     } catch (error) {
-      if (isScriptingBlocked(error)) console.debug("[verbia] panel cannot open on", tab.url, error);
-      else console.error("Verbia could not open on this page", error);
-      await showActionError(hintForUrl(tab.url));
+      if (isScriptingBlocked(error)) console.debug("[verbia] panel cannot open on", pageUrl, error);
+      else console.warn("[verbia] summon failed", error);
+      await showActionError(hintForUrl(pageUrl));
     }
+  }
+}
+
+// A supported site the user has not granted is the one place where the panel is
+// only there when summoned, and nothing on the page says so — there is no
+// reason for a user to go looking at the toolbar for it. The shortcut is itself
+// a user gesture, so the offer can be brought to the user instead of waiting to
+// be found: the popup opens with the explanation (the same card as the manual
+// path, @see popup/index.ts), once per site and only once. It is not shown
+// again after that — the icon is always there for anyone who changes their
+// mind, and a repeated prompt would be worse than the silence it replaces.
+async function offerSiteAccess(tab: chrome.tabs.Tab) {
+  const site = siteForUrl(tab.url);
+  if (!site || tab.id === undefined || !tab.url) return;
+  // Per host: another host of the same site being enabled says nothing about
+  // the one in front of the user (@see hasPatternAccess).
+  const pattern = grantPatternFor(site, tab.url);
+  if (!pattern || await hasPatternAccess(pattern)) return;
+  const key = `siteOfferShown:${site.id}`;
+  const stored = await chrome.storage.local.get(key);
+  if (stored[key]) return;
+  await chrome.storage.local.set({ [key]: true });
+  try {
+    await chrome.action.openPopup({ windowId: tab.windowId });
+  } catch (error) {
+    // Chrome before 127 has no openPopup. There the offer stays a manual step,
+    // which is the state this path improves on, not something it requires.
+    console.debug("[verbia] could not open the popup to offer site access", error);
   }
 }
 

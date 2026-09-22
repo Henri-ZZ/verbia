@@ -3,6 +3,9 @@ import { AUTH_STORAGE_KEY, accountPageUrl, webSignInUrl } from "../auth/supabase
 import { setStatusMessage, type MsgKind } from "../ui/message";
 import { renderShortcutKeys } from "../ui/shortcut";
 import { reviewUrl } from "../ui/stores";
+// The site registry is shared with the background on purpose: these toggles have
+// to ask for exactly the sites the background knows how to inject into.
+import { grantedOrigins, SUPPORTED_SITES } from "../background/sites";
 
 const form = document.querySelector<HTMLFormElement>("#settings")!;
 const status = document.querySelector<HTMLElement>("#status")!;
@@ -32,6 +35,62 @@ function renderOptions(strings: Record<string, string>) {
   fill("tone", TONE_VALUES.map(value => ({ value, label: strings[`opt.${value}`] ?? value })));
   fill("length", LENGTH_VALUES.map(value => ({ value, label: strings[`opt.${value}`] ?? value })));
   renderFavoriteLanguages();
+  // The toggles carry text of their own, so they follow the interface language
+  // like everything else on this page.
+  void renderSiteAccess();
+}
+
+// ---- Site access -----------------------------------------------------------
+// The platforms listed further down are the one place that both explains what
+// enabling a site does and undoes it. It is an extension page, which is what
+// makes that possible at all: the permission prompt has to run inside a user
+// gesture (a click here is one; a message from a content script is not), and
+// removing a grant needs no gesture whatsoever.
+//
+// None of it is required to use Verbia — the shortcut works on any page and
+// `activeTab` covers the summon. These toggles only decide whether the reply
+// panel is already there when a supported site loads. Denying the prompt
+// changes nothing: the button simply stays as it was.
+async function renderSiteAccess() {
+  const strings = UI_STRINGS[lang];
+  for (const row of document.querySelectorAll<HTMLElement>("[data-site]")) {
+    const site = SUPPORTED_SITES.find(item => item.id === row.dataset.site);
+    if (!site) continue;
+    // One toggle per site, not per host: Reddit's two hosts are one site to the
+    // user, so a partial grant reads as on, and turning it off clears whichever
+    // hosts were granted.
+    const granted = await grantedOrigins(site);
+    const missing = site.origins.filter(origin => !granted.includes(origin));
+    row.querySelector(".site-switch")?.remove();
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "site-switch";
+    // A switch rather than a labelled button: the control carries the state, and
+    // the words that explain what authorizing buys live in the note under the
+    // list. The label still exists for screen readers and for the tooltip.
+    button.setAttribute("role", "switch");
+    button.setAttribute("aria-checked", granted.length ? "true" : "false");
+    button.setAttribute("aria-label",
+      granted.length ? strings["settings.siteDisable"] ?? "Disable" : strings["settings.siteEnable"] ?? "Enable");
+    button.addEventListener("click", () => {
+      // First statement of this turn of the handler: Chrome only shows the
+      // prompt while the click's gesture is still good, and an await before it
+      // spends that gesture (@see popup/index.ts for the same constraint).
+      const change = granted.length
+        ? chrome.permissions.remove({ origins: site.origins })
+        : chrome.permissions.request({ origins: missing });
+      button.disabled = true;
+      void change
+        .then(() => renderSiteAccess())
+        .catch(error => {
+          // A refusal is a normal answer, not a fault: put the button back and
+          // leave the row saying what it said before.
+          console.debug("[verbia] site toggle declined", site.id, error);
+          button.disabled = false;
+        });
+    });
+    row.append(button);
+  }
 }
 
 function fill(id: string, items: ReadonlyArray<{ value: string; label: string }>) {

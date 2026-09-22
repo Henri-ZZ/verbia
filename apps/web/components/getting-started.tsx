@@ -53,6 +53,11 @@ const copy = {
       ["Open Verbia and draft", "Use the keyboard shortcut, enter your intent, and generate. Review the context and result before inserting."],
       ["Insert or copy", "Verbia can insert into compatible editors. For complex rich-text editors, use Copy and paste the draft yourself."],
     ],
+    autoEyebrow: "Automatic panel",
+    autoTitle: "Authorize the sites where the panel should be waiting",
+    autoIntro: "Verbia asks for site access one site at a time, and only when you want the panel to wait there — installing it grants no site access at all. An authorized site is ready before you ask: open a reply box and the panel is already there. Without authorization nothing is lost except that convenience; the keyboard shortcut still opens the panel on any page.",
+    autoSteps: [["On the site, click the Verbia icon", "The card says what enabling it does, before you decide."], ["Choose “Enable on this site”", "Approve Chrome’s prompt. Only that one site is turned on."], ["Change your mind in Settings → Sites", "Every supported site has its own switch there."]],
+
     controlsTitle: "Shape the draft",
     controls: [["Output language", "The language your reply should use. Your intent can be written in any language."], ["Tone", "Choose a style that fits the room, such as casual, professional, or concise."], ["Length", "Ask for a short, medium, or longer reply."], ["Voice language", "Used only to recognize speech; it does not decide the output language."]],
     privacyTitle: "You stay in control",
@@ -108,6 +113,11 @@ const copy = {
       ["打开 Verbia 并生成", "使用快捷键打开面板，输入你的意图并生成。插入前先检查上下文和结果。"],
       ["插入或复制", "兼容的编辑器可以直接插入。遇到复杂富文本编辑器时，选择复制，再自行粘贴草稿。"],
     ],
+    autoEyebrow: "自动面板",
+    autoTitle: "为需要“自动等在那儿”的站点授权",
+    autoIntro: "Verbia 的站点访问是逐个申请的，只在你希望面板在该站点驻留时才问——安装时不会获取任何站点权限。已授权的站点会在你开口之前就准备好：打开回复框，面板已经在那儿。不授权也不会失去什么，只是少了这份便利：快捷键在任何页面依然能唤起面板。",
+    autoSteps: [["在该站点点击 Verbia 图标", "卡片会先说明启用后有什么作用，再让你决定。"], ["选择“在此站点启用”", "通过 Chrome 的授权提示。只有这一个站点会被打开。"], ["在「设置 → 站点」里改主意", "每个支持的站点都有自己的开关。"]],
+
     controlsTitle: "调整草稿表达",
     controls: [["输出语言", "回复最终使用的语言；你的原始意图可以用任意语言表达。"], ["语气", "选择适合当前场合的风格，例如轻松、专业或简洁。"], ["长度", "让回复保持简短、适中或更详细。"], ["语音语言", "只用于识别语音，不会决定最终回复的语言。"]],
     privacyTitle: "所有决定都在你手中",
@@ -148,6 +158,8 @@ export function GettingStarted({ locale }: { locale: SiteLocale }) {
       <section className="guide-section" aria-labelledby="email-title"><header><p className="eyebrow platform-eyebrow"><EmailPlatformLogos size={22}/>{t.emailEyebrow}</p><h2 id="email-title">{t.emailTitle}</h2><p>{t.emailIntro}</p></header><StepList steps={t.emailSteps}/></section>
 
       <section className="guide-section guide-universal" aria-labelledby="universal-title"><header><p className="eyebrow">{t.universalEyebrow}</p><h2 id="universal-title">{t.universalTitle}</h2><p>{t.universalIntro}</p></header><div className="guide-shortcut"><span>{t.shortcut}</span><kbd>{shortcut}</kbd><small>{t.shortcutHint}</small></div><StepList steps={t.universalSteps}/></section>
+
+      <section className="guide-section" aria-labelledby="auto-title"><header><p className="eyebrow">{t.autoEyebrow}</p><h2 id="auto-title">{t.autoTitle}</h2><p>{t.autoIntro}</p></header><StepList steps={t.autoSteps}/></section>
 
       <section className="guide-section" aria-labelledby="controls-title"><header><p className="eyebrow">03</p><h2 id="controls-title">{t.controlsTitle}</h2></header><dl className="guide-controls">{t.controls.map(([term, detail]) => <div key={term}><dt>{term}</dt><dd>{detail}</dd></div>)}</dl></section>
 

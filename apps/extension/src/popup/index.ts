@@ -2,6 +2,9 @@ import { DEFAULT_SETTINGS, UI_STRINGS, isRtl, resolveUiLang, type AuthState } fr
 import { accountPageUrl, webSignInUrl } from "../auth/supabase";
 import { ACTION_NOTICE_KEY } from "../runtime";
 import { renderShortcutKeys } from "../ui/shortcut";
+// The site registry is shared with the background on purpose: the popup has to
+// ask for exactly the sites the background knows how to inject into.
+import { grantPatternFor, hasPatternAccess, siteForUrl, type SiteDefinition } from "../background/sites";
 
 async function applyLanguage() {
   const { settings } = await chrome.storage.local.get("settings");
@@ -269,3 +272,120 @@ void renderAuth();
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area === "local" && (changes.settings || changes["verbia-auth-token"])) void renderAuth();
 });
+
+// ---- Site access row -------------------------------------------------------
+// Supported sites are optional grants, one site at a time (@see
+// background/sites.ts), and this popup is the only surface that can ask for
+// one: the request has to happen inside a user gesture, and the popup opens
+// from a click on the toolbar icon. The shortcut cannot do it — the background
+// only learns which site a tab is on after an await, and the gesture is spent
+// by then.
+//
+// None of it is required to use Verbia: the shortcut works on any page without
+// a grant. What a grant buys is a panel that is already there when the page
+// loads, instead of one summoned every time.
+/** The site's own mark, or null for a site that ships without artwork. */
+function siteMark(site: SiteDefinition): HTMLImageElement | null {
+  if (!site.logo) return null;
+  const mark = document.createElement("img");
+  mark.className = "site-mark";
+  mark.src = site.logo;
+  mark.alt = "";
+  mark.width = 15;
+  mark.height = 15;
+  // A broken or missing file must not leave a torn-image icon in the card.
+  mark.addEventListener("error", () => mark.remove(), { once: true });
+  return mark;
+}
+
+async function renderSiteAccess() {
+  const row = document.querySelector<HTMLElement>("#site-row");
+  if (!row) return;
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true }).catch(() => []);
+  const site = siteForUrl(tab?.url);
+  const tabId = tab?.id;
+  const pageUrl = tab?.url;
+  // Nothing to offer on a page Verbia does not know — and nothing to read it
+  // with either: without a grant, a tab's URL is only visible to the gesture
+  // that opened this popup.
+  if (!site || tabId === undefined || !pageUrl) {
+    row.hidden = true;
+    return;
+  }
+  const strings = await currentStrings();
+  row.textContent = "";
+  // Per host, not per site: www.reddit.com and old.reddit.com are separate
+  // grants, so the card has to reflect the page the user is actually on
+  // (@see hasPatternAccess).
+  const pattern = grantPatternFor(site, pageUrl);
+  if (pattern && await hasPatternAccess(pattern)) {
+    const state = document.createElement("p");
+    state.className = "site-state";
+    const mark = siteMark(site);
+    if (mark) state.append(mark);
+    state.append(document.createTextNode(`✓ ${new URL(pageUrl).hostname}`));
+    // What is now true, spelled out under the host: "✓" alone says the site is
+    // on without saying what being on means.
+    const note = document.createElement("div");
+    note.className = "site-copy";
+    const noteText = document.createElement("p");
+    noteText.textContent = strings["popup.siteEnabled"]
+      ?? "Enabled — the panel opens by itself when you click into a reply box here.";
+    note.append(noteText);
+    row.append(state, note);
+  } else {
+    // What it does comes first, the button second: on its own, the button said
+    // "enable" without saying what for, and the popup is the only place that
+    // can explain it before the click.
+    const copy = document.createElement("div");
+    copy.className = "site-copy";
+    const title = document.createElement("h2");
+    title.textContent = strings["popup.siteTitle"] ?? "Automatic reply panel";
+    const why = document.createElement("p");
+    why.textContent = strings["popup.siteWhy"]
+      ?? "Once enabled, the reply panel opens by itself when you click into a reply box on this site. The keyboard shortcut works either way.";
+    copy.append(title, why);
+    // Primary style, full width: this card has exactly one action, and the
+    // site's own mark leads its label so the button names the site it applies to.
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "sign-in site-enable";
+    const mark = siteMark(site);
+    if (mark) button.append(mark);
+    button.append(document.createTextNode(strings["popup.enableSite"] ?? "Enable on this site"));
+    button.addEventListener("click", () => { void enableSite(button, site, tabId, pageUrl); });
+    row.append(copy, button);
+  }
+  row.hidden = false;
+}
+
+async function enableSite(button: HTMLButtonElement, site: SiteDefinition, tabId: number, pageUrl: string) {
+  const pattern = grantPatternFor(site, pageUrl);
+  if (!pattern) return;
+  // First statement of this turn of the handler: Chrome only shows the prompt
+  // while the click's gesture is still good, and an await before this spends it.
+  const granted = await chrome.permissions.request({ origins: [pattern] });
+  // A refusal needs no error UI and is no dead end: the button stays, the
+  // shortcut keeps working, and clicking again asks Chrome again.
+  if (!granted) {
+    button.disabled = false;
+    return;
+  }
+  button.disabled = true;
+  // The background registers the script for the page loads that come next
+  // (permissions.onAdded → background/sites.ts). Injecting it here makes the
+  // tab in front of the user work without a reload as well.
+  await chrome.scripting.executeScript({
+    target: { tabId, allFrames: site.allFrames === true },
+    files: ["content.js"]
+  }).catch(() => undefined);
+  await renderSiteAccess();
+}
+
+async function currentStrings(): Promise<Record<string, string>> {
+  const { settings } = await chrome.storage.local.get("settings");
+  const value = (settings ?? DEFAULT_SETTINGS) as typeof DEFAULT_SETTINGS;
+  return UI_STRINGS[resolveUiLang(value.uiLanguage, chrome.i18n.getUILanguage())];
+}
+
+void renderSiteAccess();

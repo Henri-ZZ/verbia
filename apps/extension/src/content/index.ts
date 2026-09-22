@@ -5,7 +5,7 @@ import { OutlookAdapter } from "./adapters/outlook";
 import { QqMailAdapter } from "./adapters/qqmail";
 import { WhatsAppAdapter } from "./adapters/whatsapp";
 import { isSafeEditable, toTarget } from "./editor/editable";
-import { claimPage, dropPanelRoots, frameDocuments, ownsPage, PANEL_ROOT_SELECTOR, unreachableFrame, viewDocument } from "./page-claim";
+import { claimPage, dropOwnPanelRoots, dropPanelRoots, frameDocuments, ownsPage, PANEL_ROOT_SELECTOR, unreachableFrame, viewDocument } from "./page-claim";
 import { resolveSiteMode } from "./site-mode";
 import { extensionAlive, uiLanguage } from "../runtime";
 import { VerbiaPanel } from "./ui/panel";
@@ -31,8 +31,15 @@ if (!window.__verbiaLoaded) {
   // shell a dead instance may have left behind (its shadow root is closed, so
   // nothing else can reach it), and claim the page so that instance — and any
   // other copy of Verbia running here — stops acting on a page this one owns.
-  dropPanelRoots();
+  // This document only: a frame does not own the document it is embedded in,
+  // and sweeping up to it deleted the panel the outer instance had just mounted
+  // (@see dropOwnPanelRoots).
+  dropOwnPanelRoots();
   const epoch = claimPage();
+  // A second live instance in the same document (the background injects twice
+  // when the frame-wide attempt is refused) is invisible otherwise: it takes the
+  // page claim and sweeps the panel the first one mounted.
+  console.debug(`[verbia] boot: epoch=${epoch} url=${location.href.slice(0, 60)} top=${window === window.top}`);
   const isCurrent = () => ownsPage(epoch);
   const reddit = new RedditAdapter();
   const gmail = new GmailAdapter();
@@ -203,6 +210,16 @@ if (!window.__verbiaLoaded) {
         if (focusIntent) void panel.unfoldIfCollapsed();
         return true;
       }
+      // The context read above awaited, and ownership can change while it is in
+      // flight: a second instance mounting in the same document (the summon path
+      // injects twice when the frame-wide attempt is refused — see the background)
+      // takes the page and the first instance has to stand down. It used to keep
+      // going and its "last line of defence" below then deleted the panel the
+      // winning instance had just mounted, which leaves the page with none —
+      // a mounted panel that reports success and is gone from the DOM a moment
+      // later (@see page-claim.ts: checked at every entry point, and again after
+      // every await).
+      if (!isCurrent()) return false;
       if (panel) {
         panel.update(target, context, mountAnchor);
       } else {
@@ -248,17 +265,33 @@ if (!window.__verbiaLoaded) {
     // Returns true when a panel was open/opened for this invocation.
     async function activate(stagedSelection?: StagedSelection): Promise<boolean> {
       if (!isCurrent()) return false;
-      // A page can be a set of frames, and a summon reaches every frame at once
-      // while each frame has editors of its own. "Any editor in this document" is
-      // the right answer for a single document and the wrong one here: the reply
-      // box of a legacy webmail sits in a frame next to the message it answers,
-      // and every frame that finds an editor would mount a panel — one per frame.
-      // In a frame set only the editor the user actually touched answers: the one
-      // holding the caret, or the one they last focused in that frame.
-      const frameSet = window !== window.top || !!document.querySelector("iframe, frame");
+      // A summon reaches every frame of a page at once, and each frame has
+      // editors of its own: the reply box of a legacy webmail sits in a frame
+      // next to the message it answers, so "any editor in this document" would
+      // mount one panel per frame. That arbitration therefore applies to a page
+      // that really *is* a set of frames — this document is one of several, or
+      // it is the frameset that holds the others. A single document that merely
+      // *contains* an iframe (an embed, an ad — most sites have one) is not a
+      // frame set, and there the page's own last composer is still the right
+      // answer: reading "contains an iframe" as "is a frame set" silently took
+      // the fallback away from every site with an embed on it.
+      const frameSet = window !== window.top || !!document.querySelector("frameset");
       const element = isSafeEditable(document.activeElement) ? document.activeElement : lastEditable;
-      const fallback = frameSet ? null : site.findComposers().at(-1)?.element ?? null;
+      const composers = frameSet ? [] : site.findComposers();
+      const fallback = composers.at(-1)?.element ?? null;
       const chosen = element && isSafeEditable(element) ? element : fallback;
+      // One line that separates the two ways a summon can come up empty: the
+      // adapter does not recognize the editor on this page (composers=0 — worth
+      // fixing) or it found editors and the summon still aimed elsewhere.
+      console.debug(
+        `[verbia] summon: url=${location.href.slice(0, 80)}`,
+        `active=${document.activeElement?.localName ?? "none"}`,
+        `safe=${isSafeEditable(document.activeElement)}`,
+        `last=${lastEditable?.localName ?? "none"}`,
+        `composers=${composers.length}`,
+        `frameSet=${frameSet}`,
+        `chosen=${chosen?.localName ?? "none"}`
+      );
       if (!chosen) {
         // A frame set gives every frame the same summon, so the frame holding the
         // caret answers it — a toast from each of the others would stack, and would
@@ -278,7 +311,20 @@ if (!window.__verbiaLoaded) {
         await showToastFor("content.toastFocusEditor", "Focus a text editor, then use the Verbia shortcut again.", "info");
         return false;
       }
-      const shown = await showFor(chosen, site, true, stagedSelection);
+      let shown = false;
+      try {
+        shown = await showFor(chosen, site, true, stagedSelection);
+      } catch (error) {
+        // A mounting step that throws used to leave no trace at all, which
+        // makes "the panel did not open" indistinguishable from "no editor was
+        // found" — two very different faults with the same symptom.
+        console.debug("[verbia] summon: mounting threw", error);
+        throw error;
+      }
+      // `current` matters as much as `shown`: an instance that loses the page
+      // claim mid-mount stands down on purpose, and that is invisible from the
+      // outside (@see page-claim.ts).
+      console.debug(`[verbia] summon: panel ${shown ? "shown" : "NOT shown"} for ${chosen.localName}, current=${isCurrent()}`);
       // An explicit summon (shortcut / action) lifts the manual dismissal so
       // auto-open for this editor behaves normally from now on.
       if (shown) dismissedRef = "";

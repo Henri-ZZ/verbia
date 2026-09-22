@@ -116,13 +116,35 @@ export function unreachableFrame(root: Document): Element | null {
   return null;
 }
 
+// Removes panels from this document only, for the boot-time sweep.
+//
+// Ownership is per document (`claimPage`), so an instance in a frame owns that
+// frame and nothing above it. Sweeping the outermost reachable document — which
+// is what dropPanelRoots does, correctly, when an instance is about to replace
+// what stands on the page it owns — is wrong at boot: a frame that boots a
+// moment later (Gmail renders about:blank frames continuously) would reach up
+// and delete the panel the top document's instance had just mounted, leaving a
+// page with no panel at all and no error anywhere.
+export function dropOwnPanelRoots(doc: Document = document): number {
+  let removed = 0;
+  for (const node of Array.from(doc.querySelectorAll(PANEL_ROOT_SELECTOR))) {
+    node.remove();
+    removed += 1;
+  }
+  return removed;
+}
+
 // Removes every panel shell on the page and reports how many there were. The
 // sweep covers the mount document as well as this one: a panel opened from a
-// frame is mounted above it (@see viewDocument).
+// frame is mounted above it (@see viewDocument). Call it only where this
+// instance is entitled to the page it is about to draw on.
 export function dropPanelRoots(doc: Document = document): number {
   let removed = 0;
   for (const target of new Set<Document>([doc, viewDocument()])) {
     for (const node of Array.from(target.querySelectorAll(PANEL_ROOT_SELECTOR))) {
+      // A panel that disappears after mounting has two possible authors — this
+      // sweep, or the page itself pruning a foreign child. The stack is what
+      // tells them apart, and the sweep is the one we can fix.
       node.remove();
       removed += 1;
     }

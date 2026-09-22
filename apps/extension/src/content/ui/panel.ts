@@ -266,6 +266,16 @@ export class VerbiaPanel {
       boxShadow: "0 6px 24px rgba(23,32,25,.22)"
     });
     doc.documentElement.append(this.host);
+    // Which document the shell actually landed in, and whether it is still
+    // there a moment later: "the panel says it mounted" and "there is a panel
+    // on the page" are two different claims, and only the second one is what
+    // the user sees.
+    console.debug(
+      `[verbia] panel mount: doc=${doc === document ? "this" : doc.location.href.slice(0, 60)}`,
+      `connected=${this.host.isConnected}`,
+      `parent=${this.host.parentElement?.localName ?? "none"}`,
+      `inThisDoc=${this.host.ownerDocument === document}`
+    );
     // Prefer the width the browser actually laid out (the clamp above may have
     // shrunk it); keep the default only when the host has no box yet.
     const measured = this.host.getBoundingClientRect().width;
