@@ -24,7 +24,11 @@ export function storeForListing(updateUrl: string | undefined, userAgent: string
   return /Edg\//.test(userAgent) ? "edge" : "chrome";
 }
 
+// Tagged like every other link the dashboard opens, so one rule holds: whatever
+// this page sends out says where it came from. The store itself does not report
+// utm parameters — this is for the surfaces that do (our own pages reached
+// through a redirect, and analytics) and to keep the dashboard's links uniform.
 export function reviewUrl(): string {
   const manifest = chrome.runtime.getManifest();
-  return STORE_URLS[storeForListing(manifest.update_url, navigator.userAgent)];
+  return `${STORE_URLS[storeForListing(manifest.update_url, navigator.userAgent)]}?utm_source=dashboard`;
 }

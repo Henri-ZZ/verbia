@@ -132,20 +132,23 @@ function applyLanguage() {
     const key = el.dataset.i18nPlaceholder ?? "";
     el.placeholder = strings[key] ?? UI_STRINGS.en[key] ?? "";
   }
+  // Only the reply-defaults heading is written from here. These writes go by
+  // index, and the interface section no longer has a heading of its own — leaving
+  // the old [1] pair in place would have stamped “Interface & privacy” onto the
+  // platforms heading, which is the next one this selector finds.
   const sectionHeadings = document.querySelectorAll<HTMLElement>(".settings-section .section-heading h2");
   const sectionDescriptions = document.querySelectorAll<HTMLElement>(".settings-section .section-heading p");
   if (sectionHeadings[0]) sectionHeadings[0].textContent = strings["settings.replyDefaults"] ?? "Reply defaults";
   if (sectionDescriptions[0]) sectionDescriptions[0].textContent = strings["settings.replyDefaultsDesc"] ?? "";
-  if (sectionHeadings[1]) sectionHeadings[1].textContent = strings["settings.interfacePrivacy"] ?? "Interface & privacy";
-  if (sectionDescriptions[1]) sectionDescriptions[1].textContent = strings["settings.interfacePrivacyDesc"] ?? "";
   renderOptions(strings);
 }
 
 // The privacy card's link, the Support card's button and the platforms section's
 // request button all open the same contact page; one builder keeps them from
-// drifting apart.
+// drifting apart — including the utm tag, which marks every one of them as
+// sent from the dashboard rather than from a page on the website.
 function feedbackUrl(): string {
-  return `https://verbia.henriz.dev/${lang === "zh-CN" ? "zh/" : ""}contact?source=settings&version=${encodeURIComponent(chrome.runtime.getManifest().version)}`;
+  return `https://verbia.henriz.dev/${lang === "zh-CN" ? "zh/" : ""}contact?source=settings&utm_source=dashboard&version=${encodeURIComponent(chrome.runtime.getManifest().version)}`;
 }
 
 // Targets that depend on runtime state: which store this copy came from, and the

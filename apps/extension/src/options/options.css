@@ -52,7 +52,6 @@ h2 {
 .account-card,
 .settings-section,
 .advanced,
-.shortcuts-card,
 aside {
   border: 1px solid #dce5db;
   border-radius: 18px;
@@ -291,6 +290,12 @@ select {
   color: #172019;
   font: 14px inherit;
 }
+/* A dropdown is something you click, so it says so on hover — while the text
+   inputs beside it keep the caret. Disabled selects are left out: a hand there
+   would promise a click that does nothing. */
+select:not(:disabled) {
+  cursor: pointer;
+}
 input:hover,
 select:hover {
   border-color: #91ae9b;
@@ -338,16 +343,36 @@ select {
   margin-top: 8px;
   font-size: 12px;
 }
-.preference-row {
+/* Two settings cards side by side — interface language and the keyboard shortcut.
+   They stay separate cards on purpose: the gap between them is the boundary, not
+   whitespace inside one card. Stretching (the grid default) makes the shorter one
+   match the taller, so a row of cards reads as one band instead of two boxes of
+   different heights. */
+.settings-row {
   display: grid;
-  grid-template-columns: 1fr 260px;
-  align-items: center;
-  gap: 30px;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
 }
-.preference-row label {
-  margin: 0;
+.interface-language-card select {
+  /* Keeps the width this control had when it filled a fixed 260px grid column. */
+  width: 100%;
+  max-width: 260px;
+  margin-top: 10px;
+}
+.shortcut-card h2 {
+  /* The card title, set to match the label in the card beside it. */
+  margin: 0 0 7px;
+  font-size: 13px;
+  font-weight: 750;
+}
+/* Parked, not deleted: the telemetry row keeps its elements, so the checkbox is
+   still read and written by the form — only the UI is out of sight. */
+.settings-section .setting-parked {
+  display: none;
 }
 .advanced {
+  /* Sits outside the settings form now, so it carries its own spacing. */
+  margin-top: 16px;
   overflow: hidden;
 }
 .advanced summary {
@@ -404,16 +429,30 @@ summary:focus-visible {
   width: 14px;
   height: 14px;
 }
-.support-grid {
+/* Each point is a lead line plus a sentence, so the card reads as statements
+   rather than as a list of links. The card itself is a disclosure like Advanced
+   (@see .advanced), open by default. */
+.privacy-points {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-top: 16px;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.privacy-points strong {
+  display: block;
+  color: #172019;
+  font-size: 13px;
+}
+.privacy-points p {
+  margin: 3px 0 0;
+  color: #66736a;
+  font-size: 12px;
+  line-height: 1.6;
 }
 .platforms-section {
   margin-top: 16px;
 }
-.shortcuts-card,
 aside {
   padding: 18px 20px;
 }
@@ -465,8 +504,7 @@ aside p {
     text-align: left;
   }
   .grid,
-  .support-grid,
-  .preference-row,
+  .settings-row,
   .signed-out-layout,
   .account-signed-in {
     grid-template-columns: 1fr;
@@ -849,6 +887,12 @@ input[type="checkbox"]:focus-visible {
 /* Closing block, set off from the list by the same hairline the Support card
    draws between its rows. */
 .platform-footer {
+  /* One line, not two: the note and the request are the same closing thought,
+     so they share a row. Wrapping stays allowed — some languages run long. */
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
   margin-top: 18px;
   border-top: 1px solid #e5ebe5;
   padding-top: 14px;
@@ -870,6 +914,12 @@ input[type="checkbox"]:focus-visible {
   color: #66736a;
   font-size: 12px;
   line-height: 1.5;
+}
+
+/* Beside the note it shares a baseline with, the request keeps no top margin
+   (it only had one while it stacked below the note). */
+.platform-footer .platform-request {
+  margin: 0;
 }
 
 /* The shared contact link carries a top margin for standalone use; inline in
