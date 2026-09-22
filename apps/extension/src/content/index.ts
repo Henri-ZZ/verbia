@@ -5,7 +5,7 @@ import { OutlookAdapter } from "./adapters/outlook";
 import { QqMailAdapter } from "./adapters/qqmail";
 import { WhatsAppAdapter } from "./adapters/whatsapp";
 import { isSafeEditable, toTarget } from "./editor/editable";
-import { claimPage, dropPanelRoots, ownsPage, PANEL_ROOT_SELECTOR, viewDocument } from "./page-claim";
+import { claimPage, dropPanelRoots, frameDocuments, ownsPage, PANEL_ROOT_SELECTOR, unreachableFrame, viewDocument } from "./page-claim";
 import { resolveSiteMode } from "./site-mode";
 import { extensionAlive, uiLanguage } from "../runtime";
 import { VerbiaPanel } from "./ui/panel";
@@ -260,10 +260,21 @@ if (!window.__verbiaLoaded) {
       const fallback = frameSet ? null : site.findComposers().at(-1)?.element ?? null;
       const chosen = element && isSafeEditable(element) ? element : fallback;
       if (!chosen) {
-        // Silence rather than a toast: in a frame set another frame may be the one
-        // answering this summon, and "focus a text editor" from a frame that has
-        // no editor would land over the wrong part of the page.
-        if (frameSet) return false;
+        // A frame set gives every frame the same summon, so the frame holding the
+        // caret answers it — a toast from each of the others would stack, and would
+        // contradict the panel that just opened. The top frame speaks for the page,
+        // and only when no reachable document holds the caret in an editor: staying
+        // silent there is how "this page is not supported" and "Verbia is broken"
+        // come to look the same to the user.
+        if (frameSet && (window !== window.top || frameDocuments(document).some(doc => isSafeEditable(doc.activeElement)))) return false;
+        // Two failures that look alike until they are said out loud, and only the
+        // second one has a path forward the user can take: the caret is in a frame
+        // from another origin, which no script of ours can enter, so the selection
+        // route is the one that works (@see the context menu).
+        if (window === window.top && unreachableFrame(document)) {
+          await showToastFor("content.toastEditorUnreachable", "That editor is in a frame from another site, which Verbia can't enter. Select the text you're answering, then right-click → Add to Verbia context.", "info");
+          return false;
+        }
         await showToastFor("content.toastFocusEditor", "Focus a text editor, then use the Verbia shortcut again.", "info");
         return false;
       }

@@ -1,13 +1,13 @@
 import type { ContextEnvelope, ContextExtractionRequest, ContextExtractionResponse, EditableTarget, GenerateReplyRequest, GenerateReplyResponse, ReplyStreamEvent, SiteAdapter, UiLang, UserSettings } from "@verbia/shared";
 import { DEFAULT_SETTINGS, LENGTH_VALUES, REPLY_LANGUAGE_OPTIONS, TONE_VALUES, UI_STRINGS, isRtl, resolveUiLang, voiceTagFor } from "@verbia/shared";
-import { readEditable } from "../editor/editable";
-import { COLLECTOR_VERSION, collectLocalContext, collectProvidedRegion, regionFingerprint, type CollectedContext } from "../context/collector";
+import { isSafeEditable, readEditable } from "../editor/editable";
+import { COLLECTOR_VERSION, collectLocalContext, collectProvidedRegion, regionFingerprint, type CollectedContext, type ReadPath } from "../context/collector";
 import { isMailSite, type SiteMode } from "../site-mode";
 import { contextFromExtraction } from "../context/mapping";
 import { extensionVersion, runtimeUrl, sendToBackground, uiLanguage } from "../../runtime";
 import { msgColor, msgIcon, type MsgKind } from "../../ui/message";
 import { ProgressiveTextRenderer } from "./progressive-text";
-import { rectIn, viewDocument } from "../page-claim";
+import { frameDocuments, rectIn, viewDocument } from "../page-claim";
 
 // Every background reply is an ExtensionResponse; each caller knows which
 // `data` variant it asked for, so it narrows the union locally instead of
@@ -84,6 +84,13 @@ export class VerbiaPanel {
   // reads, what the last answer said, and the region that answer was about.
   private identify: "idle" | "loading" | "done" | "failed" = "idle";
   private identifyMessage = "";
+  // The editor's own reason for refusing an insert, kept for the diagnostics rather
+  // than shown: it is one sentence from the code, in English only, and a product that
+  // speaks 31 languages cannot drop it into the middle of a localized status line.
+  private insertReason = "";
+  // Which pass read the context currently on screen: reported with a failure, and
+  // sent with the request that identifies it (@see ReadPath).
+  private readPath: ReadPath = "local";
   // True while the second, wider read is in flight: the same wait, labelled as
   // reading further out (@see identifyContext).
   private identifyWidening = false;
@@ -544,6 +551,7 @@ export class VerbiaPanel {
     if (action === "append" || action === "replace") void this.insert(action);
     if (action === "choice-cancel") this.el("insert-choice")?.classList.add("hidden");
     if (action === "copy") void this.copy();
+    if (action === "copy-details") void this.copyDetails();
     if (action === "record") this.toggleRecording();
     if (action === "more-languages") this.openLanguagePicker();
     if (action === "close-language-dialog") this.root.querySelector<HTMLDialogElement>(".language-dialog")?.close();
@@ -692,22 +700,56 @@ export class VerbiaPanel {
       const insert = this.action("insert");
       if (insert) { insert.disabled = true; insert.textContent = this.t("panel.inserted"); }
     }
-    else { this.phase = "error"; this.status(`${result.reason ? `${result.reason} ` : this.t("panel.status.insertFailed")} ${this.t("panel.status.copyInstead")}`, "error"); }
+    else {
+      this.phase = "error";
+      this.insertReason = result.reason ?? "";
+      this.status(`${this.t("panel.status.insertFailed")} — ${this.t("panel.status.copyInstead")}`, "error");
+    }
   }
 
   private async copy() {
     const draft = this.el<HTMLTextAreaElement>("draft")?.value ?? "";
-    // The clipboard is asked of the document the panel is mounted in, not of this
-    // one: the async API only answers the document that has focus, and when the
-    // editor lives in a frame the panel is a document above the script — clicking it
-    // moves focus out of this frame, and the write would be refused for a reason the
-    // user cannot see or fix.
-    const view = this.host.ownerDocument.defaultView ?? window;
-    try { await view.navigator.clipboard.writeText(draft); this.status(this.t("panel.status.copied"), "success"); return; }
-    catch { /* fall through to the legacy path */ }
-    if (copyViaSelection(draft, this.host.ownerDocument)) { this.status(this.t("panel.status.copied"), "success"); return; }
+    if (await this.writeClipboard(draft)) { this.status(this.t("panel.status.copied"), "success"); return; }
     this.el<HTMLTextAreaElement>("draft")?.select();
     this.status(this.t("panel.status.copyManual"), "error");
+  }
+
+  // The clipboard is asked of the document the panel is mounted in, not of this one:
+  // the async API only answers the document that has focus, and when the editor lives
+  // in a frame the panel is a document above the script — clicking it moves focus out
+  // of this frame, and the write would be refused for a reason the user cannot see or
+  // fix. The legacy path is answered by the document that holds the selection, and
+  // that is the panel's own document too (@see copyViaSelection).
+  private async writeClipboard(text: string): Promise<boolean> {
+    const view = this.host.ownerDocument.defaultView ?? window;
+    try { await view.navigator.clipboard.writeText(text); return true; }
+    catch { /* the legacy path below */ }
+    return copyViaSelection(text, this.host.ownerDocument);
+  }
+
+  private async copyDetails() {
+    if (await this.writeClipboard(this.diagnostics())) this.status(this.t("panel.status.copied"), "success");
+  }
+
+  // The shape of the page a failure happened on: frames, what each one holds, how the
+  // context was read. Deliberately no page text — a report about a mail page must not
+  // carry the mail — which is also why it is a shape and not a dump.
+  private diagnostics(): string {
+    const view = viewDocument();
+    const documents = frameDocuments(view);
+    const rows = documents.map((doc, index) => {
+      const href = (() => { try { return doc.location.href.replace(/[?#].*$/, "").slice(0, 80) || "about:blank"; } catch { return "(unreachable)"; } })();
+      const editables = Array.from(doc.querySelectorAll("textarea, input, [contenteditable='true'], [contenteditable='plaintext-only']")).filter(isSafeEditable).length;
+      const panel = doc.querySelector("[data-verbia-root='true']") ? "yes" : "no";
+      return `  [${index}] ${href} · editables ${editables} · panel ${panel}`;
+    });
+    return [
+      `Verbia ${extensionVersion()} · ${this.adapter.id} · ${this.mode} · ${window === window.top ? "top frame" : "sub-frame"}`,
+      `page ${location.hostname} · frames ${documents.length}`,
+      ...rows,
+      `context ${this.context.relation} · ${this.contextText().length} chars · read ${this.readPath} · identify ${this.identify}`,
+      `insert ${this.target.kind}${this.insertReason ? ` · ${this.insertReason}` : ""}`
+    ].join("\n");
   }
 
   private toggleRecording() {
@@ -813,6 +855,7 @@ export class VerbiaPanel {
     // identify, and asking a model about a compose form would only invent one.
     // Logged, because a silent no-request failure is indistinguishable from a
     // broken endpoint.
+    this.readPath = collected.readPath ?? "local";
     if (!collected.replyDetected) {
       console.warn("[verbia] no conversation found above the reply box");
       this.setIdentify("failed", this.t("context.identifyFailed"));
@@ -833,6 +876,7 @@ export class VerbiaPanel {
     // the text by hand, and costs nothing else — nothing is recorded until an answer
     // survives grounding (@see record_generation_quota).
     const wider = first.retryable && !hinted ? collectLocalContext(this.target.element, { widen: true }) : null;
+    if (wider) this.readPath = wider.readPath ?? "local";
     if (!wider || wider.text.length < collected.text.length + WIDEN_MIN_GAIN) {
       this.setIdentify("failed", first.message ?? this.t("context.identifyFailed"));
       return;
@@ -857,7 +901,7 @@ export class VerbiaPanel {
       siteMode: this.mode,
       page: { urlOrigin: location.origin, locale: document.documentElement.lang || undefined },
       collected: { text: collected.text, truncated: collected.truncated, nodeCount: collected.nodeCount },
-      client: { extensionVersion: extensionVersion(), collectorVersion: COLLECTOR_VERSION }
+      client: { extensionVersion: extensionVersion(), collectorVersion: COLLECTOR_VERSION, readPath: this.readPath }
     };
     let response: Reply<ContextExtractionResponse> | undefined;
     try {
@@ -1012,6 +1056,17 @@ export class VerbiaPanel {
     }
     el.append(msgIcon(kind, 14), document.createTextNode(message));
     el.style.color = msgColor(kind);
+    // A failure offers the page's shape for a report: the reason is already on the
+    // line, and one click puts the rest on the clipboard (@see diagnostics). Styled
+    // inline so the panel's sheet does not have to know about a one-off control.
+    if (kind === "error") {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.dataset.action = "copy-details";
+      button.textContent = this.t("panel.copyDetails");
+      Object.assign(button.style, { margin: "0 0 0 6px", padding: "0", border: "0", background: "transparent", color: "inherit", font: "inherit", textDecoration: "underline", cursor: "pointer" });
+      el.append(button);
+    }
   }
   // The right-click menu ("Add to Verbia context") fired while this panel is
   // mounted on the page. Adopt the selection as the context's selectedText —

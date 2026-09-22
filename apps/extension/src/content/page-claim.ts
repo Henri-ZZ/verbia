@@ -58,8 +58,8 @@ export function ownsPage(epoch: number, doc: Document = document): boolean {
 // is. Same-origin access is what lets the panel be mounted further up — a
 // cross-origin ancestor ends the walk, and the frame we are in is then the whole
 // page as far as this instance can tell.
-export function viewDocument(): Document {
-  let doc = document;
+export function viewDocument(from: Document = document): Document {
+  let doc = from;
   for (;;) {
     const win = doc.defaultView;
     if (!win || win === win.top) return doc;
@@ -84,6 +84,36 @@ export function rectIn(host: Document, element: Element): DOMRect {
     win = frame.ownerDocument?.defaultView ?? null;
   }
   return rect;
+}
+
+// Every reachable document in a document's frame tree, the one given first. A page
+// can be a set of frames, and what a summon means depends on where the caret is in
+// that tree (@see the panel's diagnostics and the content script's summon).
+export function frameDocuments(root: Document): Document[] {
+  const out: Document[] = [root];
+  for (const frame of Array.from(root.querySelectorAll("iframe, frame"))) {
+    const inner = (frame as HTMLIFrameElement).contentDocument;
+    if (inner) out.push(...frameDocuments(inner));
+  }
+  return out;
+}
+
+// The frame the caret is in when no script may enter it: another origin owns it, so
+// nothing this extension does will reach its editor, and the only path left is the
+// selection route the context menu already offers (@see the summon in
+// content/index.ts). Null when the caret is in reachable territory — where the
+// answer is "keep looking", not "give up".
+export function unreachableFrame(root: Document): Element | null {
+  for (const doc of frameDocuments(root)) {
+    const active = doc.activeElement;
+    if (!active || (active.localName !== "iframe" && active.localName !== "frame")) continue;
+    try {
+      if (!(active as HTMLIFrameElement).contentDocument) return active;
+    } catch {
+      return active;
+    }
+  }
+  return null;
 }
 
 // Removes every panel shell on the page and reports how many there were. The

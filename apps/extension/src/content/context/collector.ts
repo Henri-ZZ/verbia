@@ -16,7 +16,16 @@
 
 // Reported with every extraction request so a change in what the collector hands
 // over can be told apart from a change in what the model does with it.
+import type { READ_PATH_VALUES } from "@verbia/shared";
+
 export const COLLECTOR_VERSION = "1.0.0";
+
+// Which pass produced the text a caller is holding. The collector tries several in
+// order — the editor's own document, a wider read of it, the quote a reply carries
+// inside the box, then the same read anchored at each frame level above — and a
+// caller cannot tell them apart from the text alone. A label, never page text, and
+// derived from the list the wire format uses so the two cannot drift.
+export type ReadPath = (typeof READ_PATH_VALUES)[number];
 
 export type CollectedContext = {
   /** The region's text, in document order, with chrome removed. */
@@ -36,6 +45,8 @@ export type CollectedContext = {
    *  that renders the message in a frame is the ordinary case, and this is the
    *  count that says whether the region had one (@see frameText). */
   frames: number;
+  /** Which pass read this text (@see ReadPath). */
+  readPath?: ReadPath;
 };
 
 const MAX_CHARS = 6_000;
@@ -236,7 +247,8 @@ export function collectProvidedRegion(text: string, truncated: boolean): Collect
     nodeCount: 0,
     stripped: 0,
     // The adapter read the text itself; there is no frame in this path.
-    frames: 0
+    frames: 0,
+    readPath: "adapter"
   };
 }
 
@@ -322,7 +334,7 @@ function countTextCarriers(scope: HTMLElement): number {
 // holds and nothing that belongs to the box being written in.
 export function collectLocalContext(editor: HTMLElement, options: { maxChars?: number; widen?: boolean } = {}): CollectedContext {
   const local = collectedAround(editor, options);
-  if (local.replyDetected) return local;
+  if (local.replyDetected) return { ...local, readPath: options.widen ? "wide" : "local" };
   // Nothing reads as a conversation at the boundary the first pass drew. Before
   // reporting that there is no mail here, look further out: a boundary based on
   // "the row above the box holds text" lands short whenever the message sits in a
@@ -330,7 +342,7 @@ export function collectLocalContext(editor: HTMLElement, options: { maxChars?: n
   // table-based webmail. Climbing is a read, not a model call, so it costs a wait
   // rather than a request.
   const wider = options.widen ? local : collectedAround(editor, { ...options, widen: true });
-  if (wider.replyDetected) return wider;
+  if (wider.replyDetected) return { ...wider, readPath: "wide" };
   // A reply can carry the message it answers inside the box itself — that is where a
   // quote goes — so the box is read before the walk up the frames begins.
   const quoted = collectQuotedInBox(editor, options.maxChars ?? MAX_CHARS);
@@ -347,11 +359,11 @@ export function collectLocalContext(editor: HTMLElement, options: { maxChars?: n
   // reading the page around it would hand the model the surrounding document.
   for (let anchor = frameAnchor(editor); anchor; anchor = frameAnchor(anchor)) {
     const above = collectedAround(anchor, options);
-    if (above.replyDetected && above.text.length >= CLIMB_FLOOR) return above;
+    if (above.replyDetected && above.text.length >= CLIMB_FLOOR) return { ...above, readPath: "up" };
     const aboveWider = options.widen ? above : collectedAround(anchor, { ...options, widen: true });
-    if (aboveWider.replyDetected && aboveWider.text.length >= CLIMB_FLOOR) return aboveWider;
+    if (aboveWider.replyDetected && aboveWider.text.length >= CLIMB_FLOOR) return { ...aboveWider, readPath: "up" };
   }
-  return local;
+  return { ...local, readPath: options.widen ? "wide" : "local" };
 }
 
 // A read taken further up the frame tree passes a page's own chrome on its way: a
@@ -380,7 +392,8 @@ function collectQuotedInBox(editor: HTMLElement, maxChars: number): CollectedCon
     replyDetected: true,
     nodeCount: 0,
     stripped: 0,
-    frames: 0
+    frames: 0,
+    readPath: "quoted"
   };
 }
 

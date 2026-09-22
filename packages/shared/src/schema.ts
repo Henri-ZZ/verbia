@@ -96,6 +96,15 @@ export const replyStreamEventSchema = z.discriminatedUnion("type", [
 export const extractionTaskSchema = z.enum(["compose", "reply", "reply_all", "forward", "unknown"]);
 export const extractionWarningSchema = z.enum(["subject_not_found", "sender_not_found", "sender_name_not_found", "no_current_message"]);
 
+// Which pass of the collector produced the region a request carries. Declared here
+// because the field goes over the wire, and the extension derives its own type from
+// this list (@see ReadPath in the collector) so the two cannot drift.
+//
+// A label, never page text. Aggregated, it is what answers "how often is the
+// ordinary read the one that worked": a fallback becoming the common case is the
+// signal that the boundary rules are wrong for the shapes people actually use.
+export const READ_PATH_VALUES = ["local", "wide", "quoted", "up", "adapter"] as const;
+
 export const contextExtractionRequestSchema = z.object({
   requestId: z.string().uuid(),
   schemaVersion: z.literal("1"),
@@ -110,7 +119,13 @@ export const contextExtractionRequestSchema = z.object({
     truncated: z.boolean(),
     nodeCount: z.number().int().nonnegative().max(10_000)
   }),
-  client: z.object({ extensionVersion: z.string().max(30), collectorVersion: z.string().max(30) })
+  client: z.object({
+    extensionVersion: z.string().max(30),
+    collectorVersion: z.string().max(30),
+    // Optional so a build that predates it still validates — and so a server that has
+    // not been redeployed yet simply drops it (zod strips unknown keys).
+    readPath: z.enum([...READ_PATH_VALUES]).optional()
+  })
 });
 
 export const contextExtractionResponseSchema = z.object({
