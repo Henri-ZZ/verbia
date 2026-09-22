@@ -324,6 +324,24 @@ document.querySelector("#reset")?.addEventListener("click", () => {
   void resetSettings();
 });
 
+// The privacy card is a <details>, and how the user leaves it is remembered. It
+// is a dashboard preference like the interface language rather than a reply
+// setting, so it gets its own storage key instead of a field in `settings` —
+// resetting the settings should not reopen a card the user deliberately closed.
+// The markup ships with `open`, so a first-time visitor sees it expanded and the
+// stored value only ever overrides that.
+const PRIVACY_OPEN_KEY = "dashboardPrivacyOpen";
+const privacyCard = document.querySelector<HTMLDetailsElement>(".privacy-card");
+if (privacyCard) {
+  void chrome.storage.local.get(PRIVACY_OPEN_KEY).then(data => {
+    const stored = data[PRIVACY_OPEN_KEY];
+    if (typeof stored === "boolean") privacyCard.open = stored;
+  }).catch(() => undefined);
+  privacyCard.addEventListener("toggle", () => {
+    void chrome.storage.local.set({ [PRIVACY_OPEN_KEY]: privacyCard.open }).catch(() => undefined);
+  });
+}
+
 async function resetSettings() {
   await chrome.runtime.sendMessage({ type: "RESET_SETTINGS" });
   await load();

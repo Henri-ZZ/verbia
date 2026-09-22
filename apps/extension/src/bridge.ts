@@ -16,16 +16,52 @@ const SIGN_IN_PATHS = ["/account/callback", "/account/verify"];
 const SUPABASE_URL = process.env.SUPABASE_URL ?? "";
 const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_ANON_KEY ?? "";
 
+// Reloading or updating the extension leaves this script orphaned: the APIs are
+// gone, every call to them throws, and the error lands in the *website's* console
+// — where the user cannot act on it and the site's own error reporting sees noise
+// it did not cause. Nothing can be delivered from an orphaned script anyway, so
+// every call below asks this first and quietly does nothing when the answer is no.
+function extensionIsAlive(): boolean {
+  return typeof chrome !== "undefined" && Boolean(chrome.runtime?.id);
+}
+
+function sendToExtension(message: Record<string, unknown>): void {
+  if (!extensionIsAlive()) return;
+  try {
+    void chrome.runtime.sendMessage(message).catch(() => undefined);
+  } catch {
+    // Invalidated between the check and the call.
+  }
+}
+
+type ExtensionMessage = { type?: string; tokenHash?: string };
+type ExtensionMessageListener = (
+  message: ExtensionMessage,
+  sender: chrome.runtime.MessageSender,
+  sendResponse: (response?: unknown) => void
+) => boolean;
+
+function listenForExtensionMessages(listener: ExtensionMessageListener): void {
+  if (!extensionIsAlive()) return;
+  try {
+    chrome.runtime.onMessage.addListener(listener);
+  } catch {
+    // Invalidated between the check and the call.
+  }
+}
+
 document.documentElement.dataset.verbiaExtension = "connected";
-void chrome.storage.local.get("settings").then(({ settings }) => {
-  const preference = settings?.uiLanguage as string | undefined;
-  const browserLanguage = chrome.i18n.getUILanguage().toLowerCase();
-  document.documentElement.dataset.verbiaLocale = preference === "zh-CN" || (preference !== "en" && browserLanguage.startsWith("zh")) ? "zh" : "en";
-  window.dispatchEvent(new CustomEvent("verbia:bridge-ready"));
-}).catch(() => window.dispatchEvent(new CustomEvent("verbia:bridge-ready")));
+if (extensionIsAlive()) {
+  void chrome.storage.local.get("settings").then(({ settings }) => {
+    const preference = settings?.uiLanguage as string | undefined;
+    const browserLanguage = chrome.i18n.getUILanguage().toLowerCase();
+    document.documentElement.dataset.verbiaLocale = preference === "zh-CN" || (preference !== "en" && browserLanguage.startsWith("zh")) ? "zh" : "en";
+    window.dispatchEvent(new CustomEvent("verbia:bridge-ready"));
+  }).catch(() => window.dispatchEvent(new CustomEvent("verbia:bridge-ready")));
+}
 
 window.addEventListener("verbia:open-dashboard", () => {
-  void chrome.runtime.sendMessage({ type: "OPEN_DASHBOARD" });
+  sendToExtension({ type: "OPEN_DASHBOARD" });
 });
 
 window.addEventListener("verbia:sync-extension-session", () => {
@@ -44,7 +80,7 @@ function requestWebSignOut() {
 // this window's website storage starts empty, so both readings below would say
 // "signed out" and sign the user out of the profile they are actually using.
 // Nothing to synchronise here either way: this window is signed out by design.
-if (!chrome.extension.inIncognitoContext) {
+if (extensionIsAlive() && !chrome.extension.inIncognitoContext) {
   // The extension signed out while no page of this website was open.
   void chrome.storage.local.get(WEB_SIGN_OUT_KEY).then(data => {
     if (!data[WEB_SIGN_OUT_KEY]) return;
@@ -59,7 +95,7 @@ if (!chrome.extension.inIncognitoContext) {
   // safe to repeat — there is no marker to fire after the user signs in again.
   try {
     if (!localStorage.getItem(WEB_SESSION_KEY) && !SIGN_IN_PATHS.includes(location.pathname)) {
-      void chrome.runtime.sendMessage({ type: "WEB_SIGNED_OUT" });
+      sendToExtension({ type: "WEB_SIGNED_OUT" });
     }
   } catch {
     // Storage can be unavailable in a partitioned context, and then there is no
@@ -68,7 +104,7 @@ if (!chrome.extension.inIncognitoContext) {
 }
 
 window.addEventListener("verbia:web-signed-out", () => {
-  void chrome.runtime.sendMessage({ type: "WEB_SIGNED_OUT" });
+  sendToExtension({ type: "WEB_SIGNED_OUT" });
 });
 
 async function syncExtensionFromWebsite() {
@@ -83,7 +119,9 @@ async function syncExtensionFromWebsite() {
   }
 }
 
-chrome.runtime.onMessage.addListener((message: { type?: string; tokenHash?: string }, _sender, sendResponse) => {
+// An orphaned script still runs this file top to bottom; there is simply no API
+// left to register with, which is what the wrapper checks for.
+listenForExtensionMessages((message: ExtensionMessage, _sender, sendResponse) => {
   // The extension just signed out: this page follows it out.
   if (message.type === "WEB_SIGN_OUT") {
     requestWebSignOut();
