@@ -308,7 +308,7 @@ export const aroundTheWeb: AroundTheWebEntry[] = [
   {
     name: "SellWithBoost",
     url: "https://sellwithboost.com",
-    icon: "hhttps://sellwithboost.com/badge/listing.svg",
+    icon: "https://sellwithboost.com/badge/listing.svg",
     group: "directories",
     footerBadge: true,
   },
