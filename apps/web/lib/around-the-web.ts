@@ -296,6 +296,15 @@ export const aroundTheWeb: AroundTheWebEntry[] = [
     group: "directories",
     footerBadge: true,
   },
+  {
+    // Badge and link exactly as their snippet hands them out — including the
+    // utm_source, which is how they attribute the referral.
+    name: "KittyLaunch",
+    url: "https://kittylaunch.com/p/verbia?utm_source=badge",
+    icon: "https://kittylaunch.com/api/public/badges/launch_badge.svg?style=pill&theme=light",
+    group: "directories",
+    footerBadge: true,
+  },
 ];
 
 // Entries in display order, grouped only as far as the data justifies it: with a
