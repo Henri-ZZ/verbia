@@ -20,7 +20,11 @@ export const metadata: Metadata = {
   },
   twitter: { card: "summary", title: "Verbia — AI Reply & Writing Assistant", description: "Your intent. The right words." },
   icons: { icon: "/verbia-mark.svg", apple: "/verbia-mark.svg" },
-  other: { "google-site-verification": "xAcO-ctraDUIb4jND6iUlnNowsjS8EyMmHTllYHirZI" }
+  // Site-ownership proofs for the search consoles (Google, Baidu).
+  other: {
+    "google-site-verification": "xAcO-ctraDUIb4jND6iUlnNowsjS8EyMmHTllYHirZI",
+    "baidu-site-verification": "codeva-TV3D248ge"
+  }
 };
 
 export const viewport: Viewport = { themeColor: "#f2fcf4", colorScheme: "light" };
